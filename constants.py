@@ -13,3 +13,6 @@ altitude = 7000  # flying altitude in [m]
 """ Pylon factor is based on estimated and calculated pylon weight 115/90 """
 K_pylon = 1.25  # factor to compensate for underestimating pylon weight
 
+""" value to determine weight of elevators empirically """
+K_weight_h_elevator = 5  # in [kg/m2]
+K_weight_v_elevator = 5  # in [kg/m2]
