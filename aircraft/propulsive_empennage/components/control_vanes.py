@@ -3,6 +3,8 @@ from parapy.geom import *
 from geometry_modules.airfoil_read import Airfoil
 import constants
 import flow_conditions
+from data.read_dat import search_dat_file
+import numpy as np
 
 
 class ControlVanes(GeomBase):
@@ -14,23 +16,81 @@ class ControlVanes(GeomBase):
 
     """Attributes"""
     @Attribute
-    def cv_forces(self):
-        cv_l = 1
-        cv_d = 1
-        cv_t = 1
-        cv_m = 1
-        return cv_l, cv_d, cv_t, cv_m
+    def hcv_forces(self):
+        """ Read coefficients from XFoil run based on alpha NACA0016 """
+        coefficients = search_dat_file("naca0016_inv.dat",
+                                       (flow_conditions.alpha
+                                        + flow_conditions.delta_e))
+
+        s_hcv = self.cv_length * self.cv_chord
+
+        v_cv = 2 * flow_conditions.u_inf
+
+        """ Determine lift forces"""
+        hcv_l = (coefficients[0] * (0.5 * flow_conditions.rho * v_cv ** 2
+                                    * s_hcv)
+                 * np.cos(np.radians(flow_conditions.alpha
+                                     + flow_conditions.delta_e)))
+
+        """ Determine drag forces"""
+        hcv_d = (coefficients[1] * (0.5 * flow_conditions.rho * v_cv ** 2
+                                    * s_hcv)
+                 * np.sin(np.radians(flow_conditions.alpha
+                                     + flow_conditions.delta_e)))
+
+        """ Determine thrust force"""
+        hcv_t = 0  # assume horizontal control vanes do not produce thrust
+
+        """ Determine pitching moment"""
+        hcv_m = (coefficients[2] * (0.5 * flow_conditions.rho * v_cv ** 2
+                                    * s_hcv * self.cv_chord))
+
+        return (np.round(hcv_l, 1), np.round(hcv_d, 1),
+                np.round(hcv_t, 1), np.round(hcv_m, 1))
+
+    @Attribute
+    def vcv_forces(self):
+        """ Read coefficients from XFoil run based on alpha NACA0016 """
+        coefficients = search_dat_file("naca0016_inv.dat",
+                                       flow_conditions.delta_r)
+
+        s_vcv = self.cv_chord * self.cv_length
+
+        v_cv = 2 * flow_conditions.u_inf
+
+        """ Determine lift forces """
+        vcv_l = 0  # assume rudder does not produce lift
+
+        """ Determine drag forces """
+        vcv_d = (coefficients[1] * (0.5 * flow_conditions.rho * v_cv ** 2
+                                    * s_vcv)
+                 * np.sin(np.radians(flow_conditions.delta_r)))
+
+        """ Determine thrust forces """
+        vcv_t = 0  # assume rudder does not produce thrust
+
+        """ Determine pitching moment"""
+        vcv_m = (coefficients[2] * (0.5 * flow_conditions.rho * v_cv ** 2
+                                    * s_vcv * self.cv_chord))
+
+        return (np.round(vcv_l, 1), np.round(vcv_d, 1),
+                np.round(vcv_t, 1), np.round(vcv_m, 1))
 
     @Attribute
     def cv_weight(self):
-        cv_weight = 15 * constants.g
-        return cv_weight
+        hcv_weight = ((self.cv_chord * self.cv_length)
+                      * constants.K_weight_h_elevator * constants.g)
+        vcv_weight = ((self.cv_chord * self.cv_length)
+                      * constants.K_weight_v_elevator * constants.g)
+        return hcv_weight + vcv_weight
 
     @Attribute
     def cv_cog(self):
-        cog_x = 1
-        cog_y = 2
-        cog_z = 3
+        """ Symmetrical airfoil so z=0, symmetrically placed with respect
+        to the y-axis so hence y=0 """
+        cog_x = 0.25 * self.cv_chord  # assume cog to be at 25% of chord
+        cog_y = 0
+        cog_z = 0
         return cog_x, cog_y, cog_z
 
     """Parts"""
