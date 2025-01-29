@@ -1,3 +1,4 @@
+import numpy as np
 from parapy.core import *
 from parapy.geom import *
 from geometry_modules.airfoil_read import Airfoil
@@ -5,16 +6,19 @@ from analysis_modules.aerodynamic import reynolds
 from analysis_modules.ISA import air_density_isa
 import constants
 import flow_conditions
+from data.read_dat import search_dat_file
 
 
 class Pylon(GeomBase):
     """Input section"""
     pylon_airfoil = Input("Naca0006")
-    pylon_length = Input(3)
+    pylon_length = Input(5)
     pylon_chord = Input(0.5)
     pylon_t_c = Input(2)
+    cant_angle = Input(30)
+    duct_diameter = Input(3.6)
 
-    """ reference point """
+    """ Reference point """
     @Part
     def bbox(self):
         return Box(0.1, 0.1, 0.1, color='red')
@@ -22,46 +26,89 @@ class Pylon(GeomBase):
     """Attributes"""
     @Attribute
     def pylon_conditions(self):
-        # pylon reynolds number outside the duct
+        # pylon outside the duct
+        v_out = flow_conditions.u_inf
         pylon_re_out = reynolds(air_density_isa(constants.altitude),
-                                constants.u_inf,
-                                self.pylon_chord)
+                                v_out, self.pylon_chord)
 
-        # pylon reynolds number inside the duct
-        u_prop = 2 * constants.u_inf
+        # pylon inside the duct
+        v_in = 2 * flow_conditions.u_inf
         pylon_re_in = reynolds(air_density_isa(constants.altitude),
-                               u_prop,
-                               self.pylon_chord)
+                               v_in, self.pylon_chord)
 
-        return pylon_re_out, pylon_re_in
-
-    @Attribute
-    def pylon_forces(self):
-        pylon_l = 1
-        pylon_d = 1
-        pylon_t = 1
-        pylon_m = 1
-        return pylon_l, pylon_d, pylon_t, pylon_m
+        return pylon_re_out, pylon_re_in, v_out, v_in
 
     @Attribute
     def area_pylon(self):
-        s_pylon = self.pylon_length * self.pylon_chord
-        return s_pylon
+        """ determine area of the pylon in and outside the duct"""
+        s_pylon_in = self.pylon_chord * self.duct_diameter
+        s_pylon_out = ((self.pylon_length - self.duct_diameter)
+                       * self.pylon_chord)
+
+        return s_pylon_in + s_pylon_out, s_pylon_in, s_pylon_out
+
+    @Attribute
+    def pylon_forces(self):
+        """ Read coefficients corresponding to alpha from polar [-5  to 15]"""
+        coefficient = search_dat_file("naca0012_inv.dat", flow_conditions.alpha)
+
+        """ Determine lift force on the pylon"""
+        pylon_l_in = coefficient[0] * (0.5 * flow_conditions.rho
+                                       * self.pylon_conditions[3] ** 2
+                                       * self.area_pylon[1])
+        pylon_l_out = coefficient[0] * (0.5 * flow_conditions.rho
+                                        * self.pylon_conditions[2] ** 2
+                                        * self.area_pylon[2])
+
+        pylon_l = ((pylon_l_in + pylon_l_out)
+                   * np.cos(np.radians(self.cant_angle))
+                   * np.cos(np.radians(flow_conditions.alpha)))
+
+        """ Determine drag force on the pylon"""
+        pylon_d_in = coefficient[1] * (0.5 * flow_conditions.rho
+                                       * self.pylon_conditions[3] ** 2
+                                       * self.area_pylon[1])
+        pylon_d_out = coefficient[1] * (0.5 * flow_conditions.rho
+                                        * self.pylon_conditions[2] ** 2
+                                        * self.area_pylon[2])
+
+        pylon_d = ((pylon_d_in + pylon_d_out)
+                   * np.sin(np.radians(flow_conditions.alpha)))
+
+        """ Determine thrust force on the pylon"""
+        pylon_t = 0  # Assume not thrust produced on the pylon
+
+        """ Determine moment around the pylon ac"""
+        pylon_m_in = coefficient[2] * (0.5 * flow_conditions.rho
+                                       * self.pylon_conditions[3] ** 2
+                                       * self.area_pylon[1]
+                                       * self.pylon_chord)
+        pylon_m_out = coefficient[2] * (0.5 * flow_conditions.rho
+                                        * self.pylon_conditions[2] ** 2
+                                        * self.area_pylon[2]
+                                        * self.pylon_chord)
+
+        pylon_m = pylon_m_in + pylon_m_out
+
+        return (np.round(pylon_l, 1), np.round(pylon_d, 1),
+                np.round(pylon_t, 1), np.round(pylon_m, 1))
 
     @Attribute
     def pylon_weight(self):
         """ Based on weight approximation treating it as a horizontal
-        stabilizer (Vos, 2018) """
-        pylon_weight = ((self.area_pylon * (3.81 * self.area_pylon ^ 0.2
+        stabilizer (Vos, 2018) multiplied by correction factor found in
+        research Stavreva 2020"""
+
+        pylon_weight = ((self.area_pylon * (3.81 * self.area_pylon ** 0.2
                                             * flow_conditions.V_d - 0.287))
-                        * constants.g)
+                        * constants.g) * constants.K_pylon
         return pylon_weight
 
     @Attribute
     def pylon_cog(self):
-        cog_x = 1
-        cog_y = 2
-        cog_z = 3
+        cog_x = 0.5 * self.pylon_chord
+        cog_y = - 0.5 * self.pylon_length * np.cos(np.radians(self.cant_angle))
+        cog_z = 0.5 * self.pylon_length * np.sin(np.radians(self.cant_angle))
         return cog_x, cog_y, cog_z
 
     """Parts"""
