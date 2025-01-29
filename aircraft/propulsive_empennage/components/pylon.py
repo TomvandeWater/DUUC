@@ -1,6 +1,8 @@
 from parapy.core import *
 from parapy.geom import *
 from geometry_modules.airfoil_read import Airfoil
+from analysis_modules.aerodynamic import reynolds
+from analysis_modules.ISA import air_density_isa
 import constants
 import flow_conditions
 
@@ -12,7 +14,27 @@ class Pylon(GeomBase):
     pylon_chord = Input(0.5)
     pylon_t_c = Input(2)
 
+    """ reference point """
+    @Part
+    def bbox(self):
+        return Box(0.1, 0.1, 0.1, color='red')
+
     """Attributes"""
+    @Attribute
+    def pylon_conditions(self):
+        # pylon reynolds number outside the duct
+        pylon_re_out = reynolds(air_density_isa(constants.altitude),
+                                constants.u_inf,
+                                self.pylon_chord)
+
+        # pylon reynolds number inside the duct
+        u_prop = 2 * constants.u_inf
+        pylon_re_in = reynolds(air_density_isa(constants.altitude),
+                               u_prop,
+                               self.pylon_chord)
+
+        return pylon_re_out, pylon_re_in
+
     @Attribute
     def pylon_forces(self):
         pylon_l = 1

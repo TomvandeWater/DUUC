@@ -35,7 +35,7 @@ class DuctedPropeller(GeomBase):
     """Parts"""
     @Part
     def pylon(self):
-        return Pylon(pass_down="pylon_length, pylon_chord",
+        return Pylon(pass_down="pylon_length, pylon_chord, cant_angle",
                      position=rotate(self.position, 'x',
                                      -self.cant_angle,
                                      deg=True), label='Pylon')
@@ -67,9 +67,11 @@ class DuctedPropeller(GeomBase):
 
     @Part
     def center_body(self):
-        return CenterBody(cb_diameter=self.hub_diameter, cb_length=2.5,
+        return CenterBody(pass_down='duct_diameter, duct_chord',
+                          cb_diameter=self.hub_diameter, cb_length=2.5,
                           position=translate(self.propeller.position,
-                                             'x', -2.5))
+                                             'x', -2.5),
+                          label='Center Body')
 
     @Part
     def duct(self):
