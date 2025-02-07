@@ -1,4 +1,6 @@
 from analysis_modules.aerodynamic import speed_of_sound
+from analysis_modules.ISA import air_density_isa
+import numpy as np
 
 """ Flow parameters """
 rho = 0.125  # air density at sea level [kg/m^3]
@@ -22,11 +24,14 @@ delta_r = 0  # rudder deflection angle [deg]
 
 
 """ print section"""
-print("\n----- Flow parameters:")
-print("Airspeed =", u_inf, "m/s")
-print("Altitude =", altitude, "m")
-print("Mach =", Mach)
-print("\n ----- Angles:")
-print("Angle of Attack:", alpha, "deg")
-print("Elevator deflection", delta_e, "deg")
-print("Rudder deflection", delta_r, "deg")
+print("\n----- Flow parameters -----")
+print("Airspeed =", u_inf, "[m/s]")
+print("Altitude =", altitude, "[m]")
+print("Mach =", np.round(Mach), '[-]')
+print("\n ----- Angles -----")
+print("Angle of Attack:", alpha, "[deg]")
+print("Elevator deflection", delta_e, "[deg]")
+print("Rudder deflection", delta_r, "[deg]")
+print("\n----- ISA calculator -----")
+print(f'Air density =', np.round(air_density_isa(altitude)[0], 3), "[kg/m3]")
+print(f'Air temperature =', np.round(air_density_isa(altitude)[1], 1) , "[K]")
