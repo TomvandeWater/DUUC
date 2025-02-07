@@ -1,35 +1,44 @@
 import os
 import subprocess
 
+input_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
+output_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
+xfoil_path = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules\xfoil.exe"
+
 
 def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach):
-    if os.path.exists("{0}.txt".format(file_name)):
-        os.remove("{0}.txt".format(file_name))
+    os.makedirs(input_folder, exist_ok=True)
+    input_file_path = os.path.join(input_folder, f"{file_name}_input.in")
+    output_file_path = os.path.join(output_folder, f"{file_name}.txt")
 
-    file = open("{0}_input.in".format(file_name), "w")
-    file.write("{0}\n".format(airfoil_name))
-    file.write("Oper\n")
-    file.write("v\n")
-    file.write("{0}\n".format(Re))
-    file.write("mach\n")
-    file.write("{0}\n".format(mach))
-    file.write("PACC\n")
-    file.write("{0}.txt\n\n".format(file_name))
-    file.write("ASeq\n")
-    file.write("{0}\n".format(alpha_i))
-    file.write("{0}\n".format(alpha_f))
-    file.write("{0}\n".format(alpha_step))
-    file.write("\n\n")
-    file.write("quit\n")
-    file.close()
+    if os.path.exists(output_file_path):
+        os.remove(output_file_path)
 
-    # subprocess.call("xfoil.exe < input_file.in>", shell=True)
-    process = subprocess.Popen(["xfoil.exe"], stdin=subprocess.PIPE,
-                               text=True)
-    process.communicate(input=open("{0}_input.in".format(file_name)).read())
-    return print("Airfoil polar has been created for {0}, from {1} to {2} "
-                 "in {3} steps for Reynolds numer {4} and saved in {5}".format(
-                  airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name))
+    with open(input_file_path, "w") as file:
+        file.write(f"{airfoil_name}\n")
+        file.write("Oper\n")
+        file.write("v\n")
+        file.write(f"{Re}\n")
+        file.write("mach\n")
+        file.write(f"{mach}\n")
+        file.write("PACC\n")
+        file.write(f"{output_file_path}\n\n")
+        file.write("ASeq\n")
+        file.write(f"{alpha_i}\n")
+        file.write(f"{alpha_f}\n")
+        file.write(f"{alpha_step}\n")
+        file.write("\n\n")
+        file.write("quit\n")
+        file.close()
+
+    with open(input_file_path, "r") as f:
+        process = subprocess.Popen([xfoil_path], stdin=subprocess.PIPE,
+                                   text=True)
+        process.communicate(input=f.read())
+
+    return print(f"Airfoil polar has been created for {airfoil_name}, from "
+                 f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
+                 f"number {Re} with Mach {mach} and saved in {file_name}.txt")
 
 
 # xfoil_polar("naca0012", 0, 5, 1, 10000, "test", 0.4)
