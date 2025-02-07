@@ -3,7 +3,7 @@ from parapy.geom import *
 from geometry_modules.airfoil_read import Airfoil
 import constants
 import flow_conditions
-from data.read_dat import search_dat_file
+from data.read_data import search_dat_file
 import numpy as np
 
 
