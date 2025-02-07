@@ -1,7 +1,13 @@
+from analysis_modules.aerodynamic import speed_of_sound
+
 """ Flow parameters """
 rho = 0.125  # air density at sea level [kg/m^3]
 airspeed = 148  # [m/s]
-a = 1.2  # speed of sound at sea level [m/s]
+u_inf = 180  # free stream flow velocity [m/s]
+altitude = 7000  # flying altitude in [m]
+
+""" Calculated flow parameters """
+Mach = u_inf / (speed_of_sound(altitude))  # free stream mach number [-]
 
 """ Flight conditions"""
 """ dive speed is now a set number based on Stavreva, could potentially be 
@@ -11,8 +17,16 @@ V_d = 193.2  # dive speed [knots]
 """ alpha must be between -5 and 15 otherwise there will be issues with pylon 
 forces """
 alpha = 5  # angle of attack [deg]
-Mach = 0.4  # free stream mach number [-]
-Re = 100000  # Reynolds number [-]
-u_inf = 180  # free stream flow velocity [m/s]
-delta_e = 1  # elevator deflection angle [deg]
+delta_e = 0  # elevator deflection angle [deg]
 delta_r = 0  # rudder deflection angle [deg]
+
+
+""" print section"""
+print("\n----- Flow parameters:")
+print("Airspeed =", u_inf, "m/s")
+print("Altitude =", altitude, "m")
+print("Mach =", Mach)
+print("\n ----- Angles:")
+print("Angle of Attack:", alpha, "deg")
+print("Elevator deflection", delta_e, "deg")
+print("Rudder deflection", delta_r, "deg")
