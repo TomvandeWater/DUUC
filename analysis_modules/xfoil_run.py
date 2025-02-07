@@ -2,7 +2,7 @@ import os
 import subprocess
 
 input_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
-output_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
+output_folder = r"C:\Users\tomva\pythonProject\DUUC\data\Polars"
 xfoil_path = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules\xfoil.exe"
 
 
