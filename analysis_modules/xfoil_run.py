@@ -42,5 +42,5 @@ def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach)
                  f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
                  f"number {Re} with Mach {mach} and saved in {file_name}.txt")
 
-
+""" Test test if wanted - outdated"""
 # xfoil_polar("naca0012", 0, 5, 1, 10000, "test", 0.4)
