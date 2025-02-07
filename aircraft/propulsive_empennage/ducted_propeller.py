@@ -3,7 +3,7 @@ from parapy.geom import *
 from aircraft.propulsive_empennage.components.pylon import Pylon
 from aircraft.propulsive_empennage.components.duct import Duct
 from aircraft.propulsive_empennage.components.control_vanes import ControlVanes
-from aircraft.propulsive_empennage.propeller import Propeller
+from aircraft.propulsive_empennage.components.propeller import Propeller
 from aircraft.propulsive_empennage.components.center_body import CenterBody
 import numpy as np
 
@@ -35,7 +35,8 @@ class DuctedPropeller(GeomBase):
     """Parts"""
     @Part
     def pylon(self):
-        return Pylon(pass_down="pylon_length, pylon_chord, cant_angle",
+        return Pylon(pass_down="pylon_length, pylon_chord, cant_angle, "
+                               "duct_diameter",
                      position=rotate(self.position, 'x',
                                      -self.cant_angle,
                                      deg=True), label='Pylon')
