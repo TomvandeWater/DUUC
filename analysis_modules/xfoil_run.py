@@ -33,10 +33,12 @@ def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach)
 
     with open(input_file_path, "r") as f:
         process = subprocess.Popen([xfoil_path], stdin=subprocess.PIPE,
+                                   stdout=subprocess.DEVNULL,
                                    text=True)
         process.communicate(input=f.read())
 
-    return print(f"Airfoil polar has been created for {airfoil_name}, from "
+    return print(f"\n----- Xfoil output for {file_name}\n"
+                 f"Airfoil polar has been created for {airfoil_name}, from "
                  f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
                  f"number {Re} with Mach {mach} and saved in {file_name}.txt")
 
