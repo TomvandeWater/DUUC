@@ -1,5 +1,6 @@
 import os
 import subprocess
+import numpy as np
 
 input_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
 output_folder = r"C:\Users\tomva\pythonProject\DUUC\data\Polars"
@@ -40,7 +41,8 @@ def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach)
     return print(f"\n----- Xfoil output for {file_name}\n"
                  f"Airfoil polar has been created for {airfoil_name}, from "
                  f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
-                 f"number {Re} with Mach {mach} and saved in {file_name}.txt")
+                 f"number {np.round(Re)} with Mach {np.round(mach, 2)} "
+                 f"and saved in {file_name}.txt")
 
 """ Test test if wanted - outdated"""
 # xfoil_polar("naca0012", 0, 5, 1, 10000, "test", 0.4)
