@@ -1,6 +1,6 @@
 from parapy.core import *
 from parapy.geom import *
-from aircraft.propulsive_empennage.components.propeller_blade import PropellerBlade
+from aircraft.propulsive_empennage.components_visualisation.propeller_blade import PropellerBlade
 import numpy as np
 import constants
 
