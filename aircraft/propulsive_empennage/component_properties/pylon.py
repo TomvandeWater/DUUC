@@ -1,6 +1,5 @@
 import numpy as np
 from analysis_modules.aerodynamic import lift, drag, moment
-from analysis_modules.ISA import air_density_isa
 import constants
 import flow_conditions
 from data.read_data import airfoil_polar
@@ -24,7 +23,7 @@ class Pylon:
     and potentially also affected by the downwash of the wing."""
 
     @staticmethod
-    def inflow_speed():
+    def inflow_velocity():
         u_pylon = flow_conditions.u_inf * 1.25
         return u_pylon
 
@@ -45,30 +44,50 @@ class Pylon:
         cm = float(coeff[3])
         return cl, cd, cm
 
-    def lift(self):
-        l_pylon = lift(self.coefficients()[0],
-                       air_density_isa(flow_conditions.altitude)[0],
-                       self.inflow_speed(), self.area())
-        print(f"Lift = {np.round(l_pylon, 1)} [N]")
-        return l_pylon
+    def airfoil_lift(self):
+        l_airfoil = lift(self.coefficients()[0], flow_conditions.rho, self.inflow_velocity(),
+                         self.area())
 
-    def drag(self):
-        d_pylon = drag(self.coefficients()[1],
-                       air_density_isa(flow_conditions.altitude)[0],
-                       self.inflow_speed(), self.area())
-        print(f"Drag = {np.round(d_pylon,1)} [N]")
-        return d_pylon
+        return l_airfoil
 
-    @staticmethod
-    def thrust():
-        t_pylon = 0
-        print(f"Thrust = {t_pylon} [N]")
-        return t_pylon
+    def airfoil_drag(self):
+        d_airfoil = drag(self.coefficients()[1], flow_conditions.rho, self.inflow_velocity(),
+                         self.area())
+        return d_airfoil
+
+    def fx(self):
+        """ Correct for angle of attack """
+        fx_pylon = (self.airfoil_lift() * np.sin(np.radians(self.alpha))
+                    + self.airfoil_drag() * np.cos(np.radians(self.alpha)))
+
+        if fx_pylon >= 0:
+            print(f"Drag = {np.round(fx_pylon,1)} [N]")
+        else:
+            print(f"Thrust = {np.round(fx_pylon, 1)} [N]")
+        return fx_pylon
+
+    def fy(self):
+        """ Correct for angle of attack, then break down for cant angle"""
+        fz = (self.airfoil_lift() * np.cos(np.radians(self.alpha)) -
+              self.airfoil_drag() * np.sin(np.radians(self.alpha)))
+
+        fy_pylon = fz * np.sin(np.radians(self.cant_angle))
+        print(f"Side force = {np.round(fy_pylon,1)} [N]")
+        return fy_pylon
+
+    def fz(self):
+        """ Correct for angle of attack, then break down for cant angle"""
+        fz = (self.airfoil_lift() * np.cos(np.radians(self.alpha)) -
+              self.airfoil_drag() * np.sin(np.radians(self.alpha)))
+
+        fz_pylon = fz * np.cos(np.radians(self.cant_angle))
+        print(f"Lift = {np.round(fz_pylon,1)} [N]")
+        return fz_pylon
 
     def moment(self):
         pitching_moment = moment(self.coefficients()[2],
-                                 air_density_isa(flow_conditions.altitude)[0],
-                                 self.inflow_speed(), self.area(),
+                                 flow_conditions.rho,
+                                 self.inflow_velocity(), self.area(),
                                  self.pylon_chord)
         print(f"Moment = {np.round(pitching_moment, 1)} [Nm]")
         return pitching_moment
