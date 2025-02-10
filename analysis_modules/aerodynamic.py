@@ -3,27 +3,27 @@ import numpy as np
 from analysis_modules.ISA import air_density_isa
 
 
-def reynolds(isa_input, u, char_len, component):
+def reynolds(isa_input, u, char_len):
     rho = isa_input[0]
     temperature = isa_input[1]
     if rho == 1.225:
         re = (rho * u * char_len) / constants.mu_air
-        print("\n----- Reynolds number calculator -----")
-        print(f'Kinematic viscosity of the air =',
-              np.round(constants.mu_air, 5), '[m^2/s]')
-        print(f'Reynolds numer is of {component} =', np.round(re, 0),
-              '[-]')
+        # print("\n----- Reynolds number calculator -----")
+        # print(f'Kinematic viscosity of the air =',
+        # np.round(constants.mu_air, 5), '[m^2/s]')
+        # print(f'Reynolds numer is of {component} =', np.round(re, 0),
+        # '[-]')
         return re
     else:
         # Sutherland formula for dynamic viscosity
         mu = constants.mu_air * ((temperature / 288.15) ** 1.5) * (
                     (288.15 + 110) / (temperature + 110))
-        print("\n----- Reynolds number calculator -----")
-        print(f'Kinematic viscosity of the air =', np.round(mu, 5),
-              '[m^2/s]')
+        # print("\n----- Reynolds number calculator -----")
+        # print(f'Kinematic viscosity of the air =', np.round(mu, 5),
+        # '[m^2/s]')
         re = (rho * u * char_len) / mu
-        print(f'Reynolds number of {component} is =', np.round(re, 0),
-              '[-]')
+        # print(f'Reynolds number of {component} is =', np.round(re, 0),
+        # '[-]')
         return re
 
 
