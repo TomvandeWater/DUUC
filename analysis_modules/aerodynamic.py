@@ -56,3 +56,18 @@ def moment(cm, rho, speed, area, chord):
 
     return pitching_moment
 
+
+def c_root(area, span, taper_ratio):
+    c_root_val = (2 * area) / (span * (1 + taper_ratio))
+    return c_root_val
+
+
+def c_tip(c_root_val, taper_ratio):
+    c_tip_val = c_root_val * taper_ratio
+    return c_tip_val
+
+
+def drag_zero_lift(cf, ffc, qc, s_ratio):
+    cd_0 = cf * ffc * qc * s_ratio
+    return cd_0
+
