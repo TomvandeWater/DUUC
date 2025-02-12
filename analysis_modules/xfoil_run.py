@@ -2,7 +2,7 @@ import os
 import subprocess
 import numpy as np
 
-input_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules"
+input_folder = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules\input_files"
 output_folder = r"C:\Users\tomva\pythonProject\DUUC\data\Polars"
 xfoil_path = r"C:\Users\tomva\pythonProject\DUUC\analysis_modules\xfoil.exe"
 
