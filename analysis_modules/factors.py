@@ -23,7 +23,7 @@ def skin_friction(Re, flow_characteristic):
 
 
 def advance_ratio(airspeed, RPM, fan_diameter):
-    j = airspeed / (RPM/60*fan_diameter)
+    j = airspeed / (RPM / 60 * fan_diameter)
     print("\n----- Advance Ratio:")
     print(f"Advance ratio =", j, "[-]")
     return j
