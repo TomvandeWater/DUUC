@@ -1,0 +1,7 @@
+#compile line for dll
+ifort /exe=dfdcdll /dll *.f ..\plotlib\libPlt.lib gdi32.lib user32.lib /link /NODEFAULTLIB:LIBC.LIB
+
+
+#compile line for driver
+ifort /exe=dfdcdll dfddlldriver.f dfdcdll.lib userio.obj
+

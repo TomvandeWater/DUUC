@@ -1,0 +1,236 @@
+#===========================================
+# Makefile for DFDC ducted fan code
+# Version 0.70 
+#===========================================
+
+PLTLIB = ../plotlib/libPlt.a
+#PLTLIB = ../plotlib/libPltDP.a
+
+SRC = .
+SRC1 = ../src-lib
+SRC2 = ../src-driver
+
+## Basic compiler setup
+AR = ar
+FC = f77
+FFLAGS = -O1 - -C -g
+#FFLAGS = -O1 -r8 -C -g
+LFLAGS = -g
+FTNLIB = 
+LIBS = -lX11
+
+##--------------------------
+## Linux Intel ifort Fortran
+#FC = ifort
+#FFLAGS = -O0 -g
+#FFLAGS = -O3
+#FFLAGS = -O1 -r8 -g
+#LFLAGS =
+#FTNLIB =
+#FTNLIB = -Vaxlib
+#LIBS = -L/usr/X11R6/lib -lX11
+
+##--------------------------
+## Linux GNU g77
+FC = g77
+FFLAGS =  -O3 -fomit-frame-pointer
+LFLAGS =
+#FFLAGS =  -g -O0 -C
+LIBS = -L/usr/X11R6/lib -lX11
+
+##--------------------------
+## Linux GNU gfortran
+#FC = gfortran
+#FFLAGS =  -O3 
+#FFLAGS =  -g -O0 -C
+#LFLAGS =
+#LIBS = -L/usr/X11R6/lib -lX11
+
+##--------------------------
+## Linux pgf77
+#FC = pgf77
+#FFLAGS =  -O -r8 -C -g -Msave
+#LFLAGS =
+#FTNLIB = 
+#LIBS = -g77libs -L/usr/X11R6/lib -lX11
+#LIBS = -L/usr/X11R6/lib -lX11
+
+##--------------------------
+## Tru64 Alpha Fortran
+#FC = f77
+#FFLAGS = -O3 -r8 -align dcommons
+#FFLAGS = -O1 -r8 -g -align dcommons
+#LFLAGS =
+#LIBS = -lX11
+#PLTLIB = ../plotlib/libPltDP.a
+
+##--------------------------
+
+LIBOBJS = \
+adjpanl.o aero.o \
+aic.o airio.o \
+atmo.o \
+dfdcsubs.o forces.o \
+gauss.o geom.o geutil.o \
+grdutils.o  inigrd.o \
+lamp.o plutil.o pnsubs.o \
+qaic.o rotoper.o \
+sgutil.o sgutil2.o \
+solve.o spline.o system.o \
+userio.o \
+vels.o viscvel.o \
+wakesubs.o xutils.o
+
+DLLOBJS = $(LIBOBJS) \
+dfdcgetdll.o dfdcsetdll.o dfdcexecdll.o dfdcloaddll.o
+
+PROGS = dfdcdlltest
+
+DRVROBJS = dfdcdlltest.o airiodll.o useriodll.o
+
+#===========================================================
+
+all:	 $(PROGS)
+
+install: 
+	$(INSTALLCMD) $(PROGS) $(BINDIR)
+
+clean:
+	-/bin/rm $(PROGS)
+	-/bin/rm *.o
+	-/bin/rm plot.ps
+
+cleanall:
+	-/bin/rm $(PROGS)
+	-/bin/rm *.o
+	-/bin/rm *.a
+	-/bin/rm plot.ps
+
+$(SRC1)/DFDC.INC: 
+
+#=========================================================================
+
+dfdcdll.a: $(DLLOBJS) 
+	$(AR) -r dfdcdll.a $(DLLOBJS) 
+
+dfdcdlltest: $(DRVROBJS) dfdcdll.a
+	$(FC) -o dfdcdlltest $(DRVROBJS) dfdcdll.a $(PLTOBJ) $(LIBS) $(PLTLIB) $(LFLAGS)  
+
+#=========================================================================
+# DLL test driver components
+
+dfdcdlltest.o: $(SRC)/dfdcdlltest.F
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/dfdcdlltest.F
+
+airiodll.o: $(SRC)/airiodll.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/airiodll.f
+
+useriodll.o: $(SRC)/useriodll.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/useriodll.f
+
+#=========================================================================
+# DLL interface components
+
+dfdcgetdll.o: $(SRC)/dfdcgetdll.F
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/dfdcgetdll.F
+
+dfdcsetdll.o: $(SRC)/dfdcsetdll.F
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/dfdcsetdll.F
+
+dfdcexecdll.o: $(SRC)/dfdcexecdll.F
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/dfdcexecdll.F
+
+dfdcloaddll.o: $(SRC)/dfdcloaddll.F
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC)/dfdcloaddll.F
+
+#=========================================================================
+# components of LIB
+
+adjpanl.o: $(SRC1)/adjpanl.f $(SRC1)/DFDC.INC 
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/adjpanl.f
+
+aero.o: $(SRC1)/aero.f $(SRC1)/DFDC.INC $(SRC1)/PLOT.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/aero.f
+
+aic.o: $(SRC1)/aic.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/aic.f
+
+airio.o: $(SRC1)/airio.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/airio.f
+
+atmo.o: $(SRC1)/atmo.f 
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/atmo.f
+
+blcalc.o: $(SRC1)/blcalc.f  $(SRC1)/DFDC.INC $(SRC1)/PLOT.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/blcalc.f
+
+dfdcsubs.o: $(SRC1)/dfdcsubs.f $(SRC1)/DFDC.INC $(SRC1)/PLOT.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/dfdcsubs.f
+
+forces.o: $(SRC1)/forces.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/forces.f
+
+gauss.o: $(SRC1)/gauss.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/gauss.f
+
+geom.o: $(SRC1)/geom.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/geom.f
+
+geutil.o: $(SRC1)/geutil.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/geutil.f
+
+grdutils.o: $(SRC1)/grdutils.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/grdutils.f
+
+inigrd.o: $(SRC1)/inigrd.f $(SRC1)/DFDC.INC $(SRC1)/MASKS.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/inigrd.f
+
+lamp.o: $(SRC1)/lamp.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/lamp.f
+
+pane.o: $(SRC1)/pane.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/pane.f
+
+plutil.o: $(SRC1)/plutil.f $(SRC1)/PLOT.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/plutil.f
+
+pnsubs.o: $(SRC1)/pnsubs.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/pnsubs.f
+
+qaic.o: $(SRC1)/qaic.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/qaic.f
+
+rotoper.o: $(SRC1)/rotoper.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/rotoper.f
+
+sgutil.o: $(SRC1)/sgutil.f $(SRC1)/PLOT.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/sgutil.f
+
+sgutil2.o: $(SRC1)/sgutil2.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/sgutil2.f
+
+solve.o: $(SRC1)/solve.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/solve.f
+
+spline.o: $(SRC1)/spline.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/spline.f
+
+system.o: $(SRC1)/system.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/system.f
+
+userio.o: $(SRC1)/userio.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/userio.f
+
+vels.o: $(SRC1)/vels.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/vels.f
+
+viscvel.o: $(SRC1)/viscvel.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/viscvel.f
+
+wakesubs.o: $(SRC1)/wakesubs.f $(SRC1)/DFDC.INC
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/wakesubs.f
+
+xutils.o: $(SRC1)/xutils.f
+	$(FC) -c $(FFLAGS) -I$(SRC1) $(SRC1)/xutils.f
+
+#===========================================================

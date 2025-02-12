@@ -1,0 +1,11 @@
+README for userio.f 
+
+Two versions included, userio1.f userio2.f
+
+The g77 compiler objects to the format statments in userio2.f, the work-around
+is to use userio1.f.
+
+If you have ifort (or other compiler) copy userio2.f to userio.f (or link it)
+If you have g77                       copy userio1.f to userio.f (or link it)
+
+The Makefiles expect a file called userio.f to be in this directory

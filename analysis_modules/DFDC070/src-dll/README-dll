@@ -1,0 +1,57 @@
+DFDC DLL Version 0.70
+
+HHY 11/05  
+
+DFDC0.70 solver, DLL interface
+
+This directory contains a DFDC DLL library and sample driver, as well as 
+several sample test cases.
+
+The directories are:
+
+src-dll  Contains source and object and dfdcdll files (.lib,.dll,.exp)
+         All the interface routines are in the files:
+         dfdcloaddll.F   loads data for geometry, rotor, etc into DFDC
+         dfdcsetdll.F    sets run data in DFDC (RPM, VINF, etc)
+         dfdcgetdll.F    gets data from DFDC for duct, rotor, velocities, etc
+         dfdcexecdll.F   executes DFDC commands to run case, design blade, etc
+
+src-dll  Also contains source, object and executable for a sample driver 
+         for the DFDC DLL.  The executable is called dfdcdlltest.exe, 
+         derived from the source file dfdcdlltest.F.  This file
+         has the sample code to read a DFDC input file and load the
+         data into DFDC DLL.  A sample subset of DFDC commands are 
+         implemented to set, execute and query data from DFDC DLL.
+         Note that the dfdcdriver does not use any direct connection
+         to the DFDC DLL global data storage, all the interface is 
+         through the DLL calls.
+
+test-dll  Contains several test cases for DFDC (same as any DFDC dataset)
+
+plotlib  Plot library used to make DFDC DLL (some limited plot 
+         capability is still used but not accessed from the DLL).
+
+Note that a debug flag is now available through the DLL interface 
+(dfdcsetdebug).  Setting this flag will produce output to the file fort.40 
+that can be used to debug the program and DLL.  Much of the normal output 
+print has been eliminated if no errors occur (and more will be eliminated in
+the future).
+
+
+
+Note that the naming convention that is used for the passed variables in the
+DLL interface corresponds to the fortran declaration
+IMPLICIT REAL (A-H,M,O-Z)
+
+Thus all variables starting with A-H, O-Z are real*4 (float).  
+
+Variables starting with I-K,N are integer*4 (int). 
+
+Normally variables starting with L are logical*4 (boolean), with the exception
+of the variable LUNDBG (which should not be accessible to the DLL).
+
+Some of the variables are strings (case NAME and file names).
+
+Array variables in the interface are only single dimensioned arrays.  These
+are normally indicated in the comment block like   VXA(.) where the (.) is 
+used to indicate an array argument.
