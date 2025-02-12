@@ -38,7 +38,7 @@ class Pylon:
     given angle of attack. This is then translated to a 3D force. """
 
     def coefficients(self):
-        coeff = airfoil_polar("pylon0012.txt", self.alpha)
+        coeff = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", self.alpha)
         cl = float(coeff[0])
         cd = float(coeff[1] + coeff[2])
         cm = float(coeff[3])
