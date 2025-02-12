@@ -3,7 +3,7 @@ import matplotlib.patches as patches
 import numpy as np
 
 # load airfoil coordinates
-file_path = r'/data/Naca0012.txt'
+file_path = r"C:\Users\tomva\pythonProject\DUUC\data\airfoil_coordinates\Naca0012.txt"
 
 start_line1 = 0
 data_cp_init = np.loadtxt(file_path)
