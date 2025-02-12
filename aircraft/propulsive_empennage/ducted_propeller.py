@@ -1,10 +1,10 @@
 from parapy.core import *
 from parapy.geom import *
-from aircraft.propulsive_empennage.components.pylon import Pylon
-from aircraft.propulsive_empennage.components.duct import Duct
-from aircraft.propulsive_empennage.components.control_vanes import ControlVanes
-from aircraft.propulsive_empennage.components.propeller import Propeller
-from aircraft.propulsive_empennage.components.center_body import CenterBody
+from aircraft.propulsive_empennage.components_visualisation.pylon import Pylon
+from aircraft.propulsive_empennage.components_visualisation.duct import Duct
+from aircraft.propulsive_empennage.components_visualisation.control_vanes import ControlVanes
+from aircraft.propulsive_empennage.components_visualisation.propeller import Propeller
+from aircraft.propulsive_empennage.components_visualisation.center_body import CenterBody
 import numpy as np
 
 
