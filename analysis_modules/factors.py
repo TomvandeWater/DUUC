@@ -27,3 +27,22 @@ def advance_ratio(airspeed, RPM, fan_diameter):
     print("\n----- Advance Ratio:")
     print(f"Advance ratio =", j, "[-]")
     return j
+
+
+def k_control(sweep, aspect_ratio):
+    if aspect_ratio > 4:
+        k = 1 + ((8.2-2.3 * sweep) - (0.22 - 0.153 * sweep) * aspect_ratio) / 100
+        return k
+    else:
+        k = 1 + ((1.87 - 0.000233 * sweep) * aspect_ratio) / 100
+        return k
+
+
+def oswald(aspect_ratio, sweep):
+    if sweep == 0:
+        e = 1 / (1 + 0.38 / aspect_ratio + 60 / aspect_ratio ** 3)
+        return e
+    else:
+        e = 1.78 * (1 - 0.045 * aspect_ratio ** 0.68) / np.cos(np.radians(sweep)) ** 0.25
+        return e
+
