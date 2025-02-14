@@ -1,22 +1,46 @@
 import numpy as np
-from analysis_modules.aerodynamic import lift, drag, moment
+from analysis_modules.aerodynamic import lift, drag, moment, drag_interference
 import flow_conditions
 from data.read_data import airfoil_polar
 
 
 class SupportStrut:
     def __init__(self, support_length: float, support_chord: float, support_profile: str,
-                 cant_angle: float):
+                 cant_angle: float, power_condition: str, v_prop: float, u_mom: float,
+                 alpha: float, tc_prop: float, cn_prop: float, ref_area: float):
         self.support_length = support_length
         self.support_chord = support_chord
         self.support_profile = support_profile
         self.cant_angle = cant_angle
+        self.pc = power_condition
+        self.v_prop = v_prop
+        self.u_mom = u_mom
+        self.alpha = alpha
+        self.tc_prop = tc_prop
+        self.cn_prop = cn_prop
+        self.ref_area = ref_area
 
     """ Inflow velocity on the strut is affected by the propeller"""
-    @staticmethod
-    def inflow_velocity():
-        u_support = flow_conditions.u_inf * 1.25
-        return u_support
+    def inflow_velocity(self):
+        if self.pc == "off":
+            u_support = self.v_prop
+            return u_support
+        else:
+            u_support = self.u_mom
+            return u_support
+
+    def inflow_angle(self):
+        thrust_c = self.tc_prop
+        c_norm = self.cn_prop
+        de_da_prop = ((thrust_c / (4 + 8/7 * thrust_c)) + (c_norm * (1 + 1.3 * thrust_c) ** 0.5)
+                      / (4 + 2 * thrust_c))
+
+        if self.pc == "off":
+            inflow_support = self.alpha
+            return inflow_support
+        else:
+            inflow_support = self.alpha * (1 - de_da_prop)
+            return inflow_support
 
     """" The area is based on a rectangle, note that the support goes through the nacelle in this 
     model. The area is hence overestimated. """
@@ -24,66 +48,71 @@ class SupportStrut:
         s_support = self.support_chord * self.support_length
         return s_support
 
-    @staticmethod
-    def alpha():
-        """ assume undisturbed flow for now"""
-        alpha = 0
-        return alpha
+    def t_c(self):
+        num_list = [int(digit) for digit in self.support_profile]
+        thickness = num_list[2] * 10 + num_list[3]  # naca thickness of profile
+        thickness = thickness / 100  # returns value in percentage of normalized chord
+        return thickness
 
-    """ Forces are determined based on a 2D airfoil analysis"""
-    def coefficients(self):
-        coeff = airfoil_polar(f"support{self.support_profile}.txt", float(self.alpha()))
-        cl = float(coeff[0])
-        cd = float(coeff[1] + coeff[2])
-        cm = float(coeff[3])
-        return cl, cd, cm
+    """ coefficients for support forces """
+    def cl_da(self):
+        cl0 = airfoil_polar(f"support{self.support_profile}.txt", float(0.0))
+        cl0_val = float(cl0[0])
+        cl5 = airfoil_polar(f"support{self.support_profile}.txt", float(10.0))
+        cl5_val = float(cl5[0])
+        cl_da_support = cl5_val - cl0_val / 5
 
-    def airfoil_lift(self):
-        l_airfoil = lift(self.coefficients()[0], flow_conditions.rho, self.inflow_velocity(),
-                         self.area())
+        cl_da_support = np.pi * 2
+        return cl_da_support
 
-        return l_airfoil
+    def cl(self):
+        cl_support = self.cl_da() * self.inflow_angle() * np.cos(self.cant_angle)
+        return cl_support
 
-    def airfoil_drag(self):
-        d_airfoil = drag(self.coefficients()[1], flow_conditions.rho, self.inflow_velocity(),
-                         self.area())
-        return d_airfoil
+    def cd(self):
+        cd = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()))
+        cd_val = float(cd[1] + cd[2])
+        return cd_val
 
-    def fx(self):
-        """ Correct for angle of attack """
-        fx_pylon = (self.airfoil_lift() * np.sin(np.radians(self.alpha()))
-                    + self.airfoil_drag() * np.cos(np.radians(self.alpha())))
+    def cd_interference(self):
+        norm_area = (self.t_c() * self.support_chord ** 2) / self.ref_area
+        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
 
-        if fx_pylon >= 0:
-            print(f"Drag = {np.round(fx_pylon,1)} [N]")
-        else:
-            print(f"Thrust = {np.round(fx_pylon, 1)} [N]")
-        return fx_pylon
+        cd_support_nacelle = (2 * drag_interference(self.t_c(), "plane")
+                              * norm_area * norm_speed ** 2)  # multiplied by 2 for 2 nac-supp inter
 
-    def fy(self):
-        """ Correct for angle of attack, then break down for cant angle"""
-        fy = (self.airfoil_lift() * np.cos(np.radians(self.alpha())) -
-              self.airfoil_drag() * np.sin(np.radians(self.alpha())))
+        cd_support_duct = (2 * drag_interference(self.t_c(), "t-junction")
+                           * norm_area * norm_speed ** 2)  # multiplied by 2 for 2 supp-duct inter
 
-        fy_pylon = fy * np.sin(np.radians(self.cant_angle))
-        print(f"Side force = {np.round(fy_pylon,1)} [N]")
-        return fy_pylon
+        cd_int_support = cd_support_nacelle + cd_support_duct
+        return cd_int_support
 
-    def fz(self):
-        """ Correct for angle of attack, then break down for cant angle"""
-        fz = (self.airfoil_lift() * np.cos(np.radians(self.alpha())) -
-              self.airfoil_drag() * np.sin(np.radians(self.alpha())))
+    def cl_prime(self):
+        norm_area = self.area() / self.ref_area
+        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
 
-        fz_pylon = fz * np.cos(np.radians(self.cant_angle))
-        print(f"Lift = {np.round(fz_pylon,1)} [N]")
-        return fz_pylon
+        cl_cl = self.cl() * np.cos(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
 
-    def moment(self):
-        """ still has to be adjusted for the translation for the pylon and reference frame"""
-        pitching_moment = moment(self.coefficients()[2],
-                                 flow_conditions.rho,
-                                 self.inflow_velocity(), self.area(),
-                                 self.support_chord)
-        print(f"Moment = {np.round(pitching_moment, 1)} [Nm]")
-        return pitching_moment
+        cl_cd = self.cd() * np.sin(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+
+        cl_support = cl_cl + cl_cd
+        return cl_support
+
+    def cd_prime(self):
+        norm_area = self.area() / self.ref_area
+        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
+
+        cd_cd = self.cd() * np.cos(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+
+        cd_cl = self.cl() * np.sin(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+
+        cd_support = cd_cd + cd_cl
+        return cd_support
+
+
+""" Test section """
+
+support:  SupportStrut = SupportStrut(support_length=1, support_chord=0.5, support_profile="0012",
+                                      cant_angle=30, power_condition="off", v_prop=150, u_mom=50,
+                                      alpha=0, tc_prop=0.8, cn_prop=0.12, ref_area=15)
 
