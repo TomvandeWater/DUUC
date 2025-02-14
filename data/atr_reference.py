@@ -1,6 +1,7 @@
 from analysis_modules.aerodynamic import c_tip, c_root, drag_zero_lift
 """ Reference data from the fact sheet ATR72-600 and from this 
 website: https://www.fzt.haw-hamburg.de/pers/Scholz/arbeiten/DataHirsch/Aircraft_Database.html"""
+import numpy as np
 
 """ Total dimensions"""
 l_ac = 27.17  # length aircraft? [m]
@@ -15,6 +16,8 @@ tr_w = 0.47  # taper ratio wing [-]
 phi_qc_w = 3.5  # quarter chord sweep [deg]
 c_root_w = c_root(s_w / 2, b_w / 2, tr_w)
 c_tip_w = c_tip(c_root_w, tr_w)
+ar_w = b_w ** 2 / s_w
+cl_wing = -0.116  # clean wing lift coefficient M = 0.0792 Re 2.005e5
 
 """ Horizontal tail surface"""
 s_ht = 11.7  # horizontal tail surface [m^2]
