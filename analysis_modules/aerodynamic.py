@@ -71,3 +71,16 @@ def drag_zero_lift(cf, ffc, qc, s_ratio):
     cd_0 = cf * ffc * qc * s_ratio
     return cd_0
 
+
+def drag_interference(t_c, connection_type: str):
+    if connection_type == 'plane':
+        """ This is based on the Hoerner book for a strut on a plane wall"""
+        cd_int = 0.8 * t_c ** 3 - 0.0003
+        return cd_int
+    if connection_type == 't-junction':
+        cd_int = 17 * t_c ** 2 - 0.05
+        return cd_int
+    else:
+        print("Connection type not defined")
+        return None
+
