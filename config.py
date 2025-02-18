@@ -17,7 +17,7 @@ control_vane_chord = 0.20  # control vane chord [m]
 
 propulsor_type = "traditional"  # options are: traditional, hybrid
 n_blades = 6  # number of propeller blades [-]
-rpm = 5000  # RPM of the propulsor
+rpm = 1000  # RPM of the propulsor
 c_root = 0.2  # root chord of the propeller blade [m]
 c_tip = 0.2  # tip chord of the propeller blade [m]
 hub_diameter = 0.2  # spinner hub diameter [m]
@@ -29,7 +29,7 @@ pylon_airfoil = "0012"
 duct_airfoil = "0012"
 control_vanes_airfoil = "0016"
 support_airfoil = "0012"
-prop_airfoil = "ARAD8"
+prop_airfoil = "Hamilton568F"
 
 d_exit = 1.05 * duct_diameter
 
