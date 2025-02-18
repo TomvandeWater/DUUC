@@ -54,3 +54,15 @@ def read_file(file_path, file_name: str):
             matrix.append(line.strip())
     return matrix
 
+
+def shp_conversion(shp, unit: str):
+    if unit == "SI":
+        power = shp * 745.7  # output in [W]
+        return power
+    if unit == "metric":
+        power = shp * 0.986  # output in [hp]
+        return power
+    else:
+        print("Wrong unit input. Options: SI or metric")
+        return None
+
