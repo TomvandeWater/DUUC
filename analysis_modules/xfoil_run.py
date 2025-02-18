@@ -44,5 +44,7 @@ def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach)
                  f"number {np.round(Re)} with Mach {np.round(mach, 2)} "
                  f"and saved in {file_name}.txt")
 
-""" Test test if wanted - outdated"""
-# xfoil_polar("naca0012", 0, 5, 1, 10000, "test", 0.4)
+
+""" Test test if wanted"""
+"""
+xfoil_polar("naca0012", -5, 15, 1, 1.698e6, "vt0012", 0.576) """
