@@ -53,6 +53,9 @@ P_TO_EO = 2750  # Take off power one engine [SHP]
 P_max_con = 2500  # Power max continuous [SHP]
 P_max_climb = 2192  # Power max climb [SHP]
 P_max_cruise = 2132  # Power max cruise [SHP]
+l_nacelle = 3.4425  # nacelle length [m] (based on dimensional drawing)
+d_nacelle = 1.1475  # nacelle diameter (average) [m] (based on dimensional drawing)
+                    # -> assume constant diameter
 
 """ Blades Hamilton Standard 568F """
 blade_diameter = 3.93  # blade diameter [m]
