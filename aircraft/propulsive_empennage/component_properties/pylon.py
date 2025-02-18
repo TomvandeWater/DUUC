@@ -11,7 +11,8 @@ class Pylon:
     y=0 and in at half of the chord length of the airfoil. The pylon is
     completely outside the duct. """
     def __init__(self, pylon_length: float, pylon_chord: float, pylon_profile: str,
-                 power_condition: str, cant_angle: float, alpha: float, ref_area: float):
+                 power_condition: str, cant_angle: float, alpha: float, ref_area: float,
+                 v_inf: float):
         super().__init__()
         self.pylon_length = pylon_length
         self.pylon_chord = pylon_chord
@@ -20,6 +21,7 @@ class Pylon:
         self.alpha = alpha
         self.pc = power_condition
         self.ref_area = ref_area
+        self.v_inf = v_inf
 
     """ The inflow speed for the pylon is affected by the outside of the duct
     and also affected by the downwash of the wing. The downwash of the wing and the duct affect
@@ -28,10 +30,10 @@ class Pylon:
         e = (2 * ref.cl_wing) / (np.pi * ref.ar_w)
 
         if self.pc == "off":
-            u_pylon = flow_conditions.u_inf * (1 - (e ** 2) / 2)
+            u_pylon = self.v_inf * (1 - (e ** 2) / 2)
             return u_pylon
         else:
-            u_pylon = flow_conditions.u_inf * (1 - (e ** 2) / 2)
+            u_pylon = self.v_inf * (1 - (e ** 2) / 2)
             return u_pylon
 
     def inflow_angle(self):
@@ -66,7 +68,7 @@ class Pylon:
         return cl_da_pylon
 
     def cl(self):
-        cl_pylon = self.cl_da() * self.inflow_angle() * np.cos(self.cant_angle)
+        cl_pylon = self.cl_da() * self.inflow_angle() * np.cos(np.radians(self.cant_angle))
         return cl_pylon
 
     def cd(self):
@@ -76,35 +78,39 @@ class Pylon:
 
     def cd_interference(self):
         norm_area = (self.t_c() * self.pylon_chord ** 2) / self.ref_area
-        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
         cd_pylon_duct = (drag_interference(self.t_c(), "t-junction")
-                         * norm_area * norm_speed ** 2)  # interference pylon duct
+                         * norm_area * norm_speed)  # interference pylon duct
 
         cd_pylon_fuse = (drag_interference(self.t_c(), "plane")
-                         * norm_area * norm_speed ** 2)  # interference pylon fuselage
+                         * norm_area * norm_speed)  # interference pylon fuselage
 
         cd_int_pylon = cd_pylon_duct + cd_pylon_fuse
         return cd_int_pylon
 
     def cl_prime(self):
         norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cl_cl = self.cl() * np.cos(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+        cl_cl = (self.cl() * np.cos(np.radians(self.alpha - self.inflow_angle())) * norm_speed
+                 * norm_area)
 
-        cl_cd = self.cd() * np.sin(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+        cl_cd = (self.cd() * np.sin(np.radians(self.alpha - self.inflow_angle())) * norm_speed
+                 * norm_area)
 
         cl_pylon = cl_cl + cl_cd
         return cl_pylon
 
     def cd_prime(self):
         norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cd_cd = self.cd() * np.cos(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+        cd_cd = (self.cd() * np.cos(np.radians(self.alpha - self.inflow_angle())) * norm_speed
+                 * norm_area)
 
-        cd_cl = self.cl() * np.sin(self.alpha - self.inflow_angle()) * norm_speed ** 2 * norm_area
+        cd_cl = (self.cl() * np.sin(np.radians(self.alpha - self.inflow_angle())) * norm_speed
+                 * norm_area)
 
         cd_pylon = cd_cd + cd_cl
         return cd_pylon
@@ -125,3 +131,12 @@ class Pylon:
         cog_y = - 0.5 * self.pylon_length * np.cos(np.radians(self.cant_angle))
         cog_z = 0.5 * self.pylon_length * np.sin(np.radians(self.cant_angle))
         return cog_x, cog_y, cog_z
+
+
+""" test section"""
+"""
+pylon: Pylon = Pylon(pylon_length=config.pylon_length, pylon_chord=config.pylon_chord, pylon_profile=config.pylon_airfoil,
+                     power_condition="off", cant_angle=30, alpha=0, ref_area=15,
+                     v_inf=183)
+
+pylon.cd_prime() """

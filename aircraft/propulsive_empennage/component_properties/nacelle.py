@@ -1,13 +1,12 @@
 import numpy as np
-import constants
-import flow_conditions
 from analysis_modules.factors import skin_friction, mach_correction
+
 
 class Nacelle:
 
     def __init__(self, nacelle_length: float, nacelle_diameter: float,
                  propulsor_type: str, re_induct: float, power_condition: str, u_mom: float,
-                 alpha: float, ref_area: float):
+                 alpha: float, ref_area: float, v_inf: float, mach: float):
         super().__init__()
         self.nacelle_length = nacelle_length
         self.nacelle_diameter = nacelle_diameter
@@ -17,12 +16,14 @@ class Nacelle:
         self.u_mom = u_mom
         self.alpha = alpha
         self.ref_area = ref_area
+        self.v_inf = v_inf
+        self.mach = mach
 
     """ The inflow speed for the nacelle is determined by the propeller and
     hence the speed after the propeller is used """
     def inflow_velocity(self):
         if self.pc == "off":
-            u_nacelle = flow_conditions.u_inf
+            u_nacelle = self.v_inf
             return u_nacelle
         else:
             u_nacelle = self.u_mom
@@ -34,7 +35,6 @@ class Nacelle:
 
     """ For the area of the nacelle, geometric properties are used to determine
      the outside area of the nacelle. """
-
     def wet_area(self):
         """ only the side area is assumed no closing sides"""
         area_cylinder = np.pi * self.nacelle_diameter * self.nacelle_length
@@ -45,10 +45,10 @@ class Nacelle:
         area_nacelle = area_rear + area_cylinder
         return area_nacelle
 
-    """ The coefficients for the nacells are determined as follows """
+    """ The coefficients for the nacelle are determined as follows """
     def cd0(self):
         cf = skin_friction(self.re_induct, "t")
-        fm = mach_correction(flow_conditions.Mach)
+        fm = mach_correction(self.mach)
         l_d = self.nacelle_length / self.nacelle_diameter
         f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
         norm_area = self.wet_area() / self.ref_area
@@ -58,14 +58,14 @@ class Nacelle:
         return cd0_nacelle
 
     def cd_prime(self):
-        norm_speed = self.inflow_velocity() / flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cd_nacelle = self.cd0() * norm_speed ** 2
+        cd_nacelle = self.cd0() * norm_speed
         return cd_nacelle
 
     @staticmethod
     def cl_prime():
-        """ assume no lift is produced by the nacelle"""
+        """ assume no lift is produced by the nacelle """
         cl_nacelle = 0
         return cl_nacelle
 

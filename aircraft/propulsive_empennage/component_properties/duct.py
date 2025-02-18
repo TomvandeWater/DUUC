@@ -1,5 +1,4 @@
 import numpy as np
-import flow_conditions
 from analysis_modules.factors import mach_correction
 from analysis_modules.factors import skin_friction
 from data.read_data import airfoil_polar
@@ -8,7 +7,7 @@ from data.read_data import airfoil_polar
 class Duct:
     def __init__(self, duct_diameter: float, duct_chord: float, duct_profile: str,
                  alpha: float, re_duct: float, power_condition: str, u_mom: float,
-                 tc_prop: float):
+                 tc_prop: float, v_inf: float, mach: float):
         super().__init__()
         self.duct_diameter = duct_diameter
         self.duct_chord = duct_chord
@@ -18,11 +17,13 @@ class Duct:
         self.pc = power_condition
         self.u_mom = u_mom
         self.tc_prop = tc_prop
+        self.v_inf = v_inf
+        self.mach = mach
 
     """ Define velocities and angles"""
     def inflow_velocity(self):
         if self.pc == "off":
-            u_duct = flow_conditions.u_inf
+            u_duct = self.v_inf
             return u_duct
         else:
             u_duct = self.u_mom
@@ -82,7 +83,7 @@ class Duct:
 
     def cd0(self):
         cf = skin_friction(self.re_duct, 'T')
-        fm = mach_correction(flow_conditions.Mach)
+        fm = mach_correction(self.mach)
         ftc = 1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4
         coeff = airfoil_polar(f"support{self.duct_profile}.txt", float(0.0))
         cdmin = float(coeff[1] + coeff[2])
@@ -95,13 +96,13 @@ class Duct:
         return cdi_duct
 
     def cd_prime(self):
-        norm_speed = self.inflow_velocity()/flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cd_duct = (self.cd0() + self.cdi()) * norm_speed ** 2
+        cd_duct = (self.cd0() + self.cdi()) * norm_speed
         return cd_duct
 
     def cl_prime(self):
-        norm_speed = self.inflow_velocity()/flow_conditions.u_inf
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cl_duct = self.cl() * norm_speed ** 2
+        cl_duct = self.cl() * norm_speed
         return cl_duct
