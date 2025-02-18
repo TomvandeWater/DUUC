@@ -31,8 +31,8 @@ def speed_of_sound(altitude):
     temperature = air_density_isa(altitude)[1]
 
     a = np.sqrt(constants.gamma_air * constants.R * temperature)
-    print("\n----- Speed of Sound calculator -----")
-    print(f"Speed of sound =", np.round(a, 2), "m/s")
+    # print("\n----- Speed of Sound calculator -----")
+    # print(f"Speed of sound =", np.round(a, 2), "m/s")
     return a
 
 
@@ -83,4 +83,9 @@ def drag_interference(t_c, connection_type: str):
     else:
         print("Connection type not defined")
         return None
+
+
+def propulsive_efficiency(fx, velocity, power_input):
+    eta_propulsive = (fx * velocity) / power_input
+    return eta_propulsive
 
