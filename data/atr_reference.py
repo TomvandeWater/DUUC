@@ -18,6 +18,7 @@ c_root_w = c_root(s_w / 2, b_w / 2, tr_w)
 c_tip_w = c_tip(c_root_w, tr_w)
 ar_w = b_w ** 2 / s_w
 cl_wing = -0.116  # clean wing lift coefficient M = 0.0792 Re 2.005e5
+alpha_install_wing = 4  # installation angle of the wing (w.r.t zero lift line) onto the fuselage [deg]
 
 """ Horizontal tail surface"""
 s_ht = 11.7  # horizontal tail surface [m^2]
@@ -46,6 +47,9 @@ airfoil_vt = "0012"  # vertical tailplane airfoil profile from NACA 4 series
 """ Fuselage"""
 h_f = 2.63  # height of the fuselage [m]
 w_f = 2.87  # width of the fuselage [m]
+l_cabin = 19.25  # cabin length [m]
+l_cockpit = 3.880  # cockpit length [m] from raydome to front door
+l_tail = 8.310  # tail length [m]
 
 """ Engines PW Canada PW127 M/N"""
 P_TO = 2475  # Take off power [SHP]
