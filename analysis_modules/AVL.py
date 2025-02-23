@@ -54,8 +54,6 @@ def write_geometry(file_name, mach, profile_vt: str, profile_ht: str, s_ref, c_r
         file.write("VERTICAL TAIL\n")
         file.write("#Nchordwise  Cspace   Nspanwise   Sspace\n")
         file.write(f"{10}         {1}      {20}        {1}\n")
-        # file.write("#\nYDUPLICATE\n#\nANGLE\n0.00\n#\n# x,y,z bias for whole surface\nTRANSLATE\n")
-        # file.write("0.00    0.00      0.00\n")
         file.write("#----------------------------------------------------------\n")
         file.write("    Xle         Yle         Zle         chord       angle   Nspan  Sspace\n")
         file.write("SECTION\n")
@@ -66,7 +64,8 @@ def write_geometry(file_name, mach, profile_vt: str, profile_ht: str, s_ref, c_r
         file.write(f"{x_le_vt_tip}      {0}       {b_vt}     {c_vt_tip}     0.0\n")
         file.write(f"NACA\n{profile_vt}\n")
         file.close()
-    return print("-- AVL -- Geometry file successfully printed")
+    print("\n-- AVL -- Geometry file successfully printed")
+    return input_file_path
 
 
 def write_mass(file_name, m_vt, m_ht, b_vt, b_ht, c_vt):
@@ -92,7 +91,8 @@ def write_mass(file_name, m_vt, m_ht, b_vt, b_ht, c_vt):
         # horizontal tail left
         file.write(f"{m_ht / 2}   {c_vt / 2} {-b_ht / 2} {b_vt} !Horizontal tail\n")
         file.close()
-    return print("-- AVL -- Mass file successfully printed")
+    print("-- AVL -- Mass file successfully printed")
+    return input_file_path
 
 
 def write_case(file_name, alpha, velocity):
@@ -134,7 +134,8 @@ def write_case(file_name, alpha, velocity):
         file.write("visc CM_a = 0.00\n")
         file.write("visc CM_u = 0.00\n")
         file.close()
-    return print("-- AVL -- Case file successfully printed")
+    print("-- AVL -- Case file successfully printed")
+    return input_file_path
 
 
 def run_avl(file_name, alpha, velocity, mach, ref_matrix):
@@ -155,16 +156,26 @@ def run_avl(file_name, alpha, velocity, mach, ref_matrix):
     m_vt = ref_matrix[11]
     cd0_ref = ref_matrix[12]
 
-    # write geometry, mass and case file
-    write_geometry(file_name, mach, airfoil_ht, airfoil_vt, 10, 2, 25, 0,
-                   0, 0, cd0_ref, c_root_h, tr_h, phi_qc_h, b_h, 0, c_root_v,
-                   tr_v, phi_qc_v, b_v)
-    write_mass(file_name, m_vt, m_ht, b_v, b_h, c_root_v)
-    write_case(file_name, alpha, velocity)
+    # write geometry, mass and case file -> output file location path
+    geom = write_geometry(file_name, mach, airfoil_ht, airfoil_vt, 10, 2, 25, 0,
+                          0, 0, cd0_ref, c_root_h, tr_h, phi_qc_h, b_h, 0, c_root_v,
+                          tr_v, phi_qc_v, b_v)
+    mass = write_mass(file_name, m_vt, m_ht, b_v, b_h, c_root_v)
+    case = write_case(file_name, alpha, velocity)
 
     with open(input_file, "w") as file:
         file.write(f"LOAD\n")
-        file.write(f"C:\Users\tomva\pythonProject\DUUC\analysis_modules\input_files\{file_name}_input.avl\n")
+        file.write(f"{geom}\n")
+        file.write(f"MASS\n")
+        file.write(f"{mass}\n")
+        file.write(f"{case}\n")
+        file.write(f"Mset\n")
+        file.write(f"Oper\n")
+
+
+
+        file.write(f"eX\n")
+
 
 
         file.close()
@@ -174,13 +185,14 @@ def run_avl(file_name, alpha, velocity, mach, ref_matrix):
         process = subprocess.Popen([avl_path], stdin=subprocess.PIPE,
                                    text=True)
         process.communicate(input=f.read())
-    return print("-- AVL -- run completed -> output file written")
+    return print("-- AVL -- run completed -> output file written") 
+
 
 """ test section"""
-"""# write_geometry("test_avl", flow_conditions.Mach, ref.airfoil_ht, ref.airfoil_vt, 10,
-               # 2, 25, 0, 0, 0, 0, ref.c_root_h, ref.tr_h,
-               # ref.phi_qc_h, ref.b_h, 0, ref.c_root_v, ref.tr_v, ref.phi_qc_v, ref.b_v)
-# write_mass("test_avl", ref.m_vt, ref.m_ht, ref.b_v, ref.b_h, ref.c_root_v)
-# write_case("test_avl", 10, 181) """
+write_geometry("test_avl", flow_conditions.Mach, ref.airfoil_ht, ref.airfoil_vt, 10,
+                2, 25, 0, 0, 0, 0, ref.c_root_h, ref.tr_h,
+               ref.phi_qc_h, ref.b_h, 0, ref.c_root_v, ref.tr_v, ref.phi_qc_v, ref.b_v)
+write_mass("test_avl", ref.m_vt, ref.m_ht, ref.b_v, ref.b_h, ref.c_root_v)
+write_case("test_avl",10, 181)
 
 
