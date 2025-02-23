@@ -3,6 +3,7 @@ from aircraft.conventional_empennage.components_properties.horizontal_tail impor
 from aircraft.conventional_empennage.components_properties.propeller import Propeller
 from aircraft.conventional_empennage.components_properties.nacelle import Nacelle
 from aircraft.conventional_empennage.components_properties.vertical_tail import VerticalTail
+import flow_conditions
 
 
 class ConventionalEmpennage:
@@ -59,7 +60,7 @@ class ConventionalEmpennage:
         self.propeller = Propeller(self.rpm, self.alpha, self.power_condition, self.n_blades,
                                    self.prop_diameter, self.hub_diameter, self.prop_airfoil,
                                    self.prop_sweep, self.prop_pitch, self.c_root, self.c_tip,
-                                   self.v_inf, self.area_ref)
+                                   self.v_inf, self.area_ref, self.reynolds)
 
         self.nacelle = Nacelle(self.nacelle_length, self.nacelle_diameter, self.v_inf, self.alpha,
                                self.area_ref, self.prop_airfoil, self.n_blades, self.mach,
@@ -85,5 +86,5 @@ class ConventionalEmpennage:
         return thrust_conv
 
     def drag(self):
-        drag_conv = self.cd_prime() * self.v_inf ** 2 * self.area_ref
+        drag_conv = self.cd_prime() * self.v_inf ** 2 * self.area_ref * 0.5 * flow_conditions.rho
         return drag_conv

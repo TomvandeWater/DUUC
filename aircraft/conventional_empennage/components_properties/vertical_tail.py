@@ -41,7 +41,7 @@ class VerticalTail:
         """ Area from the vertical stabilizer (based on trapezoid area)"""
 
         s_vt = 0.5 * self.vt_span * 0.5 * (self.vt_croot + self.vt_chord)
-        print(f'Area of the vertical stabilizer = {2* s_vt} [m^2]')
+        # print(f'Area of the vertical stabilizer = {2* s_vt} [m^2]')
         return s_vt
 
     def t_c(self):
@@ -75,7 +75,8 @@ class VerticalTail:
             return z_tail
 
     def cl(self):
-        cl_vt = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle())
+        cl_polar = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle())
+        cl_vt = cl_polar[0]
         return cl_vt
 
     def cdi(self):

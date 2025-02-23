@@ -43,7 +43,7 @@ class HorizontalTail:
         """ Area from horizontal stabilizer (based on trapezoid area)"""
 
         s_ht = self.ht_span * 0.5 * (self.ht_croot + self.ht_chord)
-        print(f'Area of the horizontail stabilizer = {2* s_ht} [m^2]')
+        # print(f'Area of the horizontail stabilizer = {2* s_ht} [m^2]')
         return s_ht
 
     def t_c(self):
@@ -76,7 +76,8 @@ class HorizontalTail:
         return cd_int_ht
 
     def cl(self):
-        cl_ht = airfoil_polar(f"ht{self.ht_profile}.txt", self.inflow_angle())
+        cl_polar = airfoil_polar(f"ht{self.ht_profile}.txt", self.inflow_angle())
+        cl_ht = cl_polar[0]
         return cl_ht
 
     def cd0(self):

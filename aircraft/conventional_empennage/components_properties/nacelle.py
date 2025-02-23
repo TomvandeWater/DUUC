@@ -37,10 +37,11 @@ class Nacelle:
         return area_nac
 
     def t_c(self):
-        num_list = [int(digit) for digit in self.prop_airfoil]
-        thickness = num_list[2] * 10 + num_list[3]  # NACA thickness of profile
-        thickness = thickness / 100  # returns value in percentage of normalized chord
-        return thickness
+        """ defined on comparable propeller blade"""
+        t_c_prop_root = 0.10
+        t_c_prop_tip = 0.08
+        t_c_av = (t_c_prop_tip + t_c_prop_root) / 2
+        return t_c_av
 
     def cd_int(self):
         norm_area = self.area() / self.area_ref
