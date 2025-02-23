@@ -85,7 +85,7 @@ def drag_interference(t_c, connection_type: str):
         return None
 
 
-def propulsive_efficiency(fx, velocity, power_input):
-    eta_propulsive = (fx * velocity) / power_input
+def propulsive_efficiency(fx, velocity, power_input, k1, k2):
+    eta_propulsive = (fx * velocity) / (power_input * k1 * k2)
     return eta_propulsive
 
