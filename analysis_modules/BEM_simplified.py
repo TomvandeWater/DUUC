@@ -1,5 +1,7 @@
 import numpy as np
 import os
+import data.atr_reference as ref
+import matplotlib.pyplot as plt
 
 
 class BEM:
@@ -13,7 +15,7 @@ class BEM:
         self.chord = lambda r: 0.1 * (1 - r / self.R) + 0.125
         self.twist = lambda r: 20 * (1 - r / self.R)
 
-    def calculate_thrust(self, V_inf, rho=0.589, num_elements=20):
+    def calculate_thrust(self, V_inf, rho=0.589, num_elements=50):
         r = np.linspace(0.1 * self.R, self.R, num_elements)
         dr = r[1] - r[0]
 
@@ -58,7 +60,7 @@ class BEM:
 
             thrust += dT
             torque += dQ
-            normal_f = Cn
+            normal_f = torque / self.R
 
         return thrust, torque, normal_f
 
@@ -89,6 +91,30 @@ class BEM:
         return cl, cd
 
 """
+v_cruise = 128  # cruise speed [m/s] circa 250 knts
+v_array = np.linspace(v_cruise - 20, v_cruise + 20, 41)
+thrust_array = []
+
+for i in range(len(v_array)):
+    u_inf = float(v_array[i])
+    prop = BEM(radius=ref.blade_diameter/2, num_blades=ref.n_blades, rpm=1000, prop_airfoil="Hamilton568F")
+
+    thrust, torque, normal_f = prop.calculate_thrust(u_inf)
+
+    thrust_array.append([u_inf, thrust])
+
+plot_array = np.array(thrust_array)
+
+plt.figure('Thrust plot')
+plt.plot(plot_array[:, 0], plot_array[:, 1], label=r'Total drag coefficient')
+plt.xlabel(r'$v_{inf}$')
+plt.ylabel(r'$Thrust [N]$')
+plt.title(r'Thrust array')
+plt.legend()
+plt.grid(True)
+plt.show()"""
+
+
 # Example usage
 if __name__ == "__main__":
     prop = BEM(radius=1.8, num_blades=6, rpm=1000, prop_airfoil="Hamilton568F")
@@ -99,6 +125,6 @@ if __name__ == "__main__":
     print(f"Thrust: {thrust:.2f} N")
     print(f"Torque: {torque:.2f} N·m")
     print(f"Power: {torque * prop.omega:.2f} W")
-    print(f"Normal: {normal_f:.2f}") """
+    print(f"Normal: {normal_f:.2f}")
 
 
