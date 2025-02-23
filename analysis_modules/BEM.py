@@ -102,7 +102,9 @@ def load_blade_element(v_norm, v_tan, r_R, chord, twist, polar_alpha, polar_cl, 
     """
     v_mag2 = np.clip(v_norm ** 2 + v_tan ** 2, 0, 1e6)
     inflow_angle = np.arctan2(v_norm, v_tan)
-    alpha = twist + inflow_angle * 180 / np.pi
+    print(f"inflow angle: {inflow_angle}")
+    alpha = twist - np.rad2deg(inflow_angle)
+    print(f"alpha: {alpha}")
     cl = np.interp(alpha, polar_alpha, polar_cl)
     cd = np.interp(alpha, polar_alpha, polar_cd)
     lift = 0.5 * v_mag2 * cl * chord
@@ -110,7 +112,7 @@ def load_blade_element(v_norm, v_tan, r_R, chord, twist, polar_alpha, polar_cl, 
     f_norm = lift * np.cos(inflow_angle) + drag * np.sin(inflow_angle)
     f_tan = lift * np.sin(inflow_angle) - drag * np.cos(inflow_angle)
     gamma = 0.5 * np.sqrt(v_mag2) * cl * chord
-    print(f_norm, f_tan, gamma)
+    # print(f_norm, f_tan, gamma)
     return f_norm, f_tan, gamma
 
 
@@ -188,7 +190,7 @@ def solve_streamtube(u_inf, r1_r, r2_r, rootradius_r, tipradius_r, omega, radius
     return [a, aline, r_R, fnorm, ftan, gamma]
 
 
-def BEM(pitch, speed, radius, n_blades, prop_airfoil, rpm):
+def bem_run(pitch, speed, radius, n_blades, prop_airfoil, rpm):
     # define the blade geometry
     delta_r_R = .01
     r_R = np.arange(0.2, 1 + delta_r_R / 2, delta_r_R)
@@ -220,7 +222,7 @@ def BEM(pitch, speed, radius, n_blades, prop_airfoil, rpm):
     areas = (r_R[1:]**2-r_R[:-1]**2)*np.pi*radius**2
     dr = (r_R[1:]-r_R[:-1])*radius
     CT = np.sum(dr*results[:, 3]*n_blades/(0.5*speed**2*np.pi*radius**2))
-    CP = np.sum(dr*results[:, 4]*results[:, 2]*n_blades*radius*omega/(0.5*speed**3*np.pi*radius**2))
+    CP = np.sum(dr*results[:, 4]*results[:, 2]*n_blades*radius * omega/(0.5*speed**3*np.pi*radius))
 
     # Calculate total thrust and torque
     total_thrust = np.sum(dr * results[:, 3] * n_blades)
@@ -232,3 +234,6 @@ def BEM(pitch, speed, radius, n_blades, prop_airfoil, rpm):
     print(f"Total thrust = {np.round(total_thrust)} [N]")
     print(f"Total torque = {np.round(total_torque)} [Nm]")
     return CT, CP, total_thrust, total_torque
+
+
+a = bem_run(46, 148, 1.8, 3, "ARAD8", 5000)
