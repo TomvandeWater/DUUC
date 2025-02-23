@@ -16,7 +16,7 @@ class PropulsiveEmpennage:
                  d_exit: float, nacelle_length: float, nacelle_diameter: float,
                  support_length: float, support_chord: float, support_profile: str, hcv_span: float,
                  hcv_chord: float, control_profile: str, vcv_span: float, vcv_chord: float,
-                 propulsor_type: str, v_inf: float, mach: float):
+                 propulsor_type: str, v_inf: float, mach: float, ref_area: float):
         super().__init__()
         # operating conditions
         propemp.rpm = rpm
@@ -69,56 +69,57 @@ class PropulsiveEmpennage:
         propemp.c_vcv = vcv_chord
         propemp.vcv_profile = control_profile
 
-        s_ref = propemp.d_duct * propemp.c_duct
+        propemp.ref_area = ref_area
 
         # Initiate propeller class
         propemp.propeller = Propeller(propemp.n_bl, propemp.d_prop, propemp.d_hub,
                                       propemp.prop_airfoil, propemp.s_prop, propemp.p_prop,
                                       propemp.rpm, propemp.power_condition, propemp.va_inlet,
-                                      propemp.alpha, propemp.re, s_ref, propemp.c_root,
+                                      propemp.alpha, propemp.re, propemp.ref_area, propemp.c_root,
                                       propemp.c_tip, propemp.v_inf)
 
         # calculate properties based on input from propeller
         u1 = propemp.propeller.u1()
+        # print(f"u1 = {u1}")
         tc_prop = propemp.propeller.tc()
+        # print(f"tc_prop = {tc_prop}")
         v_prop = propemp.propeller.inflow_velocity()
         cn_prop = propemp.propeller.cn()
+        # print(f"cn_prop = {cn_prop}")
         u_mom = 0.5 * (v_prop + u1)
+        # print(f"u_mom: {u_mom}")
 
         # Initiate duct class
         propemp.duct = Duct(propemp.d_duct, propemp.c_duct, propemp.airfoil_duct, propemp.alpha,
                             propemp.re, propemp.power_condition, u_mom, tc_prop, propemp.v_inf,
-                            propemp.mach)
-
-        # calculate properties based on input from duct
-        ref_area = propemp.duct.proj_area()
+                            propemp.mach, propemp.ref_area)
 
         # Initiate pylon class
         propemp.pylon = Pylon(propemp.l_pylon, propemp.c_pylon, propemp.pylon_profile,
-                              propemp.power_condition, propemp.cant, propemp.alpha, ref_area,
+                              propemp.power_condition, propemp.cant, propemp.alpha, propemp.ref_area,
                               propemp.v_inf)
 
         # Initiate nacelle class
         propemp.nacelle = Nacelle(propemp.l_nacelle, propemp.d_nacelle, propemp.prop_type,
-                                  propemp.re, propemp.power_condition, u_mom, alpha, ref_area,
+                                  propemp.re, propemp.power_condition, u_mom, alpha, propemp.ref_area,
                                   propemp.v_inf, propemp.mach)
 
         # Initiate support class
         propemp.support = SupportStrut(propemp.l_support, propemp.c_support,
                                        propemp.support_profile, propemp.cant,
                                        propemp.power_condition, v_prop, u_mom, alpha, tc_prop,
-                                       cn_prop, ref_area, propemp.v_inf)
+                                       cn_prop, propemp.ref_area, propemp.v_inf)
 
         # Initiate control vane class for elevator (1 piece)
         propemp.elevator = ControlVane(propemp.b_hcv, propemp.c_hcv, propemp.hcv_profile,
                                        propemp.power_condition, propemp.va_inlet,
-                                       propemp.d_exit, u1, ref_area, flow_conditions.delta_e,
+                                       propemp.d_exit, u1, propemp.ref_area, flow_conditions.delta_e,
                                        propemp.re, propemp.v_inf, propemp.alpha, propemp.mach)
 
         # Initiate control vane class for rudder (1 piece)
         propemp.rudder = ControlVane(propemp.b_vcv, propemp.c_vcv, propemp.vcv_profile,
                                      propemp.power_condition, propemp.va_inlet, propemp.d_exit, u1,
-                                     ref_area, flow_conditions.delta_r, propemp.re, propemp.v_inf,
+                                     propemp.ref_area, flow_conditions.delta_r, propemp.re, propemp.v_inf,
                                      propemp.alpha, propemp.mach)
 
     def cl_prime(self):
@@ -141,7 +142,8 @@ class PropulsiveEmpennage:
         return cd_total
 
     def drag(self):
-        drag_pe = self.cd_prime() * self.v_inf ** 2 * self.duct.proj_area()
+        drag_de_norm = self.cd_prime() * self.v_inf ** 2 * self.ref_area * 0.5 * flow_conditions.rho
+        drag_pe = 2 * drag_de_norm
         return drag_pe
 
     def thrust(self):

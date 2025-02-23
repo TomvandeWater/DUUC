@@ -6,6 +6,7 @@ from analysis_modules.factors import skin_friction
 
 
 class Propeller:
+    """ This is the propeller class for the propulsive empennage"""
     def __init__(self, n_blades: float, prop_diameter: float, hub_diameter: float,
                  prop_airfoil: str, prop_sweep: float, prop_pitch: float, rpm: float,
                  power_condition: str, va_inlet: float, alpha: float, re_inflow: float,
@@ -40,10 +41,11 @@ class Propeller:
         area_prop = np.pi * (self.prop_diameter / 2) ** 2
         return area_prop
 
-    def t_c(self):
-        """ define this based on airfoil profile"""
-        t_c_prop_root = 0.12
-        t_c_prop_tip = 0.12
+    @staticmethod
+    def t_c():
+        """ defined on comparable propeller blade"""
+        t_c_prop_root = 0.10
+        t_c_prop_tip = 0.08
         t_c_av = (t_c_prop_tip + t_c_prop_root) / 2
         return t_c_prop_root, t_c_prop_tip, t_c_av
 
@@ -91,7 +93,7 @@ class Propeller:
                         * norm_speed)
             return cl_prime
         else:
-            cl_1 = self.thrust() * np.sin(a)
+            cl_1 = self.tc() * np.sin(a)
 
             cl_2 = self.cn() * np.cos(a - inflow_a) * norm_area * norm_speed
 
@@ -118,27 +120,30 @@ class Propeller:
             return cd_int_prop
 
     def thrust(self):
+        """
         prop = BEM(radius=self.prop_diameter/2,
                    num_blades=self.n_blades,
                    rpm=self.rpm,
                    prop_airfoil=self.prop_airfoil)
-        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)
-
+        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)"""
+        thrust_prop = 8000
         return thrust_prop
 
     def tc(self):
-        tc_prop = self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * self.ref_area)
+        tc_prop = self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * self.area())
         return tc_prop
 
     def cn(self):
+        """
         prop = BEM(radius=self.prop_diameter / 2,
                    num_blades=self.n_blades,
                    rpm=self.rpm,
                    prop_airfoil=self.prop_airfoil)
-        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)
+        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)"""
 
+        normal_f = 3200
         cn_prop = normal_f / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2
-                                     * self.area())
+                              * self.area())
         return cn_prop
 
     def u1(self):
@@ -146,22 +151,14 @@ class Propeller:
                           self.inflow_velocity() ** 2)
         return u1_prop
 
-
-
-
-
-
-
     """ Weight definition"""
     def weight(self):
         prop_weight = 10 * self.prop_diameter
         return prop_weight
 
 
-
-
-
 """
+----- test section -----
 duuc: Propeller = Propeller(n_blades=3, prop_diameter=3.6,
                             hub_diameter=0.2, prop_airfoil='ARAD8',
                             prop_sweep=0, prop_pitch=2, rpm=6000)

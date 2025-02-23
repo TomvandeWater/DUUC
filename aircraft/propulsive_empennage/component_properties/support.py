@@ -1,6 +1,7 @@
 import numpy as np
 from analysis_modules.aerodynamic import drag_interference
 from data.read_data import airfoil_polar
+import config
 
 
 class SupportStrut:
@@ -115,9 +116,25 @@ class SupportStrut:
         return cd_support
 
 
-""" Test section """
 """
-support:  SupportStrut = SupportStrut(support_length=1, support_chord=0.5, support_profile="0012",
-                                      cant_angle=30, power_condition="off", v_prop=150, u_mom=50,
-                                      alpha=0, tc_prop=0.8, cn_prop=0.12, ref_area=15)
-"""
+if __name__ == "__main__":
+    support = SupportStrut(support_length=config.support_length,
+                           support_chord=config.support_chord, 
+                           support_profile=config.support_airfoil,
+                           cant_angle=config.cant_angle, 
+                           power_condition="on", 
+                           v_prop=130, 
+                           u_mom=110,
+                           alpha=0, 
+                           tc_prop=0.37,
+                           cn_prop=0.09,
+                           ref_area=config.duct_chord * config.duct_diameter,
+                           v_inf=128)
+
+    print(f"inflow vel: {support.inflow_velocity()}")
+    print(f"inflow ang: {support.inflow_angle()}")
+    print(f"cd: {support.cd():.5f}")
+    print(f"cd interference: {support.cd_interference():.5f}")
+    print(f"cd prime: {support.cd_prime():.5f}")
+    print(f"cl: {support.cl():.5f}")
+    print(f"cl prime: {support.cl_prime():.5f}")"""

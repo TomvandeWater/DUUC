@@ -1,5 +1,6 @@
 import numpy as np
 from analysis_modules.factors import skin_friction, mach_correction
+import config
 
 
 class Nacelle:
@@ -79,3 +80,23 @@ class Nacelle:
         else:
             weight = 50000
             return weight
+
+
+"""
+if __name__ == "__main__":
+    nacelle = Nacelle(nacelle_length=config.nacelle_length,
+                      nacelle_diameter=config.nacelle_diameter,
+                      propulsor_type="conventional",
+                      re_induct=8422274,
+                      power_condition="on",
+                      u_mom=110,
+                      alpha=0,
+                      ref_area=config.duct_diameter * config.duct_chord,
+                      v_inf=128,
+                      mach=0.578)
+
+    print(f"inflow vel: {nacelle.inflow_velocity()}")
+    print(f"inflow ang: {nacelle.inflow_angle()}")
+    print(f"cd0: {nacelle.cd0():.3f}")
+    print(f"cd prime: {nacelle.cd_prime():.3f}")"""
+

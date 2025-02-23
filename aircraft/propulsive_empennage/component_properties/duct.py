@@ -7,7 +7,7 @@ from data.read_data import airfoil_polar
 class Duct:
     def __init__(self, duct_diameter: float, duct_chord: float, duct_profile: str,
                  alpha: float, re_duct: float, power_condition: str, u_mom: float,
-                 tc_prop: float, v_inf: float, mach: float):
+                 tc_prop: float, v_inf: float, mach: float, ref_area: float):
         super().__init__()
         self.duct_diameter = duct_diameter
         self.duct_chord = duct_chord
@@ -19,6 +19,7 @@ class Duct:
         self.tc_prop = tc_prop
         self.v_inf = v_inf
         self.mach = mach
+        self.ref_area = ref_area
 
     """ Define velocities and angles"""
     def inflow_velocity(self):
@@ -97,12 +98,14 @@ class Duct:
 
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.proj_area() / self.ref_area
 
-        cd_duct = (self.cd0() + self.cdi()) * norm_speed
+        cd_duct = (self.cd0() + self.cdi()) * norm_speed * norm_area
         return cd_duct
 
     def cl_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.proj_area() / self.ref_area
 
-        cl_duct = self.cl() * norm_speed
+        cl_duct = self.cl() * norm_speed * norm_area
         return cl_duct

@@ -1,9 +1,10 @@
 import numpy as np
-from analysis_modules.aerodynamic import lift, drag, moment, drag_interference
+from analysis_modules.aerodynamic import drag_interference
 import constants
 import flow_conditions
 from data.read_data import airfoil_polar
 import data.atr_reference as ref
+import config
 
 
 class Pylon:
@@ -39,7 +40,7 @@ class Pylon:
     def inflow_angle(self):
         e = (2 * ref.cl_wing) / (np.pi * ref.ar_w)
 
-        inflow_angle = self.alpha - e
+        inflow_angle = self.alpha - np.radians(e)
         return inflow_angle
 
     """ For the area of the pylon, it is assumed to be a rectangle and the 
@@ -133,10 +134,20 @@ class Pylon:
         return cog_x, cog_y, cog_z
 
 
-""" test section"""
-"""
-pylon: Pylon = Pylon(pylon_length=config.pylon_length, pylon_chord=config.pylon_chord, pylon_profile=config.pylon_airfoil,
-                     power_condition="off", cant_angle=30, alpha=0, ref_area=15,
-                     v_inf=183)
+if __name__ == "__main__":
+    pylon = Pylon(pylon_length=config.pylon_length,
+                  pylon_chord=config.pylon_chord,
+                  pylon_profile=config.pylon_airfoil,
+                  power_condition="on",
+                  cant_angle=config.cant_angle,
+                  alpha=0,
+                  ref_area=config.duct_chord * config.duct_diameter,
+                  v_inf=128)
 
-pylon.cd_prime() """
+    print(f"inflow vel: {pylon.inflow_velocity()}")
+    print(f"inflow ang: {pylon.inflow_angle()}")
+    print(f"cd: {pylon.cd():.5f}")
+    print(f"cd interference: {pylon.cd_interference():.5f}")
+    print(f"cd prime: {pylon.cd_prime():.5f}")
+    print(f"cl: {pylon.cl():.5f}")
+    print(f"cl prime: {pylon.cl_prime():.5f}")
