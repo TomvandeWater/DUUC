@@ -19,6 +19,7 @@ c_tip_w = c_tip(c_root_w, tr_w)
 ar_w = b_w ** 2 / s_w
 cl_wing = -0.116  # clean wing lift coefficient M = 0.0792 Re 2.005e5
 alpha_install_wing = 4  # installation angle of the wing (w.r.t zero lift line) onto the fuselage [deg]
+wing_airfoil = "43013"  # wing airfoil profile from the Naca 5 series -> or 43018
 
 """ Horizontal tail surface"""
 s_ht = 11.7  # horizontal tail surface [m^2]
@@ -26,18 +27,21 @@ s_ht = 11.7  # horizontal tail surface [m^2]
 b_h = 7.31  # span horizontal tail surface [m]
 tr_h = 0.525  # taper ratio [-]
 phi_qc_h = 5.5  # quarter chord sweep [deg]
+phi_hc_h = 25  # half chord sweep [deg]
 ar_h = 6  # aspect ratio horizontal stab [-]
 c_root_h = c_root(s_ht, b_h, tr_h)
 c_tip_h = c_tip(c_root_h, tr_h)
 tail_volume_h = 1.05  # tail volume coefficient horizontal tail (from Hamburg University)
 airfoil_ht = "0009"  # horizontal tailplane airfoil profile from NACA 4 series
+lever_h = 13.565  # leverage arm between tail [m]
 
 """ Vertical tail surface"""
-s_vt = 12.5  # vertical tail surface [m^2]
+s_vt = 14.9  # vertical tail surface [m^2]
 # s_vt = 14.90  # from Hamburg university research
 b_v = 4.43  # tail height [m]
 tr_v = 0.65  # taper ratio [-]
 phi_qc_v = 29  # quarter chord sweep [deg]
+phi_hc_v = 24  # half chord sweep [deg]
 ar_v = 1.6  # aspect ratio vertical stab [-]
 c_root_v = c_root(s_vt, b_v, tr_v)
 c_tip_v = c_tip(c_root_v, tr_v)
@@ -47,6 +51,7 @@ airfoil_vt = "0012"  # vertical tailplane airfoil profile from NACA 4 series
 """ Fuselage"""
 h_f = 2.63  # height of the fuselage [m]
 w_f = 2.87  # width of the fuselage [m]
+diameter_fuselage = 2.77  # fuselage diameter [m]
 l_cabin = 19.25  # cabin length [m]
 l_cockpit = 3.880  # cockpit length [m] from raydome to front door
 l_tail = 8.310  # tail length [m]
@@ -60,10 +65,12 @@ P_max_cruise = 2132  # Power max cruise [SHP]
 l_nacelle = 3.4425  # nacelle length [m] (based on dimensional drawing)
 d_nacelle = 1.1475  # nacelle diameter (average) [m] (based on dimensional drawing)
                     # -> assume constant diameter
+m_eng = 481  # engine mass in [kg]
 
 """ Blades Hamilton Standard 568F """
 blade_diameter = 3.93  # blade diameter [m]
 n_blades = 6  # number of blades [-]
+propeller_airfoil = "Hamilton568F"  # airfoil propeller blade
 
 """ Weights """
 MTOW = 22800  # Maximum take-off weight (basic) [kg]
@@ -76,6 +83,7 @@ load_fuel = 5000  # Max fuel load [kg]
 v_cruise = 510  # Max cruise speed (95% MTOW - ISA - Optimum FL) [km/h]
 m_fuel = 762  # Fuel flow at cruise speed [kg/hr]
 range_reg = 758  # Range with max pax [NM]
+v_dive = 130  # dive speed [m/s]
 
 """"  Weight estimations based on Hamburg university """
 m_wing = 3045  # wing mass [kg]
