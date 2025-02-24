@@ -5,8 +5,7 @@ from analysis_modules.aerodynamic import reynolds, propulsive_efficiency, speed_
 from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import advance_ratio
 import matplotlib.pyplot as plt
-from aircraft.propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
-from aircraft.conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
+from aircraft.aircraft_assembly import Aircraft
 import numpy as np
 import data.atr_reference as ref
 from analysis_modules.plotting_functions import plot_inflow_velocity, plot_inflow_angle
@@ -37,94 +36,61 @@ for i in range(len(v_array)):
     mach_cal = v_inf / (speed_of_sound(flow_conditions.altitude))  # free stream mach number [-]
 
     """ Calculate Reynolds number"""
-    duct_reynolds = reynolds(air_density_isa(flow_conditions.altitude),
-                             v_inf, config.duct_chord)
-    # print(f"Re duct: {duct_reynolds}")
-
-    reynolds_conv = reynolds(air_density_isa(flow_conditions.altitude),
+    reynolds_wing = reynolds(air_density_isa(flow_conditions.altitude),
                              v_inf, ref.c_root_w)
+    # print(f"Re duct: {duct_reynolds}")
 
     advance = advance_ratio(v_inf, config.rpm, config.duct_diameter)
 
     """ setup the DUUC object from propulsive empennage class"""
-    duuc: PropulsiveEmpennage = PropulsiveEmpennage(rpm=config.rpm,
-                                                    alpha=alpha,
-                                                    power_condition=config.power_condition,
-                                                    va_inlet=va_inlet,
-                                                    re_duct=duct_reynolds,
-                                                    n_blades=config.n_blades,
-                                                    prop_diameter=config.duct_diameter*0.95,
-                                                    hub_diameter=config.hub_diameter,
-                                                    prop_airfoil=config.prop_airfoil,
-                                                    prop_sweep=config.propeller_sweep,
-                                                    prop_pitch=config.propeller_pitch,
-                                                    c_root=config.c_root,
-                                                    c_tip=config.c_tip,
-                                                    duct_diameter=config.duct_diameter,
-                                                    duct_chord=config.duct_chord,
-                                                    duct_profile=config.duct_airfoil,
-                                                    cant_angle=config.cant_angle,
-                                                    pylon_length=config.pylon_length,
-                                                    pylon_chord=config.pylon_chord,
-                                                    pylon_profile=config.pylon_airfoil,
-                                                    d_exit=config.d_exit,
-                                                    nacelle_length=config.nacelle_length,
-                                                    nacelle_diameter=config.nacelle_diameter,
-                                                    support_length=config.support_length,
-                                                    support_chord=config.support_chord,
-                                                    support_profile=config.support_airfoil,
-                                                    hcv_span=config.control_vane_length,
-                                                    hcv_chord=config.control_vane_chord,
-                                                    control_profile=config.control_vanes_airfoil,
-                                                    vcv_span=config.control_vane_length,
-                                                    vcv_chord=config.control_vane_chord,
-                                                    propulsor_type=config.propulsor_type,
-                                                    v_inf=v_inf,
-                                                    mach=mach_cal,
-                                                    ref_area=ref.s_w)
-    v_inflow = [v_inf, duuc.duct.inflow_velocity(), duuc.propeller.inflow_velocity(), duuc.support.inflow_velocity(),
-                duuc.elevator.inflow_velocity(), duuc.propeller.u1(), 100, 100]
-    a_inflow = [alpha, duuc.duct.inflow_angle(), duuc.propeller.inflow_angle(), duuc.support.inflow_angle(),
-                duuc.elevator.inflow_angle(), 0, 0, 0]
+    duuc: Aircraft = Aircraft(aircraft_type="DUUC", alpha=alpha, reynolds=reynolds_wing, v_inf=v_inf,
+                              mach=mach_cal)
+
+    v_inflow = [v_inf, duuc.empennage.duct.inflow_velocity(), duuc.empennage.propeller.inflow_velocity(),
+                duuc.empennage.support.inflow_velocity(),
+                duuc.empennage.elevator.inflow_velocity(), duuc.empennage.propeller.u1(), 100, 100]
+    a_inflow = [alpha, duuc.empennage.duct.inflow_angle(), duuc.empennage.propeller.inflow_angle(),
+                duuc.empennage.support.inflow_angle(),
+                duuc.empennage.elevator.inflow_angle(), 0, 0, 0]
 
     station = [0, 1, 1.8, 2.2, 2.55, 4.5, 5.5, 6]
 
-    #plot_inflow_velocity(v_inflow, a_inflow, station)
-    #plot_inflow_angle(a_inflow, station)
+    # plot_inflow_velocity(v_inflow, a_inflow, station)
+    # plot_inflow_angle(a_inflow, station)
 
     """ cd properties """
-    cd_total = duuc.cd_prime()
+    cd_total = duuc.empennage.cd_prime()
     print(f"DUUC cdprime: {cd_total}")
-    cd_duct = duuc.duct.cd_prime()
-    cd_pylon = duuc.pylon.cd_prime()
-    cd_support = duuc.support.cd_prime()
-    cd_control = 2 * duuc.elevator.cd_prime() + 2 * duuc.rudder.cd_prime()
-    cd_nacelle = duuc.nacelle.cd_prime()
-    cd_prop = duuc.propeller.cd_prime()
+    cd_duct = duuc.empennage.duct.cd_prime()
+    cd_pylon = duuc.empennage.pylon.cd_prime()
+    cd_support = duuc.empennage.support.cd_prime()
+    cd_control = 2 * duuc.empennage.elevator.cd_prime() + 2 * duuc.empennage.rudder.cd_prime()
+    cd_nacelle = duuc.empennage.nacelle.cd_prime()
+    cd_prop = duuc.empennage.propeller.cd_prime()
 
-    cdi_duct = duuc.duct.cdi()
-    cdi_pylon = duuc.pylon.cd_interference()
-    cdi_support = duuc.support.cd_interference()
-    cdi_control = 2 * duuc.elevator.cdi() + 2 * duuc.rudder.cdi()
-    cdinter_control = 2 * duuc.elevator.cd_interference() + 2 * duuc.rudder.cd_interference()
+    cdi_duct = duuc.empennage.duct.cdi()
+    cdi_pylon = duuc.empennage.pylon.cd_interference()
+    cdi_support = duuc.empennage.support.cd_interference()
+    cdi_control = 2 * duuc.empennage.elevator.cdi() + 2 * duuc.empennage.rudder.cdi()
+    cdinter_control = 2 * duuc.empennage.elevator.cd_interference() + 2 * duuc.empennage.rudder.cd_interference()
     cdi_nacelle = 0
-    cdi_prop = duuc.propeller.cd_interference()
+    cdi_prop = duuc.empennage.propeller.cd_interference()
 
-    cd0_duct = duuc.duct.cd0()
-    cd0_pylon = duuc.pylon.cd()
-    cd0_support = duuc.support.cd()
-    cd0_control = 2 * duuc.elevator.cd0() + 2 * duuc.rudder.cd0()
-    cd0_nacelle = duuc.nacelle.cd0()
-    cd0_prop = duuc.propeller.cd0()
+    cd0_duct = duuc.empennage.duct.cd0()
+    cd0_pylon = duuc.empennage.pylon.cd()
+    cd0_support = duuc.empennage.support.cd()
+    cd0_control = 2 * duuc.empennage.elevator.cd0() + 2 * duuc.empennage.rudder.cd0()
+    cd0_nacelle = duuc.empennage.nacelle.cd0()
+    cd0_prop = duuc.empennage.propeller.cd0()
 
     """ cl properties """
-    cl_total = duuc.cl_prime()
-    cl_duct = duuc.duct.cl_prime()
-    cl_pylon = duuc.pylon.cl_prime()
-    cl_support = duuc.support.cl_prime()
-    cl_control = 2 * duuc.elevator.cl_prime() + 2 * duuc.rudder.cl_prime()
-    cl_nacelle = duuc.nacelle.cl_prime()
-    cl_prop = duuc.propeller.cl_prime()
+    cl_total = duuc.empennage.cl_prime()
+    cl_duct = duuc.empennage.duct.cl_prime()
+    cl_pylon = duuc.empennage.pylon.cl_prime()
+    cl_support = duuc.empennage.support.cl_prime()
+    cl_control = 2 * duuc.empennage.elevator.cl_prime() + 2 * duuc.empennage.rudder.cl_prime()
+    cl_nacelle = duuc.empennage.nacelle.cl_prime()
+    cl_prop = duuc.empennage.propeller.cl_prime()
 
     """ data appending from instance """
     cd_results.append([advance, cd_total, cd_duct, cd_pylon, cd_support, cd_control, cd_nacelle, cd_prop])
@@ -133,58 +99,31 @@ for i in range(len(v_array)):
     cl_results.append([v_inf, cl_total, cl_duct, cl_pylon, cl_support, cl_control, cl_nacelle, cl_prop])
 
     """ define reference aircraft class """
-    atr: ConventionalEmpennage = ConventionalEmpennage(ht_span=ref.b_h,
-                                                       ht_chord=ref.c_root_h,
-                                                       ht_profile=ref.airfoil_ht,
-                                                       ht_taper=ref.tr_h,
-                                                       ht_sweep=ref.phi_qc_h,
-                                                       ht_croot=ref.c_root_h,
-                                                       vt_span=ref.b_v,
-                                                       vt_chord=ref.c_root_v,
-                                                       vt_profile=ref.airfoil_vt,
-                                                       vt_taper=ref.tr_v,
-                                                       vt_sweep=ref.phi_qc_v,
-                                                       vt_croot=ref.c_root_v,
-                                                       tail_type="t-tail",
-                                                       rpm=config.rpm,
-                                                       alpha=alpha,
-                                                       power_condition=config.power_condition,
-                                                       n_blades=config.n_blades,
-                                                       prop_diameter=config.duct_diameter * 0.95,
-                                                       hub_diameter=config.hub_diameter,
-                                                       prop_airfoil=config.prop_airfoil,
-                                                       prop_sweep=config.propeller_sweep,
-                                                       prop_pitch=config.propeller_pitch,
-                                                       c_root=config.c_root,
-                                                       c_tip=config.c_tip,
-                                                       nacelle_length=ref.l_nacelle,
-                                                       nacelle_diameter=ref.d_nacelle,
-                                                       v_inf=v_inf,
-                                                       mach=mach_cal,
-                                                       reynolds=reynolds_conv)
+    atr: Aircraft = Aircraft(aircraft_type="conventional", alpha=alpha, reynolds=reynolds_wing, v_inf=v_inf,
+                             mach=mach_cal)
 
     """ cd properties """
-    cd_total_trad = atr.cd_prime()
-    cd_vt = atr.vt_tail.cd_prime()
-    cd_ht = atr.ht_tail.cd_prime()
-    cd_nac = atr.nacelle.cd_prime() * 2
-    cd_prop_trad = atr.propeller.cd_prime() * 2
+    cd_total_trad = atr.empennage.cd_prime()
+    cd_vt = atr.empennage.vt_tail.cd_prime()
+    cd_ht = atr.empennage.ht_tail.cd_prime()
+    cd_nac = atr.empennage.nacelle.cd_prime() * 2
+    cd_prop_trad = atr.empennage.propeller.cd_prime() * 2
 
     """ cl properties """
-    cl_total_trad = atr.cl_prime()
-    cl_ht = atr.ht_tail.cl_prime()
-    cl_nac = atr.nacelle.cl_prime() * 2
-    cl_prop_trad = atr.propeller.cl_prime() * 2
+    cl_total_trad = atr.empennage.cl_prime()
+    cl_ht = atr.empennage.ht_tail.cl_prime()
+    cl_nac = atr.empennage.nacelle.cl_prime() * 2
+    cl_prop_trad = atr.empennage.propeller.cl_prime() * 2
 
     """ data appending from instance """
     cd_trad.append([v_inf, cd_total_trad, cd_vt, cd_ht, cd_nac, cd_prop_trad])
     cl_trad.append([v_inf, cl_total_trad, 0, cl_ht, cl_nac, cl_prop_trad])
 
     """ determine propulsive efficiency """
-    fx_duuc = duuc.thrust() - duuc.drag()
+    fx_duuc = duuc.thrust() - duuc.empennage.drag()
     power_in_duuc = shp_conversion(ref.P_max_cruise, "SI")
 
-    fx_ref = atr.thrust() - atr.drag()
+    fx_ref = atr.thrust() - atr.empennage.drag()
     power_in_ref = shp_conversion(ref.P_max_cruise, "SI")
 
     """ values for recovery"""
@@ -196,8 +135,8 @@ for i in range(len(v_array)):
     eta_prop_ref = propulsive_efficiency(fx_ref, v_inf, power_in_ref, k1=1, k2=1)
 
     eta_prop_results.append([advance, eta_prop_duuc, eta_prop_ref])
-    eta_prop_debug.append([v_inf, power_in_duuc, power_in_ref, duuc.thrust(), atr.thrust(), duuc.drag(), atr.drag()])
-    results.append([v_inf, duuc.thrust(), duuc.drag(), fx_duuc, "|", atr.thrust(), atr.drag(), fx_ref, '|', power_in_duuc, power_in_ref])
+    eta_prop_debug.append([v_inf, power_in_duuc, power_in_ref, duuc.thrust(), atr.thrust(), duuc.empennage.drag(), atr.empennage.drag()])
+    results.append([v_inf, duuc.thrust(), duuc.empennage.drag(), fx_duuc, "|", atr.thrust(), atr.empennage.drag(), fx_ref, '|', power_in_duuc, power_in_ref])
 
 """ convert to numpy array for manipulation """
 cd_results_matrix = np.array(cd_results)
@@ -366,7 +305,5 @@ plt.ylabel(r'$C_{d}$ [-]')
 plt.title(r'Interference drag coefficients')
 plt.grid(True)
 plt.legend()
-
-
 
 plt.show()
