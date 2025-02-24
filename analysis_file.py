@@ -5,10 +5,11 @@ from analysis_modules.aerodynamic import reynolds, propulsive_efficiency, speed_
 from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import advance_ratio
 import matplotlib.pyplot as plt
-from aircraft.propulsive_empennage.propulsive_empennage import PropulsiveEmpennage
-from aircraft.conventional_empennage.conventional_empennage import ConventionalEmpennage
+from aircraft.propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
+from aircraft.conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
 import numpy as np
 import data.atr_reference as ref
+from analysis_modules.plotting_functions import plot_inflow_velocity, plot_inflow_angle
 
 
 """ Initialization of the analysis module """
@@ -81,8 +82,19 @@ for i in range(len(v_array)):
                                                     v_inf=v_inf,
                                                     mach=mach_cal,
                                                     ref_area=ref.s_w)
+    v_inflow = [v_inf, duuc.duct.inflow_velocity(), duuc.propeller.inflow_velocity(), duuc.support.inflow_velocity(),
+                duuc.elevator.inflow_velocity(), duuc.propeller.u1(), 100, 100]
+    a_inflow = [alpha, duuc.duct.inflow_angle(), duuc.propeller.inflow_angle(), duuc.support.inflow_angle(),
+                duuc.elevator.inflow_angle(), 0, 0, 0]
+
+    station = [0, 1, 1.8, 2.2, 2.55, 4.5, 5.5, 6]
+
+    #plot_inflow_velocity(v_inflow, a_inflow, station)
+    #plot_inflow_angle(a_inflow, station)
+
     """ cd properties """
     cd_total = duuc.cd_prime()
+    print(f"DUUC cdprime: {cd_total}")
     cd_duct = duuc.duct.cd_prime()
     cd_pylon = duuc.pylon.cd_prime()
     cd_support = duuc.support.cd_prime()
