@@ -137,13 +137,20 @@ class ControlVane:
 
         return cd_vane
 
-    def weight(self):
+    def cm(self):
+        """ defined at xac = 0.25c for symmetrical airfoil"""
+        cm_cv = - self.cl() * 0.25
+        return cm_cv
+
+    @staticmethod
+    def weight():
         """ function is for complete weight control group"""
         ksc = 0.64
         wto = ref.MTOM
 
         w_cv = ksc * wto ** 0.75 * 9.81 / 8  # assume equally spread over the 4 control surfaces and both PE's
         return w_cv
+
 
 """
 if __name__ == "__main__":
