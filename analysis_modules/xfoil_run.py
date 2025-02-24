@@ -89,4 +89,4 @@ def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file
 
 """ Test test if wanted"""
 
-xfoil_polar_5seriesload("Naca43018", -5, 15, 1, 1.698e6, "wing43018", 0.40)
+# xfoil_polar_5seriesload("Naca43018", -5, 15, 1, 1.698e6, "wing43018", 0.40)
