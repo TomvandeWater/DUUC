@@ -1,6 +1,7 @@
 import numpy as np
 from analysis_modules.factors import oswald, skin_friction, mach_correction
 from data.read_data import airfoil_polar
+import data.atr_reference as ref
 
 
 class VerticalTail:
@@ -37,11 +38,10 @@ class VerticalTail:
         c_tip = self.vt_croot * self.vt_taper
         return c_tip
 
-    def area(self):
+    @staticmethod
+    def area():
         """ Area from the vertical stabilizer (based on trapezoid area)"""
-
-        s_vt = 0.5 * self.vt_span * 0.5 * (self.vt_croot + self.vt_chord)
-        # print(f'Area of the vertical stabilizer = {2* s_vt} [m^2]')
+        s_vt = ref.s_vt
         return s_vt
 
     def t_c(self):
@@ -123,3 +123,39 @@ class VerticalTail:
         cl_prime_vt = cl_cl + cl_cd
         return cl_prime_vt
 
+    def weight(self):
+        kv = 1
+        sv = self.area()
+        vd = ref.v_dive
+
+        sweep = np.radians(ref.phi_hc_v)
+
+        m_hor = kv * sv * (62 * (sv ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
+        w_hor = m_hor * 9.81
+        return w_hor
+
+
+""" Test section"""
+"""
+if __name__ == "__main__":
+    hor = VerticalTail(vt_span=ref.b_v,
+                       vt_chord=ref.c_root_v,
+                       vt_profile=ref.airfoil_vt,
+                       vt_taper=ref.tr_v,
+                       vt_sweep=ref.phi_qc_v,
+                       vt_croot=ref.c_root_v,
+                       alpha=0,
+                       v_inf=128,
+                       area_ref=ref.s_w,
+                       mach=0.576,
+                       reynolds=8422274, tail_type="t-tail")
+
+    print(f"inflow vel: {hor.inflow_velocity()}")
+    print(f"inflow ang: {hor.inflow_angle()}")
+    print(f"cd: {hor.cd():.5f}")
+    print(f"cd prime: {hor.cd_prime():.5f}")
+    print(f"cl: {hor.cl():.5f}")
+
+    print(f"weight: {hor.weight()}")
+    print(f"area: {hor.area()}")
+    print(f"span: {hor.vt_span}") """
