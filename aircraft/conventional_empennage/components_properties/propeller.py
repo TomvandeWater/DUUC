@@ -1,7 +1,10 @@
 import numpy as np
+
+import config
 from analysis_modules.BEM_simplified import BEM
 from analysis_modules.factors import skin_friction
 import flow_conditions
+import data.atr_reference as ref
 
 
 class Propeller:
@@ -129,3 +132,40 @@ class Propeller:
         u1_prop = np.sqrt((2 / flow_conditions.rho) * (self.thrust() / self.area()) +
                           self.inflow_velocity() ** 2)
         return u1_prop
+
+    @staticmethod
+    def weight():
+        """ based on 1 engine"""
+        me = ref.m_eng
+        ke = 1.35  # for propeller driven aircraft with more than 1 engine
+        kthr = 1.18  # accounts for reverse thrust
+
+        m_eng = ke * kthr * me
+        w_eng = m_eng * 9.81
+        return w_eng
+
+
+""" Test section """
+"""
+if __name__ == "__main__":
+    hor = Propeller(rpm=config.rpm,
+                    power_condition="on",
+                    n_blades=ref.n_blades,
+                    prop_diameter=ref.blade_diameter,
+                    hub_diameter=0.60,
+                    prop_airfoil=ref.propeller_airfoil,
+                    prop_sweep=0,
+                    prop_pitch=0,
+                    c_root=0.2,
+                    c_tip=0.2,
+                    area_ref=ref.s_w,
+                    alpha=0,
+                    v_inf=128,
+                    reynolds=8422274)
+
+    print(f"inflow vel: {hor.inflow_velocity()}")
+    print(f"inflow ang: {hor.inflow_angle()}")
+    print(f"cd prime: {hor.cd_prime():.5f}")
+
+    print(f"weight: {hor.weight()}")
+    print(f"area: {hor.area()}") """
