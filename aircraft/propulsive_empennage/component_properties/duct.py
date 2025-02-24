@@ -2,6 +2,8 @@ import numpy as np
 from analysis_modules.factors import mach_correction
 from analysis_modules.factors import skin_friction
 from data.read_data import airfoil_polar
+import data.atr_reference as ref
+import config
 
 
 class Duct:
@@ -109,3 +111,39 @@ class Duct:
 
         cl_duct = self.cl() * norm_speed * norm_area
         return cl_duct
+
+    def weight(self):
+        """ based on Torenbeek class II weight estimation"""
+        kh = 1.05
+        sh = self.duct_diameter * np.pi * self.duct_chord
+        vd = ref.v_dive
+        sweep = np.radians(0)
+
+        m_duct = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
+        w_duct = m_duct * 9.81
+
+        return w_duct
+
+
+""" Test section"""
+
+if __name__ == "__main__":
+    wing = Duct(duct_diameter=config.duct_diameter,
+                duct_chord=config.duct_chord,
+                duct_profile=config.duct_airfoil,
+                alpha=0,
+                re_duct=8422274,
+                power_condition="on",
+                u_mom=131,
+                tc_prop=0.48,
+                v_inf=128,
+                mach=0.576,
+                ref_area=ref.s_w)
+
+    print(f"inflow vel: {wing.inflow_velocity()}")
+    print(f"inflow ang: {wing.inflow_angle()}")
+    print(f"area: {wing.proj_area()}, wetted area: {wing.wetted_area()}")
+    print(f"aspect ratio: {wing.aspect_ratio()}, t_c: {wing.t_c()}")
+    print(f"cd0: {wing.cd0()}, cdi: {wing.cdi()}, cdprime: {wing.cd_prime()}")
+    print(f"cl: {wing.cl()}, cl_prime: {wing.cl_prime()}")
+    print(f"weight: {wing.weight()}")
