@@ -6,8 +6,9 @@ from analysis_modules.factors import skin_friction, mach_correction
 
 
 class Fuselage:
-    def __init__(self, fuselage_length: float, fuselage_diameter: float, l_cabin: float, l_cockpit: float, l_tail: float,
-                 velocity: float, alpha: float, ref_area: float, reynolds_number: float, mach: float, cl_wing: float):
+    def __init__(self, fuselage_length: float, fuselage_diameter: float, l_cabin: float, l_cockpit: float,
+                 l_tail: float, velocity: float, alpha: float, ref_area: float, reynolds_number: float, mach: float,
+                 cl_wing: float, cmac_wing: float):
         super().__init__()
         self.fuselage_length = fuselage_length
         self.fuselage_diameter = fuselage_diameter
@@ -20,10 +21,12 @@ class Fuselage:
         self.re = reynolds_number
         self.mach = mach
         self.cl_wing = cl_wing
+        self.c_wing = cmac_wing
+
     """ Determine inflow velocity and angle"""
     def inflow_velocity(self):
         """ flow is undisturbed in the freestream, returned in m/s"""
-        vel_fus = self.inflow_velocity()
+        vel_fus = self.velocity
         return vel_fus
 
     def inflow_angle(self):
@@ -59,7 +62,18 @@ class Fuselage:
         """ Based on Sadreay wetted area fuselage"""
         radius = self.fuselage_diameter / 2
         area_wet_fus = 2 * np.pi * radius ** 2 + 2 * (np.pi * radius ** 2 * self.fuselage_length) / radius
-        return area_wet_fus
+
+        """ based on TextNita"""
+        l_bug = 1.4 * self.fuselage_diameter
+        l_heck = 3 * self.fuselage_diameter
+        l_zyl = self.l_cabin
+        d = self.fuselage_diameter
+
+        area_wet = (np.sqrt(l_bug ** 2 + (d / 2) ** 2) * (d * np.pi) / 2
+                    + (self.fuselage_diameter * np.pi * l_zyl) + np.sqrt(l_heck ** 2 + (d / 2) ** 2)
+                    * (d * np.pi) / 2)
+
+        return area_wet
 
     """ Determine coefficients """
     def cd0(self):
@@ -124,9 +138,62 @@ class Fuselage:
         cd_int_fuse = 0.015 * (dCl_dc ** 2)
         return cd_int_fuse
 
+    def cm0(self):
+        """ Defined by Hoerners 1965"""
+        cm_fuselage = - self.length() / (4 * self.fuselage_diameter)
+        return cm_fuselage
+
+    def cmi(self):
+        """ Defined by Hoerners 1965"""
+        lr = self.length() / self.fuselage_diameter
+
+        cm_fus = - 1.2 / lr
+        return cm_fus
+
+    def cm(self):
+        cm_fuselage = self.cm0() + self.cmi() * self.alpha
+        return cm_fuselage
+
+    def cm_prime(self):
+        norm_speed = self.inflow_velocity() ** 2 / self.velocity
+        norm_area = self.area_proj() / self.ref_area
+
+        cm = self.cm() * norm_area * norm_speed * self.c_wing
+        return cm
+
     """ Determine the weight of the fuselage"""
     def weight(self):
-        w_fuselage = config.n_pax * config.w_pax + 15000 # still add W structure
-        return  w_fuselage
+        vd = ref.v_dive
+        hf = self.fuselage_diameter
+        wf = self.fuselage_diameter
+
+        lh = ref.lever_h  # lever arm between fuselage and tail
+
+        w_fuselage = 0.23 * np.sqrt(vd * lh / (wf + hf)) * self.area_wetted() ** 1.2
+        return w_fuselage * 9.81
 
 
+""" Test section """
+"""
+if __name__ == "__main__":
+    fuselage = Fuselage(fuselage_length=ref.l_tail+ref.l_cabin+ref.l_cockpit,
+                        fuselage_diameter=2.77,
+                        l_cabin=ref.l_cabin,
+                        l_cockpit=ref.l_cockpit,
+                        l_tail=ref.l_tail,
+                        velocity=128,
+                        alpha=0,
+                        ref_area=ref.s_w,
+                        reynolds_number=8422274,
+                        mach=0.576,
+                        cl_wing=0.813,
+                        cmac_wing=2.626)
+
+    print(f"inflow vel: {fuselage.inflow_velocity()}")
+    print(f"inflow ang: {fuselage.inflow_angle()}, oswald: {fuselage.e_fuselage()}")
+    print(f"area: {fuselage.area_proj()}, wetted area: {fuselage.area_wetted()}")
+    print(f"aspect ratio: {fuselage.aspect_ratio()}")
+    print(f"cd0: {fuselage.cd0()}, cdi: {fuselage.cdi()}, cd: {fuselage.cd()}, cdprime: {fuselage.cd_prime()}")
+    print(f" cl: {fuselage.cl()}, cl_prime: {fuselage.cl_prime()}")
+    print(f"cm0: {fuselage.cm0()}, cma: {fuselage.cmi()}, cm: {fuselage.cm()}")
+    print(f"weight: {fuselage.weight()}")"""
