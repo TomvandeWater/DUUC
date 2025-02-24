@@ -39,11 +39,10 @@ class HorizontalTail:
         c_tip = self.ht_croot * self.ht_taper
         return c_tip
 
-    def area(self):
-        """ Area from horizontal stabilizer (based on trapezoid area)"""
+    @staticmethod
+    def area():
+        s_ht = ref.s_ht
 
-        s_ht = self.ht_span * 0.5 * (self.ht_croot + self.ht_chord)
-        # print(f'Area of the horizontail stabilizer = {2* s_ht} [m^2]')
         return s_ht
 
     def t_c(self):
@@ -123,3 +122,40 @@ class HorizontalTail:
 
         cl_prime_vt = cl_cl + cl_cd
         return cl_prime_vt
+
+    def weight(self):
+        kh = 1.1
+        sh = self.area()
+        vd = ref.v_dive
+        sweep = np.radians(ref.phi_hc_h)
+
+        m_hor = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
+        w_hor = m_hor * 9.81
+        return m_hor
+
+
+""" Test section"""
+"""
+if __name__ == "__main__":
+    hor = HorizontalTail(ht_span=ref.b_h,
+                         ht_chord=ref.c_root_h,
+                         ht_profile=ref.airfoil_ht,
+                         ht_taper=ref.tr_h,
+                         ht_sweep=ref.phi_qc_h,
+                         ht_croot=ref.c_root_h,
+                         alpha=0,
+                         v_inf=128,
+                         area_ref=ref.s_w,
+                         mach=0.576,
+                         reynolds=8422274)
+
+    print(f"inflow vel: {hor.inflow_velocity()}")
+    print(f"inflow ang: {hor.inflow_angle()}")
+    print(f"cd: {hor.cd():.5f}")
+    print(f"cd prime: {hor.cd_prime():.5f}")
+    print(f"cl: {hor.cl():.5f}")
+    print(f"cl prime: {hor.cl_prime():.5f}")
+    print(f"weight: {hor.weight()}")
+    print(f"area: {hor.area()}")
+    print(f"span: {hor.ht_span}")
+    print(f"sweep: {hor.ht_sweep}") """
