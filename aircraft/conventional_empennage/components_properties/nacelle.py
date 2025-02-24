@@ -1,6 +1,7 @@
 import numpy as np
 from analysis_modules.aerodynamic import drag_interference
 from analysis_modules.factors import mach_correction, skin_friction
+import data.atr_reference as ref
 
 
 class Nacelle:
@@ -74,4 +75,35 @@ class Nacelle:
         cl_prime_nac = 0
         return cl_prime_nac
 
+    def weight(self):
+        """ based on Torenbeek Class II weight estimation"""
+        # calculated for take off conditions
+        p = 4102000
+        eta = 0.64545
+        v = 54.12
 
+        m_nacelle = 0.0458 * (p * eta) / (v * 9.81)
+        w_nacelle = m_nacelle * 9.81
+        return w_nacelle
+
+
+""" Test section"""
+"""
+if __name__ == "__main__":
+    hor = Nacelle(nacelle_length=ref.l_nacelle,
+                  nacelle_diameter=ref.d_nacelle,
+                  alpha=0,
+                  v_inf=128,
+                  area_ref=ref.s_w,
+                  mach=0.576,
+                  reynolds=8422274,
+                  n_blades=ref.n_blades,
+                  prop_airfoil=ref.propeller_airfoil)
+
+    print(f"inflow vel: {hor.inflow_velocity()}")
+    print(f"cd: {hor.cd0():.5f}")
+    print(f"cd prime: {hor.cd_prime():.5f}")
+    print(f"cl: {hor.cl_prime():.5f}")
+
+    print(f"weight: {hor.weight()}")
+    print(f"area: {hor.area()}") """
