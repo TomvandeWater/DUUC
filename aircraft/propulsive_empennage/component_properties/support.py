@@ -115,6 +115,17 @@ class SupportStrut:
         cd_support = cd_cd + cd_cl
         return cd_support
 
+    def cm(self):
+        cm_strut = - self.cl() * 0.25
+        return cm_strut
+
+    """ Weight estimation"""
+    def weight(self):
+
+        m_support =0
+        w_support = m_support * 9.81
+        return w_support
+
 
 """
 if __name__ == "__main__":
