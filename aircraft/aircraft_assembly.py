@@ -1,8 +1,8 @@
 import numpy as np
 import config
 import data.atr_reference as ref
-from fuselage import Fuselage
-from wing import Wing
+from aircraft.fuselage import Fuselage
+from aircraft.wing import Wing
 
 
 class Aircraft:
@@ -27,7 +27,7 @@ class Aircraft:
 
     def make_empennage(self):
         if self.aircraft_type == "DUUC":
-            from propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
+            from aircraft.propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
             va_inlet = self.v_inf * (np.pi * (config.duct_diameter / 2))
             return PropulsiveEmpennage(rpm=config.rpm,
                                        alpha=self.alpha,
@@ -65,7 +65,7 @@ class Aircraft:
                                        mach=self.mach,
                                        ref_area=ref.s_w)
         if self.aircraft_type == "conventional":
-            from conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
+            from aircraft.conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
             return ConventionalEmpennage(ht_span=ref.b_h,
                                          ht_chord=ref.c_root_h,
                                          ht_profile=ref.airfoil_ht,
@@ -113,10 +113,10 @@ class Aircraft:
 
 
 """ Test section"""
-
+"""
 if __name__ == "__main__":
     DUUC = Aircraft(aircraft_type="DUUC", alpha=0,
                     reynolds=8422274, v_inf=128,
                     mach=0.576)
 
-    print(f"DUUC drag: {DUUC.empennage.cd_prime()}")
+    print(f"DUUC drag: {DUUC.empennage.cd_prime()}")"""
