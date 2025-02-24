@@ -126,7 +126,7 @@ class Duct:
 
 
 """ Test section"""
-
+"""
 if __name__ == "__main__":
     wing = Duct(duct_diameter=config.duct_diameter,
                 duct_chord=config.duct_chord,
@@ -146,4 +146,4 @@ if __name__ == "__main__":
     print(f"aspect ratio: {wing.aspect_ratio()}, t_c: {wing.t_c()}")
     print(f"cd0: {wing.cd0()}, cdi: {wing.cdi()}, cdprime: {wing.cd_prime()}")
     print(f"cl: {wing.cl()}, cl_prime: {wing.cl_prime()}")
-    print(f"weight: {wing.weight()}")
+    print(f"weight: {wing.weight()}") """
