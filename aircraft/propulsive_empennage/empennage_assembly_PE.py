@@ -149,3 +149,7 @@ class PropulsiveEmpennage:
     def thrust(self):
         thrust_pe = 2 * self.propeller.thrust()
         return thrust_pe
+
+    def weight(self):
+        w_pe = 0
+        return w_pe
