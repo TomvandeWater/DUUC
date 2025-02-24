@@ -56,6 +56,10 @@ class Pylon:
         thickness = thickness / 100  # returns value in percentage of normalized chord
         return thickness
 
+    def area_wetted(self):
+        s_wet_pylon = 2 * (1 + 0.5 * self.t_c()) * self.pylon_length * self.pylon_chord
+        return s_wet_pylon
+
     """ Coefficients for force calculations """
 
     def cl_da(self):
@@ -116,6 +120,10 @@ class Pylon:
         cd_pylon = cd_cd + cd_cl
         return cd_pylon
 
+    def cm(self):
+        cm_pylon = - self.cl() * 0.25
+        return cm_pylon
+
     """ Weight definition of the pylon"""
     def weight(self):
         """ Based on weight approximation treating it as a horizontal
@@ -125,7 +133,18 @@ class Pylon:
         pylon_weight = ((self.area() * (3.81 * self.area() ** 0.2
                                         * flow_conditions.V_d - 0.287))
                         * constants.g) * constants.K_pylon
-        return pylon_weight
+
+        kh = 1.1
+        sh = self.area()
+        vd = ref.v_dive
+        sweep = np.radians(ref.phi_hc_h)
+
+        #m_pylon = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
+        #w_pylon = m_pylon * 9.81
+
+        m_pylon = 0.405 * vd * self.area_wetted() ** 1.3
+
+        return m_pylon
 
     def cog(self):
         cog_x = 0.5 * self.pylon_chord
@@ -146,8 +165,10 @@ if __name__ == "__main__":
 
     print(f"inflow vel: {pylon.inflow_velocity()}")
     print(f"inflow ang: {pylon.inflow_angle()}")
+    print(f"area: {pylon.area()}")
     print(f"cd: {pylon.cd():.5f}")
     print(f"cd interference: {pylon.cd_interference():.5f}")
     print(f"cd prime: {pylon.cd_prime():.5f}")
     print(f"cl: {pylon.cl():.5f}")
     print(f"cl prime: {pylon.cl_prime():.5f}")
+    print(f"weight: {pylon.weight()}")
