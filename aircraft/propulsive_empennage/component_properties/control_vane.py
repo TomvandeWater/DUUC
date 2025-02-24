@@ -2,7 +2,7 @@ import numpy as np
 from analysis_modules.aerodynamic import drag_interference
 from data.read_data import airfoil_polar
 from analysis_modules.factors import k_control, skin_friction, mach_correction, oswald
-import config
+import data.atr_reference as ref
 
 
 class ControlVane:
@@ -136,6 +136,14 @@ class ControlVane:
         cd_vane = cd_cl + cd_cd
 
         return cd_vane
+
+    def weight(self):
+        """ function is for complete weight control group"""
+        ksc = 0.64
+        wto = ref.MTOM
+
+        w_cv = ksc * wto ** 0.75 * 9.81 / 8  # assume equally spread over the 4 control surfaces and both PE's
+        return w_cv
 
 """
 if __name__ == "__main__":
