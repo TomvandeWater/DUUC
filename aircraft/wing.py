@@ -147,7 +147,7 @@ class Wing:
 
             w_wing_r = kw * bs ** 0.75 * (1 + sqrt_b) * n_ult ** 0.55 * ratio2 ** 0.30
             w_wing = w_wing_r * w_zf  # returns wing weight in Newtons
-            return w_wing
+            return ((1 - 0.03) * w_wing) / 9.81
 
         if self.wing_type == "DUUC":
             f_no_engine = 0.85  # reduced wing weight due to no engines on the wing between 0.75-0.85
@@ -155,7 +155,7 @@ class Wing:
             w_wing_r = kw * bs ** 0.75 * (1 + sqrt_b) * n_ult ** 0.55 * ratio2 ** 0.30 * f_no_engine
             w_wing = w_wing_r * w_zf  # returns wing weight in Newtons
 
-            return w_wing
+            return (1.02 * w_wing) / 9.81
 
         else:
             print("Wrong input for wing type")
