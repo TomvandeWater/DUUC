@@ -13,7 +13,7 @@ class Pylon:
     completely outside the duct. """
     def __init__(self, pylon_length: float, pylon_chord: float, pylon_profile: str,
                  power_condition: str, cant_angle: float, alpha: float, ref_area: float,
-                 v_inf: float):
+                 v_inf: float, m_supported: float):
         super().__init__()
         self.pylon_length = pylon_length
         self.pylon_chord = pylon_chord
@@ -23,6 +23,7 @@ class Pylon:
         self.pc = power_condition
         self.ref_area = ref_area
         self.v_inf = v_inf
+        self.m_supported = m_supported
 
     """ The inflow speed for the pylon is affected by the outside of the duct
     and also affected by the downwash of the wing. The downwash of the wing and the duct affect
@@ -126,23 +127,7 @@ class Pylon:
 
     """ Weight definition of the pylon"""
     def weight(self):
-        """ Based on weight approximation treating it as a horizontal
-        stabilizer (Vos, 2018) multiplied by correction factor found in
-        research Stavreva 2020"""
-
-        pylon_weight = ((self.area() * (3.81 * self.area() ** 0.2
-                                        * flow_conditions.V_d - 0.287))
-                        * constants.g) * constants.K_pylon
-
-        kh = 1.1
-        sh = self.area()
-        vd = ref.v_dive
-        sweep = np.radians(ref.phi_hc_h)
-
-        #m_pylon = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
-        #w_pylon = m_pylon * 9.81
-
-        m_pylon = 0.405 * vd * self.area_wetted() ** 1.3
+        m_pylon = 0.20 * self.m_supported
 
         return m_pylon
 
