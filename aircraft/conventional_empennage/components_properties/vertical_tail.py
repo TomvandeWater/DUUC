@@ -131,12 +131,11 @@ class VerticalTail:
         sweep = np.radians(ref.phi_hc_v)
 
         m_hor = kv * sv * (62 * (sv ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
-        w_hor = m_hor * 9.81
-        return w_hor
+        return m_hor
 
 
 """ Test section"""
-"""
+
 if __name__ == "__main__":
     hor = VerticalTail(vt_span=ref.b_v,
                        vt_chord=ref.c_root_v,
@@ -158,4 +157,4 @@ if __name__ == "__main__":
 
     print(f"weight: {hor.weight()}")
     print(f"area: {hor.area()}")
-    print(f"span: {hor.vt_span}") """
+    print(f"span: {hor.vt_span}")

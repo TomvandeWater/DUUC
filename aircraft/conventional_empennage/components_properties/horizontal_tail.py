@@ -130,8 +130,7 @@ class HorizontalTail:
         sweep = np.radians(ref.phi_hc_h)
 
         m_hor = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
-        w_hor = m_hor * 9.81
-        return w_hor
+        return m_hor
 
 
 """ Test section"""
