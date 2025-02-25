@@ -4,6 +4,7 @@ from aircraft.conventional_empennage.components_properties.propeller import Prop
 from aircraft.conventional_empennage.components_properties.nacelle import Nacelle
 from aircraft.conventional_empennage.components_properties.vertical_tail import VerticalTail
 import flow_conditions
+import data.atr_reference as ref
 
 
 class ConventionalEmpennage:
@@ -88,3 +89,20 @@ class ConventionalEmpennage:
     def drag(self):
         drag_conv = self.cd_prime() * self.v_inf ** 2 * self.area_ref * 0.5 * flow_conditions.rho
         return drag_conv
+
+    def weight_emp(self):
+        w_emp = self.ht_tail.weight() + self.vt_tail.weight()
+        return w_emp
+
+    def weight_prop(self):
+        w_prop = 2 * self.propeller.weight() + 2 * self.nacelle.weight()
+        return w_prop
+
+    def weight_cv(self):
+        """ function is for complete weight control group"""
+        ksc = 0.64
+        wto = ref.MTOW
+
+        w_cv = ksc * wto ** 0.75 * 9.81
+
+        return w_cv
