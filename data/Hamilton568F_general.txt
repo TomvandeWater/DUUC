@@ -1,0 +1,9 @@
+Type 	 		F568
+Nblades [-] 		6
+Diameter [m] 	 	3.93
+CruiseEfficiency 	0.88
+rpm [1/min] 	 	1200
+Mdes [-] 	 	0.45
+Mtip [-] 	 	0.95
+Beta075Min [deg] 	10
+Beta075Max [deg] 	35
