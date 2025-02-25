@@ -20,7 +20,6 @@ V_d = 193.2  # dive speed [knots]
 
 """ alpha must be between -5 and 15 otherwise there will be issues with pylon 
 forces """
-alpha = 5  # angle of attack [deg]
 delta_e = 0  # elevator deflection angle [deg]
 delta_r = 0  # rudder deflection angle [deg]
 
@@ -31,7 +30,6 @@ print("Airspeed =", u_inf, "[m/s]")
 print("Altitude =", altitude, "[m]")
 print("Mach =", np.round(Mach, 2), '[-]')
 print("\n ----- Angles -----")
-print("Angle of Attack:", alpha, "[deg]")
 print("Elevator deflection", delta_e, "[deg]")
 print("Rudder deflection", delta_r, "[deg]")
 print("\n----- ISA calculator -----")
