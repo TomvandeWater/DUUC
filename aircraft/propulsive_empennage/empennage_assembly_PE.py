@@ -151,5 +151,6 @@ class PropulsiveEmpennage:
         return thrust_pe
 
     def weight(self):
-        w_pe = 0
+        w_pe = (self.duct.weight() + self.propeller.weight() + self.nacelle.weight() + self.rudder.weight()
+                + self.elevator.weight() + self.pylon.weight() + self.support.weight())
         return w_pe
