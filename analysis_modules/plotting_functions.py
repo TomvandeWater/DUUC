@@ -53,30 +53,38 @@ def plot_weight_distribution(w_vector1, w_vector2):
     wing_duuc = w_vector1[1]
     wing_atr = w_vector2[1]
 
-    prop_nac_atr = w_vector2[2]
+    engine_atr = w_vector2[2]
     htail_atr = w_vector2[3]
     vtail_atr = w_vector2[4]
     cv_atr = w_vector2[5]
+    nacelle_atr = w_vector2[6]
+    fan_atr = w_vector2[8]
 
     duct_duuc = w_vector1[2]
     pylon_duuc = w_vector1[3]
     support_duuc = w_vector1[4]
     cv_duuc = w_vector1[5]
-    prop_duuc = w_vector1[6]  # also includes nacelle
+    engine_duuc = w_vector1[6]
+    nacelle_duuc = w_vector1[7]
+    fan_duuc = w_vector1[8]
 
     # Data
     labels = ['DUUC', 'ATR72-600']
     fuselage = np.array([fus_duuc, fus_atr])
     wing = np.array([wing_duuc, wing_atr])
-    engine = np.array([0, prop_nac_atr])
-    controls_wing = np.array([cv_duuc * 0.75, cv_atr * 0.25])
-    duct = np.array([duct_duuc, 0])
-    pylon = np.array([pylon_duuc, 0])
+    engine = np.array([0, engine_atr * 2])
+    controls_wing = np.array([cv_duuc * 0.75, cv_atr * 0.75])
+    duct = np.array([duct_duuc * 2, 0])
+    pylon = np.array([pylon_duuc * 2, 0])
     control_vanes = np.array([cv_duuc * 0.25, cv_atr * 0.25])
-    support = np.array([support_duuc, 0])
-    propeller = np.array([prop_duuc, 0])
+    support = np.array([support_duuc * 2, 0])
+    propeller = np.array([engine_duuc * 2, 0])
     htail = np.array([0, htail_atr])
     vtail = np.array([0, vtail_atr])
+    nacelle_wing = np.array([0, nacelle_atr * 2])
+    fan_wing = np.array([0, fan_atr * 2])
+    nacelle_tail = np.array([nacelle_duuc * 2, 0])
+    fan_tail = np.array([fan_duuc * 2, 0])
 
     # Create subplots
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -88,24 +96,34 @@ def plot_weight_distribution(w_vector1, w_vector2):
     axes[0].bar(labels, fuselage, label='Fuselage', color='tab:blue')
     axes[0].set_title('Fuselage')
     axes[0].legend(loc="lower right")
+    axes[0].set_ylim([0, 6000])
 
     # Plot 2: Wing + Engine (Stacked)
-    axes[1].bar(labels, wing, label='Wing', color='tab:blue')
-    axes[1].bar(labels, engine, label='Engine', bottom=wing, color='tab:orange')
-    axes[1].bar(labels, controls_wing, label='Controls', bottom=wing + engine, color='tab:green')
+    axes[1].bar(labels, wing, label='Wing')
+    axes[1].bar(labels, controls_wing, label='Controls', bottom=wing)
+    axes[1].bar(labels, engine, label='Engine', bottom=wing + controls_wing)
+    axes[1].bar(labels, nacelle_wing, label='Nacelle', bottom=wing + controls_wing + engine)
+    axes[1].bar(labels, fan_wing, label='Fan', bottom=wing + controls_wing + engine + nacelle_wing)
+    axes[1].set_ylim([0, 6000])
+
     axes[1].set_title('Wing')
     axes[1].legend(loc="lower right")
 
     # Plot 3: Empennage (Stacked)
-    axes[2].bar(labels, duct, label='Duct', color='tab:purple')
-    axes[2].bar(labels, pylon, label='Pylon', bottom=duct, color='tab:olive')
-    axes[2].bar(labels, control_vanes, label='Control Vanes', bottom=duct + pylon, color='tab:grey')
-    axes[2].bar(labels, support, label='Support', bottom=duct + pylon + control_vanes, color='tab:red')
-    axes[2].bar(labels, propeller, label='Propeller', bottom=duct + pylon + control_vanes + support, color='tab:green')
-    axes[2].bar(labels, htail, label='Horizontal tail', bottom=duct + pylon + control_vanes + support + propeller, color='tab:orange')
-    axes[2].bar(labels, vtail, label='Vertical tail', bottom=duct + pylon + control_vanes + support + propeller + htail, color='tab:blue')
+    axes[2].bar(labels, control_vanes, label='Control Vanes')
+    axes[2].bar(labels, duct, label='Duct', bottom=control_vanes)
+    axes[2].bar(labels, pylon, label='Pylon', bottom=duct + control_vanes)
+    axes[2].bar(labels, support, label='Support', bottom=duct + pylon + control_vanes)
+    axes[2].bar(labels, propeller, label='Propeller', bottom=duct + pylon + control_vanes + support)
+    axes[2].bar(labels, htail, label='Horizontal tail', bottom=duct + pylon + control_vanes + support + propeller)
+    axes[2].bar(labels, vtail, label='Vertical tail', bottom=duct + pylon + control_vanes + support + propeller + htail)
+    axes[2].bar(labels, nacelle_tail, label='Nacelle', bottom=duct + pylon + control_vanes + support + propeller
+                                                                   + htail + vtail)
+    axes[2].bar(labels, fan_tail, label='Fan', bottom=duct + pylon + control_vanes + support + propeller + htail
+                                                           + vtail + nacelle_tail)
     axes[2].set_title('Empennage')
     axes[2].legend(loc="lower right")
+    axes[2].set_ylim([0, 6000])
     axes[0].set_ylabel('Component mass [kg]')
     # Adjust layout and display
     plt.tight_layout()
@@ -194,3 +212,70 @@ def weight_comp_table(w_vector, datatype: str):
         print("{:<115} | {:<8} % | {} %".format("Total deviation", np.round(sum_percd, 4), np.round(sum_perc_str, 4)))
     else:
         return None
+
+
+def interference_drag_range(cdi_results):
+    cdi_results_matrix = np.array(cdi_results)
+
+    plt.figure("Interference drag coefficients")
+    plt.plot(cdi_results_matrix[:, 0], cdi_results_matrix[:, 7], label=r'Propeller')
+    plt.plot(cdi_results_matrix[:, 0], cdi_results_matrix[:, 1], label=r'Control Vanes')
+    plt.plot(cdi_results_matrix[:, 0], cdi_results_matrix[:, 4], label=r'Support')
+    plt.plot(cdi_results_matrix[:, 0], cdi_results_matrix[:, 3], label=r'Pylon')
+    plt.xlabel(r'$V_{\infty}$ [m/s]')
+    plt.ylabel(r'$C_{d_{interference}}$ [-]')
+    plt.title(r'Interference drag coefficients')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+
+def component_drag_wcdi_range(cd_results, cdi_results, cd0_results, j, component: str):
+    # propeller j = 7
+    # nacelle j = 6
+    # cv  j =5
+    # Duct = 2
+
+    cdi_results_matrix = np.array(cdi_results)
+    cd_results_matrix = np.array(cd_results)
+    cd0_results_matrix = np.array(cd0_results)
+
+    plt.figure(f"{component} drag coefficients")
+    plt.plot(cd_results_matrix[:, 0], cd_results_matrix[:, j], label=r'Total drag coefficient')
+    plt.plot(cd_results_matrix[:, 0], cdi_results_matrix[:, j], label=r'Induced drag coefficient')
+    plt.plot(cd_results_matrix[:, 0], cd0_results_matrix[:, j], label=r'Zero lift drag coefficient')
+    plt.xlabel(r'$v_{inf} [m/s]$')
+    plt.ylabel(r'$C_{d} [-]$')
+    plt.title(f'{component} drag coefficients')
+    plt.legend()
+    plt.show()
+
+
+def component_drag_range(cd_results, cd0_results, j, component: str):
+    # support j = 4
+    # pylon j = 3
+
+    cd_results_matrix = np.array(cd_results)
+    cd0_results_matrix = np.array(cd0_results)
+
+    plt.figure(f"{component} drag coefficients")
+    plt.plot(cd_results_matrix[:, 0], cd_results_matrix[:, j], label=r'Total drag coefficient')
+
+    plt.plot(cd_results_matrix[:, 0], cd0_results_matrix[:, j], label=r'Zero lift drag coefficient')
+    plt.xlabel(r'$v_{inf} [m/s]$')
+    plt.ylabel(r'$C_{d} [-]$')
+    plt.title(f'{component} drag coefficients')
+    plt.legend()
+
+
+def propulsive_efficiency_plot(eta_prop_results):
+    eta_results_matrix = np.array(eta_prop_results)
+
+    plt.figure('Propulsive efficiency')
+    plt.plot(eta_results_matrix[:, 0], eta_results_matrix[:, 1], label=r'DUUC')
+    plt.plot(eta_results_matrix[:, 0], eta_results_matrix[:, 2], label=r'ATR72-600')
+    plt.xlabel(r'J [-]')
+    plt.ylabel(r'$\eta_{prop}$ [%]')
+    plt.title(r'Propulsive efficiency')
+    plt.legend()
+    plt.grid(True)
