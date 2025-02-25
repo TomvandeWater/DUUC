@@ -95,14 +95,19 @@ class ConventionalEmpennage:
         return w_emp
 
     def weight_prop(self):
-        w_prop = 2 * self.propeller.weight() + 2 * self.nacelle.weight()
+        w_prop = 2 * self.propeller.weight_engine()
         return w_prop
 
-    def weight_cv(self):
+    def weight_nac(self):
+        w_nac = 2 * self.nacelle.weight()
+        return w_nac
+
+    @staticmethod
+    def weight_cv():
         """ function is for complete weight control group"""
         ksc = 0.64
-        wto = ref.MTOW
+        wto = ref.MTOW * 2.20462
 
-        w_cv = ksc * wto ** 0.75 * 9.81
+        w_cv = ksc * wto ** 0.75
 
-        return w_cv
+        return w_cv / 2.20462

@@ -3,6 +3,7 @@ import flow_conditions
 from analysis_modules.BEM_simplified import BEM
 from analysis_modules.aerodynamic import drag_interference
 from analysis_modules.factors import skin_friction
+import data.atr_reference as ref
 
 
 class Propeller:
@@ -29,12 +30,17 @@ class Propeller:
         self.v_inf = v_inf
 
     def inflow_velocity(self):
-        v_ind = self.va_inlet / (np.pi / 4 * self.prop_diameter ** 2)
-        u_prop = (self.v_inf + v_ind) / 2
-        return u_prop
+        if self.pc == "off":
+            v_ind = self.va_inlet / (np.pi / 4 * self.prop_diameter ** 2)
+            u_prop = v_ind
+            return u_prop
+        else:
+            v_ind = self.va_inlet / (np.pi / 4 * self.prop_diameter ** 2)
+            u_prop = v_ind
+            return u_prop
 
     def inflow_angle(self):
-        inflow_prop = self.alpha
+        inflow_prop = self.alpha / 2
         return inflow_prop
 
     def area(self):
@@ -152,9 +158,20 @@ class Propeller:
         return u1_prop
 
     """ Weight definition"""
-    def weight(self):
-        prop_weight = 10 * self.prop_diameter
-        return prop_weight
+    @staticmethod
+    def weight_engine():
+        """ based on 1 engine"""
+        me = ref.m_eng
+        ke = 1.35  # for propeller driven aircraft with more than 1 engine
+        kthr = 1.18  # accounts for reverse thrust
+
+        m_eng = ke * kthr * me
+        return m_eng
+
+    def weight_fan(self):
+        m_fan = ref.m_blade * self.n_blades
+        m_fan = m_fan * 1.10  # 10 percent mass added for spinner
+        return m_fan
 
 
 """

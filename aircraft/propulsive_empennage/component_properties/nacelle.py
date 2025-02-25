@@ -74,12 +74,26 @@ class Nacelle:
 
     def weight(self):
         if self.propulsor_type == 'conventional':
-            weight = 100000
-            return weight
+            """ based on Torenbeek Class II weight estimation"""
+            # calculated for take off conditions
+            p = 4102000
+            eta = 0.64545
+            v = 54.12
+
+            m_nacelle = 0.0458 * (p * eta) / (v * 9.81)
+
+            return m_nacelle
 
         else:
-            weight = 50000
-            return weight
+            """ based on Torenbeek Class II weight estimation"""
+            # calculated for take off conditions
+            p = 4102000
+            eta = 0.64545
+            v = 54.12
+
+            m_nacelle = 0.0458 * (p * eta) / (v * 9.81)
+
+            return m_nacelle
 
 
 """

@@ -3,6 +3,7 @@ from analysis_modules.aerodynamic import drag_interference
 from data.read_data import airfoil_polar
 from analysis_modules.factors import k_control, skin_friction, mach_correction, oswald
 import data.atr_reference as ref
+import config
 
 
 class ControlVane:
@@ -10,7 +11,7 @@ class ControlVane:
     are for 1 control vane. """
     def __init__(self, cv_span: float, cv_chord: float, cv_profile: str, power_condition: str,
                  va_inlet: float, d_exit: float, u1: float, ref_area: float, deflection: float,
-                 re_inflow: float, v_inf: float, alpha: float, mach: float):
+                 re_inflow: float, v_inf: float, alpha: float, mach: float, u_mom: float):
         super().__init__()
         self.cv_span = cv_span
         self.cv_chord = cv_chord
@@ -25,6 +26,7 @@ class ControlVane:
         self.v_inf = v_inf
         self.alpha = alpha
         self.mach = mach
+        self.u_mom = u_mom
 
     """ The inflow velocity is affected by the propeller """
     def inflow_velocity(self):
@@ -35,13 +37,13 @@ class ControlVane:
             v_cv = v_vane
             return v_cv
         else:
-            v_cv = self.u1
+            v_cv = self.u_mom
             return v_cv
 
     def inflow_angle(self):
         alpha_power_off = 0
         deflection = self.deflection_angle
-        inflow = np.radians(alpha_power_off)
+        inflow = np.radians(alpha_power_off + deflection)
         return inflow
 
     """ The area is based on a rectangle and is calculated for 1 control vane, assumed zero degrees
@@ -146,13 +148,13 @@ class ControlVane:
     def weight():
         """ function is for complete weight control group"""
         ksc = 0.64
-        wto = ref.MTOM
+        wto = ref.MTOW * 2.20462
 
-        w_cv = ksc * wto ** 0.75 * 9.81 / 8  # assume equally spread over the 4 control surfaces and both PE's
-        return w_cv
+        # weight division 0.75 wing - 0.25 tail
+        w_cv = (ksc * wto ** 0.75)  # assume equally spread over the 4 control surfaces and both PE's
+        return w_cv / 2.20462
 
 
-"""
 if __name__ == "__main__":
     control = ControlVane(cv_span=config.control_vane_length,
                           cv_chord=config.control_vane_chord,
@@ -166,7 +168,7 @@ if __name__ == "__main__":
                           re_inflow=8422274,
                           v_inf=128,
                           alpha=0,
-                          mach=0.576)
+                          mach=0.576, u_mom=10)
 
     print(f"inflow vel: {control.inflow_velocity()}")
     print(f"inflow ang: {control.inflow_angle()}")
@@ -176,4 +178,5 @@ if __name__ == "__main__":
     print(f"cd interference: {control.cd_interference():.5f}")
     print(f"cd prime: {control.cd_prime():.5f}")
     print(f"cl: {control.cl():.5f}")
-    print(f"cl prime: {control.cl_prime():.5f}")"""
+    print(f"cl prime: {control.cl_prime():.5f}")
+    print(f"weight: {control.weight()}")

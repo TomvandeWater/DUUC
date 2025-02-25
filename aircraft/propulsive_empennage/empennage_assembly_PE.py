@@ -5,6 +5,7 @@ from aircraft.propulsive_empennage.component_properties.support import SupportSt
 from aircraft.propulsive_empennage.component_properties.duct import Duct
 from aircraft.propulsive_empennage.component_properties.control_vane import ControlVane
 from aircraft.propulsive_empennage.component_properties.propeller import Propeller
+import numpy as np
 
 
 class PropulsiveEmpennage:
@@ -94,33 +95,42 @@ class PropulsiveEmpennage:
                             propemp.re, propemp.power_condition, u_mom, tc_prop, propemp.v_inf,
                             propemp.mach, propemp.ref_area)
 
-        # Initiate pylon class
-        propemp.pylon = Pylon(propemp.l_pylon, propemp.c_pylon, propemp.pylon_profile,
-                              propemp.power_condition, propemp.cant, propemp.alpha, propemp.ref_area,
-                              propemp.v_inf)
-
         # Initiate nacelle class
         propemp.nacelle = Nacelle(propemp.l_nacelle, propemp.d_nacelle, propemp.prop_type,
                                   propemp.re, propemp.power_condition, u_mom, alpha, propemp.ref_area,
                                   propemp.v_inf, propemp.mach)
 
-        # Initiate support class
-        propemp.support = SupportStrut(propemp.l_support, propemp.c_support,
-                                       propemp.support_profile, propemp.cant,
-                                       propemp.power_condition, v_prop, u_mom, alpha, tc_prop,
-                                       cn_prop, propemp.ref_area, propemp.v_inf)
+        # v_after_prop = np.sqrt(propemp.propeller.vnorm() ** 2 + propemp.propeller.vax() ** 2)
+        v_after_prop = 100
+        # a_after_prop = np.arctan(propemp.propeller.vnorm()/propemp.propeller.vax())
+        a_after_prop = 50
 
         # Initiate control vane class for elevator (1 piece)
         propemp.elevator = ControlVane(propemp.b_hcv, propemp.c_hcv, propemp.hcv_profile,
                                        propemp.power_condition, propemp.va_inlet,
                                        propemp.d_exit, u1, propemp.ref_area, flow_conditions.delta_e,
-                                       propemp.re, propemp.v_inf, propemp.alpha, propemp.mach)
+                                       propemp.re, propemp.v_inf, propemp.alpha, propemp.mach, u_mom)
 
         # Initiate control vane class for rudder (1 piece)
         propemp.rudder = ControlVane(propemp.b_vcv, propemp.c_vcv, propemp.vcv_profile,
                                      propemp.power_condition, propemp.va_inlet, propemp.d_exit, u1,
                                      propemp.ref_area, flow_conditions.delta_r, propemp.re, propemp.v_inf,
-                                     propemp.alpha, propemp.mach)
+                                     propemp.alpha, propemp.mach, u_mom)
+
+        m_supported = ((propemp.rudder.weight() * 0.25 / 2) + propemp.propeller.weight_engine()
+                       + propemp.propeller.weight_fan() + propemp.nacelle.weight() + propemp.duct.weight())
+
+        # Initiate support class
+        propemp.support = SupportStrut(propemp.l_support, propemp.c_support,
+                                       propemp.support_profile, propemp.cant,
+                                       propemp.power_condition, v_after_prop, u_mom, alpha, tc_prop,
+                                       cn_prop, propemp.ref_area, propemp.v_inf, propemp.va_inlet, propemp.d_prop,
+                                       a_after_prop, m_supported)
+
+        # Initiate pylon class
+        propemp.pylon = Pylon(propemp.l_pylon, propemp.c_pylon, propemp.pylon_profile,
+                              propemp.power_condition, propemp.cant, propemp.alpha, propemp.ref_area,
+                              propemp.v_inf, m_supported)
 
     def cl_prime(self):
         cl_prime_pe = (self.pylon.cl_prime() + self.duct.cl_prime() + self.support.cl_prime()

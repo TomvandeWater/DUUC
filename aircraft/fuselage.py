@@ -170,7 +170,7 @@ class Fuselage:
         lh = ref.lever_h  # lever arm between fuselage and tail
 
         w_fuselage = 0.23 * np.sqrt(vd * lh / (wf + hf)) * self.area_wetted() ** 1.2
-        return w_fuselage * 9.81
+        return w_fuselage
 
 
 """ Test section """
@@ -196,4 +196,4 @@ if __name__ == "__main__":
     print(f"cd0: {fuselage.cd0()}, cdi: {fuselage.cdi()}, cd: {fuselage.cd()}, cdprime: {fuselage.cd_prime()}")
     print(f" cl: {fuselage.cl()}, cl_prime: {fuselage.cl_prime()}")
     print(f"cm0: {fuselage.cm0()}, cma: {fuselage.cmi()}, cm: {fuselage.cm()}")
-    print(f"weight: {fuselage.weight()}")"""
+    print(f"weight: {fuselage.weight()}") """

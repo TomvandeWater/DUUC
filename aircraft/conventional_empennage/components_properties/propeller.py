@@ -134,19 +134,23 @@ class Propeller:
         return u1_prop
 
     @staticmethod
-    def weight():
+    def weight_engine():
         """ based on 1 engine"""
         me = ref.m_eng
         ke = 1.35  # for propeller driven aircraft with more than 1 engine
         kthr = 1.18  # accounts for reverse thrust
 
         m_eng = ke * kthr * me
-        w_eng = m_eng * 9.81
-        return w_eng
+        return m_eng
+
+    def weight_fan(self):
+        m_fan = ref.m_blade * self.n_blades
+        m_fan = m_fan * 1.10  # 10 percent mass added for spinner
+        return m_fan
 
 
 """ Test section """
-"""
+
 if __name__ == "__main__":
     hor = Propeller(rpm=config.rpm,
                     power_condition="on",
@@ -167,5 +171,5 @@ if __name__ == "__main__":
     print(f"inflow ang: {hor.inflow_angle()}")
     print(f"cd prime: {hor.cd_prime():.5f}")
 
-    print(f"weight: {hor.weight()}")
-    print(f"area: {hor.area()}") """
+    print(f"weight: {hor.weight_engine()}")
+    print(f"area: {hor.area()}")

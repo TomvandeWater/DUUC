@@ -29,7 +29,7 @@ class Duct:
             u_duct = self.v_inf
             return u_duct
         else:
-            u_duct = self.u_mom
+            u_duct = self.v_inf
             return u_duct
 
     def inflow_angle(self):
@@ -120,9 +120,7 @@ class Duct:
         sweep = np.radians(0)
 
         m_duct = kh * sh * (62 * (sh ** 0.2 * vd) / (1000 * np.sqrt(np.cos(sweep))) - 2.5)
-        w_duct = m_duct * 9.81
-
-        return w_duct
+        return m_duct
 
 
 """ Test section"""

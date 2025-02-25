@@ -83,8 +83,7 @@ class Nacelle:
         v = 54.12
 
         m_nacelle = 0.0458 * (p * eta) / (v * 9.81)
-        w_nacelle = m_nacelle * 9.81
-        return w_nacelle
+        return m_nacelle
 
 
 """ Test section"""

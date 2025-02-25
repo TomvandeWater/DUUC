@@ -6,29 +6,34 @@ import config
 
 class SupportStrut:
     def __init__(self, support_length: float, support_chord: float, support_profile: str,
-                 cant_angle: float, power_condition: str, v_prop: float, u_mom: float,
-                 alpha: float, tc_prop: float, cn_prop: float, ref_area: float, v_inf: float):
+                 cant_angle: float, power_condition: str, v_after_prop: float, u_mom: float,
+                 alpha: float, tc_prop: float, cn_prop: float, ref_area: float, v_inf: float,
+                 va_inlet: float, prop_diameter: float, a_after_prop: float, m_supported: float):
         super().__init__()
         self.support_length = support_length
         self.support_chord = support_chord
         self.support_profile = support_profile
         self.cant_angle = cant_angle
         self.pc = power_condition
-        self.v_prop = v_prop
+        self.v_after_prop = v_after_prop
         self.u_mom = u_mom
         self.alpha = alpha
         self.tc_prop = tc_prop
         self.cn_prop = cn_prop
         self.ref_area = ref_area
         self.v_inf = v_inf
+        self.va_inlet = va_inlet
+        self.prop_diameter = prop_diameter
+        self.a_after_prop = a_after_prop
+        self.m_supported = m_supported
 
     """ Inflow velocity on the strut is affected by the propeller"""
     def inflow_velocity(self):
         if self.pc == "off":
-            u_support = self.v_prop
+            u_support = self.va_inlet / (np.pi / 4 * self.prop_diameter ** 2)
             return u_support
         else:
-            u_support = self.u_mom
+            u_support = self.v_after_prop
             return u_support
 
     def inflow_angle(self):
@@ -38,10 +43,10 @@ class SupportStrut:
                       / (4 + 2 * thrust_c))
 
         if self.pc == "off":
-            inflow_support = self.alpha
+            inflow_support = 0
             return inflow_support
         else:
-            inflow_support = self.alpha * (1 - de_da_prop)
+            inflow_support = self.a_after_prop
             return inflow_support
 
     """" The area is based on a rectangle, note that the support goes through the nacelle in this 
@@ -121,11 +126,8 @@ class SupportStrut:
 
     """ Weight estimation"""
     def weight(self):
-
-        m_support =0
-        w_support = m_support * 9.81
-        return w_support
-
+        m_support = 0.1 * self.m_supported
+        return m_support
 
 """
 if __name__ == "__main__":
