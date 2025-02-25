@@ -71,6 +71,7 @@ m_eng = 481  # engine mass in [kg]
 blade_diameter = 3.93  # blade diameter [m]
 n_blades = 6  # number of blades [-]
 propeller_airfoil = "Hamilton568F"  # airfoil propeller blade
+m_blade = 52 * 0.45359237  # blade mass [kg]
 
 """ Weights """
 MTOW = 22800  # Maximum take-off weight (basic) [kg]
