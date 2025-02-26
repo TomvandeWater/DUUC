@@ -5,7 +5,7 @@ import numpy as np
 """ Flow parameters """
 airspeed = 148  # [m/s]
 u_inf = 180  # free stream flow velocity [m/s]
-altitude = 7000  # flying altitude in [m]
+altitude = 7620  # flying altitude in [m]
 
 rho = air_density_isa(altitude)[0]
 temper = air_density_isa(altitude)[1]
