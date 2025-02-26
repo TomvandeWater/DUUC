@@ -132,6 +132,20 @@ class PropulsiveEmpennage:
                               propemp.power_condition, propemp.cant, propemp.alpha, propemp.ref_area,
                               propemp.v_inf, m_supported)
 
+    def cd0_vector(self):
+        cd0_duct = self.duct.cd0()
+        cd0_pylon = 0
+        cd0_nacelle = self.nacelle.cd0()
+        cd0_support = 0
+        cd0_control = 0
+        return [cd0_duct, cd0_pylon, cd0_nacelle, cd0_control, cd0_control]
+
+    def cd_interference_vector(self):
+        cd_interference_pylon = self.pylon.cd_interference() * 2
+        cd_interference_support = self.support.cd_interference() * 2
+        cd_interference_control = self.rudder.cd_interference() * 8
+        return [cd_interference_pylon, cd_interference_support, cd_interference_control]
+
     def cl_prime(self):
         cl_prime_pe = (self.pylon.cl_prime() + self.duct.cl_prime() + self.support.cl_prime()
                        + self.nacelle.cl_prime() + 2 * self.elevator.cl_prime()
