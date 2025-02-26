@@ -2,6 +2,7 @@ import numpy as np
 from analysis_modules.factors import oswald, skin_friction, mach_correction
 from data.read_data import airfoil_polar
 import data.atr_reference as ref
+from analysis_modules.aerodynamic import drag_interference
 
 
 class VerticalTail:
@@ -23,6 +24,7 @@ class VerticalTail:
         self.mach = mach
         self.reynolds = reynolds
 
+    """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
         inflow_vt = self.v_inf
         return inflow_vt
@@ -32,7 +34,7 @@ class VerticalTail:
         inflow_angle = 0
         return inflow_angle
 
-    """" Calculate geometric properties of the vertical tail"""
+    """" --------------------------- Calculate geometric properties of the vertical tail -------------------------- """
 
     def tip_chord(self):
         c_tip = self.vt_croot * self.vt_taper
@@ -73,6 +75,14 @@ class VerticalTail:
         else:
             z_tail = 0
             return z_tail
+    """ -------------------------------- Coefficient calculation -------------------------------------------------- """
+    def cd_interference(self):
+        norm_area = (self.t_c() * self.vt_chord ** 2) / self.area()
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+
+        cd_int_vt = (drag_interference(self.t_c(), 'plane') * norm_speed
+                     * norm_area)
+        return cd_int_vt
 
     def cl(self):
         cl_polar = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle())
@@ -88,28 +98,33 @@ class VerticalTail:
         cf = skin_friction(self.reynolds, "t")
         fm = mach_correction(self.mach)
         norm_area = self.wet_area() / self.area_ref
-        ftc = 1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4
+        sweep_corr = 1.34 * self.mach ** 0.18 * (np.cos(np.radians(self.vt_sweep)) ** 0.28)
+        ftc = (1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4) * sweep_corr
 
-        coeff = airfoil_polar(f"vt{self.vt_profile}.txt", float(0.0))
-        cdmin = float(coeff[1] + coeff[2])
-        cd0_vt = cf * fm * ftc * norm_area * (cdmin / 0.004) ** 0.4
+        cd0_vt = cf * fm * ftc * norm_area * 1.04
         return cd0_vt
 
     def cd(self):
         cd_vt = self.cd0() + self.cdi()
         return cd_vt
 
+    """ ------------------------------ calculate output primes ---------------------------------------------------- """
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
 
         alpha = np.radians(self.inflow_angle())
 
-        cd_cd = self.cd() * np.cos(alpha) * norm_speed * norm_area
-        cd_cl = self.cl() * np.sin(alpha) * norm_speed * norm_area
+        cd_cd = self.cd() * np.cos(alpha) * norm_speed
+        cd_cl = self.cl() * np.sin(alpha) * norm_speed
 
         cd_prime_vt = cd_cl + cd_cd
         return cd_prime_vt
+
+    @staticmethod
+    def cl_prime():
+        """ vertical tail does not produce lift"""
+        cl_prime_vt = 0
+        return cl_prime_vt
 
     def c_beta_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
@@ -123,6 +138,7 @@ class VerticalTail:
         cl_prime_vt = cl_cl + cl_cd
         return cl_prime_vt
 
+    """ ---------------------------------------- determine weight ------------------------------------------------- """
     def weight(self):
         kv = 1
         sv = self.area()
@@ -135,7 +151,7 @@ class VerticalTail:
 
 
 """ Test section"""
-
+"""
 if __name__ == "__main__":
     hor = VerticalTail(vt_span=ref.b_v,
                        vt_chord=ref.c_root_v,
@@ -158,3 +174,4 @@ if __name__ == "__main__":
     print(f"weight: {hor.weight()}")
     print(f"area: {hor.area()}")
     print(f"span: {hor.vt_span}")
+    print(f"area: {hor.area()}, wet_area: {hor.wet_area()}") """

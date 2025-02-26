@@ -19,9 +19,16 @@ class Nacelle:
         self.mach = mach
         self.re_ref = reynolds
 
+    """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
         inflow_nac = self.v_inf
         return inflow_nac
+
+    def inflow_angle(self):
+        alfa = self.alpha
+        return alfa
+
+    """" --------------------------- Calculate geometric properties ----------------------------------------------- """
 
     def area_wetted(self):
         """ only the side area is assumed no closing sides"""
@@ -44,7 +51,8 @@ class Nacelle:
         t_c_av = (t_c_prop_tip + t_c_prop_root) / 2
         return t_c_av
 
-    def cd_int(self):
+    """" ----------------------- Calculate geometric properties of the horizontal tail ---------------------------- """
+    def cd_interference(self):
         norm_area = self.area() / self.area_ref
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
@@ -56,26 +64,29 @@ class Nacelle:
         cf = skin_friction(self.re_ref, "t")
         fm = mach_correction(self.mach)
         l_d = self.nacelle_length / self.nacelle_diameter
-        f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
-        norm_area = self.area_wetted() / self.area_ref
+        # f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
+        f_nac = 1 + 0.35 / (self.nacelle_length / self.nacelle_diameter)
 
-        cd0_nacelle = cf * fm * f_nac * norm_area
-
+        cd0_nacelle = cf * fm * f_nac * 1.5
         return cd0_nacelle
 
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.area() / self.area_ref
 
-        cd_nac = self.cd0() * norm_speed
+        cd_nac = self.cd0() * norm_speed * norm_area
         return cd_nac
 
+    """ ------------------------ Output primes ----------------------------------------------------------------- """
     @staticmethod
     def cl_prime():
         """assume the nacelle does not produce lift"""
         cl_prime_nac = 0
         return cl_prime_nac
 
-    def weight(self):
+    """" ----------------------------------- Calculate weight --------------------------------------------------- """
+    @staticmethod
+    def weight():
         """ based on Torenbeek Class II weight estimation"""
         # calculated for take off conditions
         p = 4102000
@@ -100,9 +111,9 @@ if __name__ == "__main__":
                   prop_airfoil=ref.propeller_airfoil)
 
     print(f"inflow vel: {hor.inflow_velocity()}")
-    print(f"cd: {hor.cd0():.5f}")
+    print(f"cd: {hor.cd0():.5f}, cd0: {hor.cd0()}")
     print(f"cd prime: {hor.cd_prime():.5f}")
     print(f"cl: {hor.cl_prime():.5f}")
 
     print(f"weight: {hor.weight()}")
-    print(f"area: {hor.area()}") """
+    print(f"area: {hor.area()}, wet: {hor.area_wetted()}")"""
