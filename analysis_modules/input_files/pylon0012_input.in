@@ -1,15 +1,15 @@
-naca0012
+Naca0012
 Oper
 v
-3396078.3423603354
+4698000.0
 mach
-0.5764800910839395
+0.44
 PACC
 C:\Users\tomva\pythonProject\DUUC\data\Polars\pylon0012.txt
 
 ASeq
 -5
-10
+15
 1
 
 
