@@ -99,13 +99,40 @@ class Aircraft:
             print("Wrong aircraft type defined!!")
             return None
 
-    def cd(self):
-        cd_ac = 0
-        return cd_ac
+    def cd0_vector(self):
+        if self.aircraft_type == "conventional":
+            cd0_nacelle = self.empennage.cd0_vector()[0] * 2
+            cd0_ht = self.empennage.cd0_vector()[1]
+            cd0_vt = self.empennage.cd0_vector()[2]
+            cd0_wing = self.wing.cd0()
+            cd0_fuselage = self.fuselage.cd0()
+            return [cd0_nacelle, cd0_ht, cd0_vt, cd0_wing, cd0_fuselage]
+        if self.aircraft_type == "DUUC":
+            cd0_duct = self.empennage.cd0_vector()[0] * 2
+            cd0_pylon = self.empennage.cd0_vector()[1] * 2
+            cd0_nacelle = self.empennage.cd0_vector()[2] * 2
+            cd0_support = self.empennage.cd0_vector()[3] * 2
+            cd0_control = self.empennage.cd0_vector()[4] * 8
+            cd0_wing = self.wing.cd0()
+            cd0_fuselage = self.fuselage.cd0()
+            return [cd0_duct, cd0_pylon, cd0_nacelle, cd0_support, cd0_control, cd0_wing, cd0_fuselage]
 
-    def cl(self):
-        cl_ac = 0
-        return cl_ac
+    def cl_vector(self):
+        """ not normalized values"""
+        if self.aircraft_type == "conventional":
+            cl_fuselage = self.fuselage.cl()
+            cl_wing = self.wing.cl()
+            cl_ht = self.empennage.ht_tail.cl()
+            return [cl_ht, cl_wing, cl_fuselage]
+
+        if self.aircraft_type == "DUUC":
+            cl_fuselage = self.fuselage.cl()
+            cl_wing = self.wing.cl()
+            cl_duct = self.empennage.duct.cl()
+            cl_pylon = self.empennage.pylon.cl()
+            cl_support = self.empennage.support.cl()
+            cl_control = self.empennage.rudder.cl() * 4
+            return [cl_duct, cl_pylon, cl_support, cl_control, cl_wing, cl_fuselage]
 
     def thrust(self):
         t_ac = 0
