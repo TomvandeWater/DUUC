@@ -67,8 +67,22 @@ class ConventionalEmpennage:
                                self.area_ref, self.prop_airfoil, self.n_blades, self.mach,
                                self.reynolds)
 
+    """ ----------------------- vectors for plots ---------------------------------------------------------------- """
+    def cd0_vector(self):
+        cd0_nacelle = self.nacelle.cd0()
+        cd0_ht = self.ht_tail.cd0()
+        cd0_vt = self.vt_tail.cd0()
+        return [cd0_nacelle, cd0_ht, cd0_vt]
+
+    def cd_interference_vector(self):
+        cd_interference_ht = self.ht_tail.cd_interference()
+        cd_interference_vt = self.vt_tail.cd_interference()
+        cd_interference_nac = self.nacelle.cd_interference() * 2
+        return [cd_interference_nac, cd_interference_ht, cd_interference_vt]
+
+    """ ------------------------------- coefficient sums ------------------------------------------------------- """
     def cd_interference(self):
-        cd_int_conv = self.ht_tail.cd_int() + self.nacelle.cd_int()
+        cd_int_conv = self.ht_tail.cd_interference() + self.nacelle.cd_interference()
         return cd_int_conv
 
     def cd_prime(self):
@@ -82,6 +96,7 @@ class ConventionalEmpennage:
                          2 * self.propeller.cl_prime() + 2 * self.nacelle.cl_prime())
         return cl_prime_conv
 
+    """ ------------------------------------------ Forces ------------------------------------------------------- """
     def thrust(self):
         thrust_conv = 2 * self.propeller.thrust()
         return thrust_conv
@@ -90,6 +105,7 @@ class ConventionalEmpennage:
         drag_conv = self.cd_prime() * self.v_inf ** 2 * self.area_ref * 0.5 * flow_conditions.rho
         return drag_conv
 
+    """ --------------------------------------- Weights ---------------------------------------------------------- """
     def weight_emp(self):
         w_emp = self.ht_tail.weight() + self.vt_tail.weight()
         return w_emp
@@ -109,5 +125,4 @@ class ConventionalEmpennage:
         wto = ref.MTOW * 2.20462
 
         w_cv = ksc * wto ** 0.75
-
         return w_cv / 2.20462
