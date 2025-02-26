@@ -23,7 +23,7 @@ class Fuselage:
         self.cl_wing = cl_wing
         self.c_wing = cmac_wing
 
-    """ Determine inflow velocity and angle"""
+    """ ------------------------- Determine inflow properties ----------------------------------------------------- """
     def inflow_velocity(self):
         """ flow is undisturbed in the freestream, returned in m/s"""
         vel_fus = self.velocity
@@ -34,6 +34,7 @@ class Fuselage:
         ang_fus = self.alpha
         return ang_fus
 
+    """ ---------------------------- Determine geometric properties ---------------------------------------------- """
     @staticmethod
     def l_cabin():
         k_cabin = 1
@@ -54,8 +55,14 @@ class Fuselage:
         area_front_fus = (np.pi / 4) * self.fuselage_diameter ** 2
         return area_front_fus
 
+    def slenderness(self):
+        slenderness_fus = self.length() / self.fuselage_diameter
+        return slenderness_fus
+
     def aspect_ratio(self):
         ar_fus = (4 * self.length() ** 2) / (np.pi * self.area_front())
+
+        ar_fus = (np.pi / 4) * self.fuselage_length/self.fuselage_diameter
         return ar_fus
 
     def area_wetted(self):
@@ -75,7 +82,7 @@ class Fuselage:
 
         return area_wet
 
-    """ Determine coefficients """
+    """ --------------------------------- Determine coefficients ------------------------------------------------- """
     def cd0(self):
         """ Based on Sadraey fuselage model"""
         cf = skin_friction(self.re, "t")
@@ -104,6 +111,31 @@ class Fuselage:
         cl_fus = (2 / 3) * (self.area_front() / self.ref_area) * self.cl_wing
         return cl_fus
 
+    @staticmethod
+    def cd_interference():
+        """ interference drag because of the wing fuselage interaction"""
+        dCl_dc = -0.07 * ref.alpha_install_wing
+
+        cd_int_fuse = 0.015 * (dCl_dc ** 2)
+        return cd_int_fuse
+
+    def cm0(self):
+        """ Defined by Hoerners 1965"""
+        cm_fuselage = - self.length() / (4 * self.fuselage_diameter)
+        return cm_fuselage
+
+    def cmi(self):
+        """ Defined by Hoerners 1965"""
+        lr = self.length() / self.fuselage_diameter
+
+        cm_fus = - 1.2 / lr
+        return cm_fus
+
+    def cm(self):
+        cm_fuselage = self.cm0() + self.cmi() * self.alpha
+        return cm_fuselage
+
+    """ -------------------------------- Determine prime outputs -------------------------------------------------- """
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.velocity ** 2
         norm_area = self.area_proj() / self.ref_area
@@ -130,30 +162,6 @@ class Fuselage:
         cl_prime_fus = cl_cl + cl_cd
         return cl_prime_fus
 
-    @staticmethod
-    def cd_interference():
-        """ interference drag because of the wing fuselage interaction"""
-        dCl_dc = -0.07 * ref.alpha_install_wing
-
-        cd_int_fuse = 0.015 * (dCl_dc ** 2)
-        return cd_int_fuse
-
-    def cm0(self):
-        """ Defined by Hoerners 1965"""
-        cm_fuselage = - self.length() / (4 * self.fuselage_diameter)
-        return cm_fuselage
-
-    def cmi(self):
-        """ Defined by Hoerners 1965"""
-        lr = self.length() / self.fuselage_diameter
-
-        cm_fus = - 1.2 / lr
-        return cm_fus
-
-    def cm(self):
-        cm_fuselage = self.cm0() + self.cmi() * self.alpha
-        return cm_fuselage
-
     def cm_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.velocity
         norm_area = self.area_proj() / self.ref_area
@@ -161,7 +169,7 @@ class Fuselage:
         cm = self.cm() * norm_area * norm_speed * self.c_wing
         return cm
 
-    """ Determine the weight of the fuselage"""
+    """  --------------------------------------- Determine the weight of the fuselage ---------------------------- """
     def weight(self):
         vd = ref.v_dive
         hf = self.fuselage_diameter
@@ -174,7 +182,7 @@ class Fuselage:
 
 
 """ Test section """
-"""
+
 if __name__ == "__main__":
     fuselage = Fuselage(fuselage_length=ref.l_tail+ref.l_cabin+ref.l_cockpit,
                         fuselage_diameter=2.77,
@@ -185,7 +193,7 @@ if __name__ == "__main__":
                         alpha=0,
                         ref_area=ref.s_w,
                         reynolds_number=8422274,
-                        mach=0.576,
+                        mach=0.4,
                         cl_wing=0.813,
                         cmac_wing=2.626)
 
@@ -196,4 +204,5 @@ if __name__ == "__main__":
     print(f"cd0: {fuselage.cd0()}, cdi: {fuselage.cdi()}, cd: {fuselage.cd()}, cdprime: {fuselage.cd_prime()}")
     print(f" cl: {fuselage.cl()}, cl_prime: {fuselage.cl_prime()}")
     print(f"cm0: {fuselage.cm0()}, cma: {fuselage.cmi()}, cm: {fuselage.cm()}")
-    print(f"weight: {fuselage.weight()}") """
+    print(f"weight: {fuselage.weight()}")
+    print(f"Slenderness: {fuselage.slenderness()}")
