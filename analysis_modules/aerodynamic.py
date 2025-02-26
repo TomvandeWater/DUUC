@@ -89,3 +89,8 @@ def propulsive_efficiency(fx, velocity, power_input, k1, k2):
     eta_propulsive = (fx * velocity) / (power_input * k1 * k2)
     return eta_propulsive
 
+
+def cl_cd_bucker_polar(cd0, cdi, cl):
+    cd = cd0 + cdi * cl ** 2
+    return cd
+
