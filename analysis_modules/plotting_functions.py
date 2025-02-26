@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as ticker
 import data.atr_reference as ref
+from analysis_modules.aerodynamic import cl_cd_bucker_polar
 
 
 def plot_inflow_properties2(v_input, a_input, station):
@@ -279,3 +280,202 @@ def propulsive_efficiency_plot(eta_prop_results):
     plt.title(r'Propulsive efficiency')
     plt.legend()
     plt.grid(True)
+
+
+def cd0_drag_comparison(cd0_vector1, cd0_vector2):
+    cd0_vector1 = np.array(cd0_vector1)
+    cd0_ref1 = np.array([1.6e-3, 8.347e-4, 1.315e-3, 0.014, 8.053e-3])
+    cd0_vector2 = np.array(cd0_vector2)
+    cd0_ref2 = np.array([0, 0, 0, 0, 0, 0, 0])
+    cd_totals = np.array([sum(cd0_vector1), sum(cd0_vector2)])
+    cd_totals_ref = np.array([sum(cd0_ref1), sum(cd0_ref2)])
+
+    # Labels for the x-axis
+    label1 = ['Nacelle', 'Horizontal Tail', 'Vertical Tail', 'Wing', 'Fuselage']
+    label2 = ['Duct', 'Pylon', 'Nacelle', 'Support', 'Control', 'Wing', 'Fuselage']
+    label3 = ['ATR72-600', 'DUUC']
+
+    # Create the figure and subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    fig.canvas.manager.set_window_title("Zero Lift Drag comparison")
+    fig.suptitle("Zero Lift Drag per component")
+
+    x = np.arange(len(label1))  # the label locations
+    width = 0.35  # the width of the bars
+
+    ax1.bar(x - width / 2, cd0_vector1, width, label='Model', color="tab:orange")
+    ax1.bar(x + width / 2, cd0_ref1, width, label='Reference', color="tab:green")  # added ref bar and label.
+
+    ax1.set_title('ATR72-600')
+    ax1.set_ylabel('$C_{D0}$ [-]')
+    ax1.set_ylim([0, 0.06])
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(label1)
+    ax1.legend()
+
+    # Plot the second subplot
+    x = np.arange(len(label2))
+    ax2.bar(x - width / 2, cd0_vector2, width, label='Model', color="tab:blue")
+    ax2.bar(x + width / 2, cd0_ref2, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax2.set_title('DUUC')
+    ax2.set_ylabel('$C_{D0}$ [-]')
+    ax2.set_ylim([0, 0.06])
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(label2)
+    ax2.legend()
+
+    colors = ['tab:orange', 'tab:blue']
+    x = np.arange(len(label3))
+    ax3.bar(x - width / 2, cd_totals, width, label='Model', color=colors)
+    ax3.bar(x + width / 2, cd_totals_ref, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax3.set_title('Aircraft sum')
+    ax3.set_ylabel('$C_{D0}$ [-]')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(label3)
+    ax3.legend()
+
+    # Adjust layout to prevent overlapping titles/labels
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+
+def cl_cd_bucket(cd01, cdi1, alpha):
+    cl = np.linspace(-1.5, 3.5, 100)
+    cd1 = []
+    cd2 = []
+    cd3 = []
+    for i in range(len(cl)):
+        cd1.append(cl_cd_bucker_polar(cd01, cdi1, cl[i]))
+        cd2.append(cl_cd_bucker_polar(0.027403, 0.034, cl[i]))
+        cd3.append(cl_cd_bucker_polar(0.050, 0.031, cl[i]))
+
+    plt.figure(f'CL-CD bucket ({alpha})')
+    plt.plot(cd1, cl, label=r'Model: ATR72-600', color="tab:orange")
+    plt.plot(cd2, cl, label=r'Reference cruise', color="tab:green")
+    plt.plot(cd3, cl, label='Reference take-off', color="tab:green", linestyle="--")
+    plt.xlabel(r'$C_{D}$ [-]')
+    plt.ylabel(r'$C_{L}$ [-]')
+    plt.title(f'CL - CD Bucket ({alpha})')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def cd_interference_drag_comparison(cd_vector1, cd_vector2, alpha, v_inf):
+    cd0_vector1 = np.array(cd_vector1)
+    cd0_ref1 = np.array([0, 0, 0])
+    cd0_vector2 = np.array(cd_vector2)
+    cd0_ref2 = np.array([0, 0, 0])
+    cd_totals = np.array([sum(cd0_vector1), sum(cd0_vector2)])
+    cd_totals_ref = np.array([sum(cd0_ref1), sum(cd0_ref2)])
+
+    # Labels for the x-axis
+    label1 = ['Nacelle', 'Horizontal Tail', 'Vertical Tail']
+    label2 = ['Pylon', 'Support', 'Control']
+    label3 = ['ATR72-600', 'DUUC']
+
+    # Create the figure and subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    fig.canvas.manager.set_window_title("Interference Drag comparison")
+    fig.suptitle(f"Interference per component (a = {alpha}, v = {v_inf} )")
+
+    x = np.arange(len(label1))  # the label locations
+    width = 0.35  # the width of the bars
+
+    ax1.bar(x - width / 2, cd0_vector1, width, label='Model', color="tab:orange")
+    ax1.bar(x + width / 2, cd0_ref1, width, label='Reference', color="tab:green")  # added ref bar and label.
+
+    ax1.set_title('ATR72-600')
+    ax1.set_ylabel('$C_{D-interference}$ [-]')
+    ax1.set_ylim([0, 0.01])
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(label1)
+    ax1.legend()
+
+    # Plot the second subplot
+    x = np.arange(len(label2))
+    ax2.bar(x - width / 2, cd0_vector2, width, label='Model', color="tab:blue")
+    ax2.bar(x + width / 2, cd0_ref2, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax2.set_title('DUUC')
+    ax2.set_ylabel('$C_{D-interference}$ [-]')
+    ax2.set_ylim([0, 0.01])
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(label2)
+    ax2.legend()
+
+    colors = ['tab:orange', 'tab:blue']
+    x = np.arange(len(label3))
+    ax3.bar(x - width / 2, cd_totals, width, label='Model', color=colors)
+    ax3.bar(x + width / 2, cd_totals_ref, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax3.set_title('Aircraft sum')
+    ax3.set_ylabel('$C_{D-interference}$ [-]')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(label3)
+    ax3.legend()
+
+    # Adjust layout to prevent overlapping titles/labels
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+
+def cl_comparison(cl_vector1, cl_vector2):
+    cl_vector1 = np.array(cl_vector1)
+    cl_ref1 = np.array([1.6e-3, 8.347e-4, 1.315e-3])
+    cl_vector2 = np.array(cl_vector2)
+    cl_ref2 = np.array([0, 0, 0, 0, 0, 0])
+    cl_totals = np.array([sum(cl_vector1), sum(cl_vector2)])
+    cl_totals_ref = np.array([sum(cl_ref1), sum(cl_ref2)])
+
+    # Labels for the x-axis
+    label1 = ['Horizontal Tail', 'Wing', 'Fuselage']
+    label2 = ['Duct', 'Pylon', 'Support', 'Control', 'Wing', 'Fuselage']
+    label3 = ['ATR72-600', 'DUUC']
+
+    # Create the figure and subplots
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    fig.canvas.manager.set_window_title("Cl comparison")
+    fig.suptitle(r"$C_L$ per component")
+
+    x = np.arange(len(label1))  # the label locations
+    width = 0.35  # the width of the bars
+
+    ax1.bar(x - width / 2, cl_vector1, width, label='Model', color="tab:orange")
+    ax1.bar(x + width / 2, cl_ref1, width, label='Reference', color="tab:green")  # added ref bar and label.
+
+    ax1.set_title('ATR72-600')
+    ax1.set_ylabel('$C_{L}$ [-]')
+    # ax1.set_ylim([0, 0.06])
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(label1)
+    ax1.legend()
+
+    # Plot the second subplot
+    x = np.arange(len(label2))
+    ax2.bar(x - width / 2, cl_vector2, width, label='Model', color="tab:blue")
+    ax2.bar(x + width / 2, cl_ref2, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax2.set_title('DUUC')
+    ax2.set_ylabel('$C_{L}$ [-]')
+    # ax2.set_ylim([0, 0.06])
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(label2)
+    ax2.legend()
+
+    colors = ['tab:orange', 'tab:blue']
+    x = np.arange(len(label3))
+    ax3.bar(x - width / 2, cl_totals, width, label='Model', color=colors)
+    ax3.bar(x + width / 2, cl_totals_ref, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax3.set_title('Aircraft sum')
+    ax3.set_ylabel('$C_{L}$ [-]')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(label3)
+    ax3.legend()
+
+    # Adjust layout to prevent overlapping titles/labels
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
