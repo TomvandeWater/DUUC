@@ -22,8 +22,8 @@ alpha_install_wing = 4  # installation angle of the wing (w.r.t zero lift line) 
 wing_airfoil = "43013"  # wing airfoil profile from the Naca 5 series -> or 43018
 
 """ Horizontal tail surface"""
-s_ht = 11.7  # horizontal tail surface [m^2]
-# s_ht = 10.7  # from Hamburg university research
+#s_ht = 11.7  # horizontal tail surface [m^2]
+s_ht = 10.7  # from Hamburg university research
 b_h = 7.31  # span horizontal tail surface [m]
 tr_h = 0.525  # taper ratio [-]
 phi_qc_h = 5.5  # quarter chord sweep [deg]
@@ -34,6 +34,7 @@ c_tip_h = c_tip(c_root_h, tr_h)
 tail_volume_h = 1.05  # tail volume coefficient horizontal tail (from Hamburg University)
 airfoil_ht = "0009"  # horizontal tailplane airfoil profile from NACA 4 series
 lever_h = 13.565  # leverage arm between tail [m]
+installation_angle = -3  # installation angle of the stabilizer [deg]
 
 """ Vertical tail surface"""
 s_vt = 14.9  # vertical tail surface [m^2]
