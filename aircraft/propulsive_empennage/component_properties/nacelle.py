@@ -20,8 +20,7 @@ class Nacelle:
         self.v_inf = v_inf
         self.mach = mach
 
-    """ The inflow speed for the nacelle is determined by the propeller and
-    hence the speed after the propeller is used """
+    """ -------------------------------- inflow properties ------------------------------------------------------ """
     def inflow_velocity(self):
         if self.pc == "off":
             u_nacelle = self.v_inf
@@ -34,8 +33,7 @@ class Nacelle:
         inflow_nacelle = self.alpha
         return inflow_nacelle
 
-    """ For the area of the nacelle, geometric properties are used to determine
-     the outside area of the nacelle. """
+    """ -------------------------------------- geometric properties ---------------------------------------------- """
     def wet_area(self):
         """ only the side area is assumed no closing sides"""
         area_cylinder = np.pi * self.nacelle_diameter * self.nacelle_length
@@ -46,7 +44,7 @@ class Nacelle:
         area_nacelle = area_rear + area_cylinder
         return area_nacelle
 
-    """ The coefficients for the nacelle are determined as follows """
+    """ ---------------------------------------- determine coefficients ------------------------------------------ """
     def cd0(self):
         cf = skin_friction(self.re_induct, "t")
         fm = mach_correction(self.mach)
@@ -58,6 +56,7 @@ class Nacelle:
 
         return cd0_nacelle
 
+    """ ------------------------------------------- prime outputs ------------------------------------------------ """
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
@@ -70,7 +69,7 @@ class Nacelle:
         cl_nacelle = 0
         return cl_nacelle
 
-    """ The weight is depending on the propulsor type """
+    """ -------------------------------------- The weight is depending on the propulsor type --------------------- """
 
     def weight(self):
         if self.propulsor_type == 'conventional':
@@ -96,8 +95,11 @@ class Nacelle:
             return m_nacelle
 
 
-"""
+""" Test section """
 if __name__ == "__main__":
+
+
+
     nacelle = Nacelle(nacelle_length=config.nacelle_length,
                       nacelle_diameter=config.nacelle_diameter,
                       propulsor_type="conventional",
@@ -112,5 +114,5 @@ if __name__ == "__main__":
     print(f"inflow vel: {nacelle.inflow_velocity()}")
     print(f"inflow ang: {nacelle.inflow_angle()}")
     print(f"cd0: {nacelle.cd0():.3f}")
-    print(f"cd prime: {nacelle.cd_prime():.3f}")"""
+    print(f"cd prime: {nacelle.cd_prime():.3f}")
 

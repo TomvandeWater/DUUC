@@ -28,7 +28,7 @@ class ControlVane:
         self.mach = mach
         self.u_mom = u_mom
 
-    """ The inflow velocity is affected by the propeller """
+    """ ------------------------------ Determine inflow properties ------------------------------------------------ """
     def inflow_velocity(self):
         area_vane = np.pi / 4 * self.d_exit ** 2
         v_vane = self.va_inlet / area_vane
@@ -46,8 +46,7 @@ class ControlVane:
         inflow = np.radians(alpha_power_off + deflection)
         return inflow
 
-    """ The area is based on a rectangle and is calculated for 1 control vane, assumed zero degrees
-     sweep of the control vane. Aspect ratio is span^2 / area """
+    """ -------------------------------- geometric properties --------------------------------------------------- """
     def area(self):
         area_control_vane = self.cv_span * self.cv_chord
         return area_control_vane
@@ -66,7 +65,7 @@ class ControlVane:
         wet_vane = 2 * (1 + 0.5 * self.t_c()) * self.cv_span * self.cv_chord
         return wet_vane
 
-    """ determine coefficients based on theory"""
+    """ ---------------------------------- determine coefficients based on theory -------------------------------- """
     def cd_interference(self):
         # assumed constant chord and thickness for the control vanes
         norm_area = (self.t_c() * self.cv_chord ** 2) / self.ref_area
@@ -89,7 +88,7 @@ class ControlVane:
         return cl_dd_vane
 
     def cl(self):
-        cl_vane = self.cl_d_deflection() * self.deflection_angle
+        cl_vane = self.cl_d_deflection() * np.radians(self.deflection_angle)
         return cl_vane
 
     def cd0(self):
@@ -113,6 +112,7 @@ class ControlVane:
         cd_vane = self.cdi() + self.cd0()
         return cd_vane
 
+    """ ------------------------------ determine output primes -------------------------------------------------- """
     def cl_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
         norm_area = self.area() / self.ref_area
@@ -144,6 +144,7 @@ class ControlVane:
         cm_cv = - self.cl() * 0.25
         return cm_cv
 
+    """ -------------------------------- Weight ------------------------------------------------------------------ """
     @staticmethod
     def weight():
         """ function is for complete weight control group"""
