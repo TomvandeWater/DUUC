@@ -91,7 +91,6 @@ class HorizontalTail:
         cl_al_tail = (np.pi * 2 * self.aspect_ratio()) / (2 + np.sqrt(4 + self.aspect_ratio() ** 2
                                                                       * (1 + np.tan(np.radians(ref.phi_qc_h)) ** 2
                                                                          - self.mach ** 2)))
-        print(f"cl_al_tail: {cl_al_tail}")
         return cl_al_tail
 
     def cl(self):
@@ -99,8 +98,6 @@ class HorizontalTail:
         cl_ht0 = cl_polar[0]
 
         cl_ht = cl_ht0 + self.cl_al() * np.radians(self.inflow_angle())
-        print(f"cl_ht: {cl_ht}")
-        print(f"inflow angle: {self.inflow_angle()}")
         return cl_ht
 
     def cd0(self):
