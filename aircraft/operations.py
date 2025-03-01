@@ -14,22 +14,22 @@ class Operations:
         w_pass = self.pax * config.w_pax
         w_add = self.pax * 15  # additional 15 kg per passenger for seats etc.
 
-        w_pax = (w_pass + w_add) * g
+        w_pax = (w_pass + w_add)
         return w_pax
 
     def weight_sys(self):
-        """ considers additional weight of systems -> output in newtons"""
+        """ considers additional weight of systems -> output in kg"""
         k_equip = 0.11  # from text nita
         g = 9.81  # gravitational constant
 
-        w_sys = k_equip * self.MTOW * g  # weight of the control actuation ignored for now.
+        w_sys = k_equip * self.MTOW  # weight of the control actuation ignored for now.
         return w_sys
 
     @staticmethod
     def weight_fuel():
         g = 9.81  # gravitational constant
 
-        w_fuel = 1989 * g  # reference fuel mass
+        w_fuel = 1989  # reference fuel mass
         return w_fuel
 
 

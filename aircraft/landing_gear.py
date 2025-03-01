@@ -8,14 +8,14 @@ class LandingGear:
 
     """ ----------------------------------- Determine weight Landing Gear ---------------------------------------- """
     def weight(self):
-        """ Landing gear mass estimated based on Torenbeek -> output in Newtons"""
+        """ Landing gear mass estimated based on Torenbeek -> output in kg"""
         k = 1.08  # 1.06 for high wing aircraft
         g = 9.81  # gravitational constant [m/s^2]
         w_nose = k * (ref.a_nose + ref.b_nose * ref.MTOW ** 0.75 + ref.d_nose
-                      * ref.MTOW ** 1.5) * g
+                      * ref.MTOW ** 1.5)
 
         w_main = k * (ref.a_main + ref.b_main * ref.MTOW ** 0.75 + ref.d_main
-                      * ref.MTOW ** 1.5 + ref.c_main * ref.MTOW) * g
+                      * ref.MTOW ** 1.5 + ref.c_main * ref.MTOW)
 
         return np.round(w_nose, 0), np.round(w_main, 0), np.round(w_nose + w_main, 0)
 
