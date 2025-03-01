@@ -71,7 +71,7 @@ class CenterOfGravity:
 
             components = ["Wing", "Main", "Engine", "Nacelle"]
             print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          "wing   ")
+                          "wing    ", self.aircraft_type)
 
             return cg_wing_group, sum_w
 
@@ -91,7 +91,7 @@ class CenterOfGravity:
 
             components = ["Wing", "Main"]
             print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          "wing    ")
+                          "wing     ", self.aircraft_type)
 
             return cg_wing_group, sum_w
         else:
@@ -99,7 +99,7 @@ class CenterOfGravity:
 
     def cg_fuselage_group(self):
         if self.aircraft_type == 'conventional':
-            mass_vect =[self.w_fuse, self.w_vt, self.w_ht, self.w_lg_nose, self.w_sys]
+            mass_vect = [self.w_fuse, self.w_vt, self.w_ht, self.w_lg_nose, self.w_sys]
 
             sum_w = sum(mass_vect)
 
@@ -117,12 +117,12 @@ class CenterOfGravity:
 
             components = ["Fuselage", "Vertical Tail", "Horizontal Tail", "Nose", "Systems"]
             print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          "fuselage")
+                          "fuselage", self.aircraft_type)
 
             return cg_fuse_group, sum_w
 
         if self.aircraft_type == "DUUC":
-            mass_vect = [self.w_fuse, self.w_lg_nose, self.w_sys, self.w_duct * 2]
+            mass_vect = [self.w_fuse, self.w_lg_nose, self.w_sys, self.w_duct]
             sum_w = sum(mass_vect)
 
             mcg_fus = self.w_fuse * self.cg_loc_fus()[0]
@@ -137,14 +137,14 @@ class CenterOfGravity:
 
             components = ["Fuselage", "Nose", "Systems", "Duct"]
             print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          "fuselage")
+                          "fuselage", self.aircraft_type)
 
             return cg_fuse_group, sum_w
         else:
             return None
 
     def x_cg(self):
-        x_lemac_guess = 10.9
+        x_lemac_guess = 11.5
         x_wg_lemac = self.cg_wing_group()[0] - x_lemac_guess
         x_cg_lemac = 0.25 * ref.c_mac_w
 
@@ -152,13 +152,13 @@ class CenterOfGravity:
                    * (x_wg_lemac - x_cg_lemac))
 
         x_cg = x_cg_lemac + x_lemac
-        return x_cg
+        return x_cg, x_lemac
 
     def x_cg_lim(self):
         k = 0.27
 
-        x_for = self.x_cg() - 0.5 * k * self.c_mac_wing
-        x_aft = self.x_cg() + 0.5 * k * self.c_mac_wing
+        x_for = self.x_cg()[0] - 0.5 * k * self.c_mac_wing
+        x_aft = self.x_cg()[0] + 0.5 * k * self.c_mac_wing
         return x_for, x_aft
 
 
