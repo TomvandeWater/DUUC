@@ -3,6 +3,9 @@ import config
 import data.atr_reference as ref
 from aircraft.fuselage import Fuselage
 from aircraft.wing import Wing
+from analysis_modules.cg_calculation import CenterOfGravity
+from aircraft.landing_gear import LandingGear
+from aircraft.operations import Operations
 
 
 class Aircraft:
@@ -23,12 +26,17 @@ class Aircraft:
                                  reynolds_number=self.reynolds, mach=self.mach, cl_wing=self.wing.cl_prime(),
                                  cmac_wing=ref.c_root_w)
 
+        self.lg = LandingGear(aircraft_type=self.aircraft_type)
+
+        self.operation = Operations(MTOM=ref.MTOW, pax=config.n_pax)
+
         self.empennage = self.make_empennage()
 
     def make_empennage(self):
         if self.aircraft_type == "DUUC":
             from aircraft.propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
             va_inlet = self.v_inf * (np.pi * (config.duct_diameter / 2))
+            print(f"va inlet: {va_inlet}")
             return PropulsiveEmpennage(rpm=config.rpm,
                                        alpha=self.alpha,
                                        power_condition=config.power_condition,
@@ -99,6 +107,41 @@ class Aircraft:
             print("Wrong aircraft type defined!!")
             return None
 
+    def x_cog(self):
+        g = 9.81
+        if self.aircraft_type == "conventional":
+            cog = CenterOfGravity(w_lg_nose=self.lg.weight()[0],
+                                  w_lg_main=self.lg.weight()[1],
+                                  w_eng_wing=self.empennage.weight_prop() / 2,
+                                  w_wing=self.wing.weight(),
+                                  w_fuse=self.fuselage.weight(),
+                                  w_nac_wing=self.empennage.weight_nac() / 2,
+                                  w_vt=self.empennage.vt_tail.weight(),
+                                  w_ht=self.empennage.ht_tail.weight(),
+                                  w_duct=0,
+                                  w_sys=self.operation.weight_sys(),
+                                  l_fuselage=ref.l_tail + ref.l_cockpit + ref.l_cabin,
+                                  aircraft_type=self.aircraft_type,
+                                  c_mac_wing=ref.c_mac_w)
+            return cog.x_cg()[0], cog.x_cg()[1]
+        if self.aircraft_type == "DUUC":
+            cog = CenterOfGravity(w_lg_nose=self.lg.weight()[0],
+                                  w_lg_main=self.lg.weight()[1],
+                                  w_eng_wing=0,
+                                  w_wing=self.wing.weight(),
+                                  w_fuse=self.fuselage.weight(),
+                                  w_nac_wing=0,
+                                  w_vt=0,
+                                  w_ht=0,
+                                  w_duct=self.empennage.weight() * 2,
+                                  w_sys=self.operation.weight_sys(),
+                                  l_fuselage=ref.l_tail + ref.l_cockpit + ref.l_cabin,
+                                  aircraft_type=self.aircraft_type,
+                                  c_mac_wing=ref.c_mac_w)
+            return cog.x_cg()[0], cog.x_cg()[1]
+        else:
+            return 0, 0
+
     def cd0_vector(self):
         if self.aircraft_type == "conventional":
             cd0_nacelle = self.empennage.cd0_vector()[0] * 2
@@ -128,9 +171,9 @@ class Aircraft:
         if self.aircraft_type == "DUUC":
             cl_fuselage = self.fuselage.cl()
             cl_wing = self.wing.cl()
-            cl_duct = self.empennage.duct.cl()
-            cl_pylon = self.empennage.pylon.cl()
-            cl_support = self.empennage.support.cl()
+            cl_duct = self.empennage.duct.cl() * 2
+            cl_pylon = self.empennage.pylon.cl() * 2
+            cl_support = self.empennage.support.cl() * 2
             cl_control = self.empennage.rudder.cl() * 4
             return [cl_duct, cl_pylon, cl_support, cl_control, cl_wing, cl_fuselage]
 
