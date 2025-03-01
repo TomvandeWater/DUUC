@@ -50,17 +50,18 @@ class Nacelle:
         fm = mach_correction(self.mach)
         l_d = self.nacelle_length / self.nacelle_diameter
         f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
-        norm_area = self.wet_area() / self.ref_area
 
-        cd0_nacelle = cf * fm * f_nac * norm_area
+
+        cd0_nacelle = cf * fm * f_nac
 
         return cd0_nacelle
 
     """ ------------------------------------------- prime outputs ------------------------------------------------ """
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.wet_area() / self.ref_area
 
-        cd_nacelle = self.cd0() * norm_speed
+        cd_nacelle = self.cd0() * norm_speed * norm_area
         return cd_nacelle
 
     @staticmethod
