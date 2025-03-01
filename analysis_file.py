@@ -8,14 +8,18 @@ import matplotlib.pyplot as plt
 from aircraft.aircraft_assembly import Aircraft
 import numpy as np
 import data.atr_reference as ref
-from analysis_modules.plotting_functions import plot_inflow_properties2, plot_weight_distribution, weight_comp_table, interference_drag_range
+from analysis_modules.plotting_functions import (plot_inflow_properties2, plot_weight_distribution, weight_comp_table,
+                                                 interference_drag_range, cd0_drag_comparison, cl_cd_bucket,
+                                                 cd_interference_drag_comparison, cl_comparison, xplot)
+from analysis_modules.htail_sizing import slopes
+
 
 
 """ Initialization of the analysis module """
-alpha = 0
+alpha = 2
 
 v_cruise = 128  # cruise speed [m/s] circa 250 knts
-v_array = np.linspace(v_cruise - 50, v_cruise + 20, 71)
+v_array = np.linspace(v_cruise - 1, v_cruise + 1, 3)
 
 """ setup matrices for result printing """
 cd_results = []
@@ -107,7 +111,7 @@ for i in range(len(v_array)):
 
     w_atr = [atr.fuselage.weight(), atr.wing.weight(), atr.empennage.propeller.weight_engine(),
              atr.empennage.ht_tail.weight(), atr.empennage.vt_tail.weight(), atr.empennage.weight_cv(),
-             atr.empennage.weight_nac() / 2, atr.empennage.propeller.weight_engine(),
+             atr.empennage.weight_nac() / 2, atr.empennage.propeller.weight_engine() / 2,
              atr.empennage.propeller.weight_fan()]
 
     """ cd properties """
@@ -148,6 +152,7 @@ for i in range(len(v_array)):
     results.append([v_inf, duuc.thrust(), duuc.empennage.drag(), fx_duuc, "|", atr.thrust(), atr.empennage.drag(),
                     fx_ref, '|', power_in_duuc, power_in_ref])
 
+
 """ convert to numpy array for manipulation """
 cd_results_conv_matrix = np.array(cd_trad)
 cl_results_conv_matrix = np.array(cl_trad)
@@ -160,5 +165,48 @@ eta_debug = np.array(eta_prop_debug)
 """ Plot section """
 weight_comp_table(w_atr, "conventional")
 weight_comp_table(w_duuc, "DUUC")
-plot_weight_distribution(w_duuc, w_atr)
-interference_drag_range(cdi_results)
+# plot_weight_distribution(w_duuc, w_atr)
+
+# cd0_drag_comparison(atr.cd0_vector(), duuc.cd0_vector())
+
+""" Polar of the ATR with reference"""
+# cdi_cal = 1 / (np.pi * atr.wing.aspect_ratio() * atr.wing.oswald())
+# cl_cd_bucket(sum(atr.cd0_vector()), cdi_cal, alpha)
+
+""" Plot to compare interference drag per component"""
+# cd_interference_drag_comparison(atr.empennage.cd_interference_vector(), duuc.empennage.cd_interference_vector())
+# interference_drag_range(cdi_results)
+
+""" Plot to compare CL de-normalized per component"""
+# cl_comparison(atr.cl_vector(), duuc.cl_vector(), alpha)
+
+""" Horizontal tail sizing """
+cog_atr = atr.x_cog()[0]
+x_lemac_atr = atr.x_cog()[1]
+cog_duuc = duuc.x_cog()[0]
+x_lemac_duuc = duuc.x_cog()[1]
+
+print(f"cog: {cog_atr}, xlemac: {x_lemac_atr}")
+print(f"diff: {cog_atr - x_lemac_atr}")
+
+cl_h = - 0.5
+cl = 1.44
+
+atr_a1 = slopes("control", "conventional", 3.4, ref.phi_qc_w, atr.wing.aspect_ratio(), atr.fuselage.length(),
+                x_lemac_atr, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[0]
+
+atr_b1 = slopes("control", "conventional", 3.4, ref.phi_qc_w, atr.wing.aspect_ratio(), atr.fuselage.length(),
+                x_lemac_atr, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[1]
+atr_a2 = slopes("stability", "conventional", 3.4, ref.phi_qc_w, atr.wing.aspect_ratio(), atr.fuselage.length(),
+                x_lemac_atr, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[0]
+
+"""
+duuc_a1 = slopes("stability", "DUUC", 3.4, ref.phi_qc_w, duuc.wing.aspect_ratio(), duuc.fuselage.length(),
+                x_lemac_duuc, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[0]
+duuc_b1 = slopes("stability", "DUUC", 3.4, ref.phi_qc_w, duuc.wing.aspect_ratio(), duuc.fuselage.length(),
+                x_lemac_duuc, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[1]
+duuc_a2 = slopes("control", "DUUC", 3.4, ref.phi_qc_w, duuc.wing.aspect_ratio(), duuc.fuselage.length(),
+                x_lemac_duuc, ref.c_mac_w, 0.9, cl_h, cl, ref.tr_w, ref.b_w, 0, 0.44, ref.ar_h, 0)[0] """
+
+xplot(atr_a1, atr_b1, atr_a2, (cog_atr - x_lemac_atr - 0.25), 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "ATR")
+# xplot(duuc_a1, duuc_b1, duuc_a2, cog_duuc - x_lemac_duuc, 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "DUUC")
