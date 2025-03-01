@@ -5,6 +5,7 @@ from aircraft.conventional_empennage.components_properties.nacelle import Nacell
 from aircraft.conventional_empennage.components_properties.vertical_tail import VerticalTail
 import flow_conditions
 import data.atr_reference as ref
+from analysis_modules.aerodynamic import tail_volume
 
 
 class ConventionalEmpennage:
@@ -95,6 +96,14 @@ class ConventionalEmpennage:
         cl_prime_conv = (self.ht_tail.cl_prime() +
                          2 * self.propeller.cl_prime() + 2 * self.nacelle.cl_prime())
         return cl_prime_conv
+
+    def ht_volume_coefficient(self):
+        tv = tail_volume(self.ht_tail.area(), ref.lever_h, self.area_ref, ref.c_root_w)
+        return tv
+
+    def vt_volume_coefficient(self):
+        tv = tail_volume(self.vt_tail.area(), ref.lever_h, self.area_ref, ref.b_w)
+        return tv
 
     """ ------------------------------------------ Forces ------------------------------------------------------- """
     def thrust(self):
