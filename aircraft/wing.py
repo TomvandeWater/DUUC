@@ -3,6 +3,7 @@ import data.atr_reference as ref
 from analysis_modules.factors import skin_friction, mach_correction
 from data.read_data import airfoil_polar
 import matplotlib.pyplot as plt
+import flow_conditions
 
 
 class Wing:
@@ -149,6 +150,15 @@ class Wing:
 
         cl_prime_wing = cl_cl + cl_cd
         return cl_prime_wing
+
+    """ ------------------------------------ determine forces of the wing --------------------------------------- """
+    def lift(self):
+        lift_wing = self.cl_prime() * self.inflow_velocity() ** 2 * self.area() * 0.5 * flow_conditions.rho
+        return lift_wing
+
+    def drag(self):
+        drag_wing = self.cd_prime() * self.inflow_velocity() ** 2 * self.area() * 0.5 * flow_conditions.rho
+        return drag_wing
 
     """ ------------------------------------ determine weight of the wing --------------------------------------- """
     def weight(self):
