@@ -152,7 +152,7 @@ class ControlVane:
         wto = ref.MTOW * 2.20462
 
         # weight division 0.75 wing - 0.25 tail
-        w_cv = (ksc * wto ** 0.75)  # assume equally spread over the 4 control surfaces and both PE's
+        w_cv = (ksc * wto ** 0.75) / 32  # assume equally spread over the 4 control surfaces and both PE's
         return w_cv / 2.20462
 
 
