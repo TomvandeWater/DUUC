@@ -90,7 +90,12 @@ def propulsive_efficiency(fx, velocity, power_input, k1, k2):
     return eta_propulsive
 
 
-def cl_cd_bucker_polar(cd0, cdi, cl):
+def cl_cd_bucket_polar(cd0, cdi, cl):
     cd = cd0 + cdi * cl ** 2
     return cd
+
+
+def tail_volume(surface, lever_arm, surface_wing, reference_l):
+    tail_volume_coefficient = (surface * lever_arm) / (surface_wing * reference_l)
+    return tail_volume_coefficient
 
