@@ -88,5 +88,5 @@ def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file
 
 
 """ Test test if wanted"""
-"""
-xfoil_polar("Naca0014", -5, 15, 1, 4.698e6, "support0014", 0.576) """
+
+xfoil_polar("Naca0012", -5, 15, 1, 4.698e6, "support0012", 0.44)
