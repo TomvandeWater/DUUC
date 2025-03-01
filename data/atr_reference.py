@@ -14,6 +14,7 @@ diameter = 2.57  # diameter of the fuselage [m]
 s_w = 61  # wing area [m^2]
 tr_w = 0.47  # taper ratio wing [-]
 phi_qc_w = 3.5  # quarter chord sweep [deg]
+c_mac_w = 2.2345
 c_root_w = c_root(s_w / 2, b_w / 2, tr_w)
 c_tip_w = c_tip(c_root_w, tr_w)
 ar_w = b_w ** 2 / s_w
@@ -22,8 +23,8 @@ alpha_install_wing = 4  # installation angle of the wing (w.r.t zero lift line) 
 wing_airfoil = "43013"  # wing airfoil profile from the Naca 5 series -> or 43018
 
 """ Horizontal tail surface"""
-#s_ht = 11.7  # horizontal tail surface [m^2]
-s_ht = 10.7  # from Hamburg university research
+s_ht = 11.7  # horizontal tail surface [m^2]
+#s_ht = 10.7  # from Hamburg university research
 b_h = 7.31  # span horizontal tail surface [m]
 tr_h = 0.525  # taper ratio [-]
 phi_qc_h = 5.5  # quarter chord sweep [deg]
@@ -80,6 +81,15 @@ ZFW_max = 20800  # Max zero fuel weight (basic) [kg]
 OEW = 13010  # Operational Empty weight (Tech spec.) [kg]
 payload_max = 8550  # Max payload (at typical in-service OEW) [kg]
 load_fuel = 5000  # Max fuel load [kg]
+
+""" Landing gear parameters from Torenbeek """
+a_nose = 9.1
+a_main = 18.1
+b_nose = 0.082
+b_main = 0.131
+c_main = 0.019
+d_nose = 2.97e-6
+d_main = 2.23e-5
 
 """ En-route performance"""
 v_cruise = 510  # Max cruise speed (95% MTOW - ISA - Optimum FL) [km/h]
