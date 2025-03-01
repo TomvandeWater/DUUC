@@ -37,5 +37,5 @@ d_exit = 1.05 * duct_diameter
 """ Test condition"""
 power_condition = "on"
 
-n_pax = 75  # number of passengers in the aircraft [-]
+n_pax = 68  # number of passengers in the aircraft [-]
 w_pax = 80 + 22  # 80 kg weight of passenger and 22 kg of lugage [kg]
