@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as ticker
 import data.atr_reference as ref
-from analysis_modules.aerodynamic import cl_cd_bucker_polar
+from analysis_modules.aerodynamic import cl_cd_bucket_polar
 
 
 def plot_inflow_properties2(v_input, a_input, station):
@@ -347,9 +347,9 @@ def cl_cd_bucket(cd01, cdi1, alpha):
     cd2 = []
     cd3 = []
     for i in range(len(cl)):
-        cd1.append(cl_cd_bucker_polar(cd01, cdi1, cl[i]))
-        cd2.append(cl_cd_bucker_polar(0.027403, 0.034, cl[i]))
-        cd3.append(cl_cd_bucker_polar(0.050, 0.031, cl[i]))
+        cd1.append(cl_cd_bucket_polar(cd01, cdi1, cl[i]))
+        cd2.append(cl_cd_bucket_polar(0.027403, 0.034, cl[i]))
+        cd3.append(cl_cd_bucket_polar(0.050, 0.031, cl[i]))
 
     plt.figure(f'CL-CD bucket ({alpha})')
     plt.plot(cd1, cl, label=r'Model: ATR72-600', color="tab:orange")
@@ -421,7 +421,7 @@ def cd_interference_drag_comparison(cd_vector1, cd_vector2, alpha, v_inf):
     plt.show()
 
 
-def cl_comparison(cl_vector1, cl_vector2):
+def cl_comparison(cl_vector1, cl_vector2, alpha):
     cl_vector1 = np.array(cl_vector1)
     cl_ref1 = np.array([1.6e-3, 8.347e-4, 1.315e-3])
     cl_vector2 = np.array(cl_vector2)
@@ -436,8 +436,8 @@ def cl_comparison(cl_vector1, cl_vector2):
 
     # Create the figure and subplots
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
-    fig.canvas.manager.set_window_title("Cl comparison")
-    fig.suptitle(r"$C_L$ per component")
+    fig.canvas.manager.set_window_title(r"Cl comparison ")
+    fig.suptitle(r"$C_L$ per component ($\alpha$ = {})".format(alpha))
 
     x = np.arange(len(label1))  # the label locations
     width = 0.35  # the width of the bars
@@ -479,3 +479,127 @@ def cl_comparison(cl_vector1, cl_vector2):
     # Show the plot
     plt.show()
 
+
+def print_cg_mass(part, mass, cg, mcg, m_sum, mcg_cum, cg_tot, group, aircraft):
+    separator = "------------------------------------------------------------------------------------------------"
+    header = "| Mass {} group  | Mass [kg]              | CG [m]                | Mass * CG [kg*m]     |"
+
+    print("\n")
+    print(f"---------------------------------------{aircraft}-----------------------------------------------")
+    print(separator)
+    print(header.format(group))
+    print(separator)
+    for i in range(len(mass)):
+        print("| {:<20} | {:<22} | {:<21} | {:<20} |".format(part[i], mass[i], np.round(cg[i], 2),
+                                                             np.round(mcg[i], 1)))
+    print(separator)
+    print("| sum mass             | {:<22} |                       | {:<20} |".format(m_sum, mcg_cum))
+    print(separator)
+    print("|                      |                        |     estimation cg     | {:<16} [m] |".format(np.round(
+        cg_tot, 2)))
+    print(separator)
+
+
+def xplot(a1, b1, a2, xcg, static_margin, cmac, x_ac, aircraft):
+
+    x1 = np.linspace(-1, 0, 101)
+    x2 = np.linspace(-1, 2, 101)
+
+    stm = static_margin / 100
+    x_cg_ac = (x1 + x_ac)
+
+    y1 = (a1 * x_cg_ac * cmac) + b1
+
+    # Compute stability requirement
+    y2 = a2 * x2
+    y3 = y2 + stm  # Apply static margin shift
+
+    # Find intersection of blue dotted line (CG location) with green dashed line (static margin line)
+    y_intersection = a2 * xcg + stm
+    x_intersect = (y_intersection - b1) / (a1 * cmac) - x_ac
+
+    print(r"S_{}/S_{} = {}".format("H", "W", np.round(y_intersection, 4)))
+    print(f"new S_h = {y_intersection * ref.s_w}")
+    print(f"cg range: {xcg - x_intersect}")
+
+    fig, axs = plt.subplots(2, 2, figsize=(14, 7))
+    ax1, ax2, ax3 = axs[0, 0], axs[0, 1], axs[1, 0]
+
+    fig.canvas.manager.set_window_title(f'X-plot - {aircraft}')
+    fig.suptitle(f'X-plot - {aircraft}')
+
+    ax1.plot(x1, y1, label=r'Control', color="tab:orange")
+    ax1.plot(x2, y3, label=r'Static margin', color="tab:green", linestyle="--")
+    ax1.plot(x2, y2, label=r'Stability', color="tab:green")
+    ax1.vlines(xcg, 0, y_intersection, color="tab:blue", linestyle="dotted")
+    ax1.scatter(xcg, 0, color='tab:blue', zorder=5, label="CG")
+    ax1.hlines(y_intersection, x_intersect, xcg, color='tab:red', linestyle='dotted', label='CG range')
+    ax1.scatter(xcg, y_intersection, color='tab:red', zorder=3)  # Start marker
+    ax1.scatter(x_intersect, y_intersection, color='tab:red', zorder=3)
+    ax1.set_xlabel(r'Center of Gravity [m]')
+    ax1.set_ylabel(r'$S_{H}/S_{W}$ [-]')
+    ax1.set_title("Model")
+    ax1.set_ylim([-0.6, 0.8])
+    ax1.legend()
+    ax1.grid(True)
+
+    a1_ref = -0.4487
+    b1_ref = 0.20768
+    a2_ref = 0.305
+    x_ac_ref = 0.25 * 2.2345
+    xcg_ref = 0.3086
+    cmac_ref = 2.2345
+
+    x1_ref = np.linspace(-1, 0, 101)
+    x2_ref = np.linspace(-1, 2, 101)
+
+    x_cg_ac_ref = (x1_ref + x_ac_ref)
+
+    y1_ref = (a1_ref * x_cg_ac_ref * cmac_ref) + b1_ref
+
+    # Compute stability requirement
+    y2_ref = a2_ref * x2_ref
+    y3_ref = y2_ref + 0.05  # Apply static margin shift
+
+    # Find intersection of blue dotted line (CG location) with green dashed line (static margin line)
+    y_intersection_ref = a2_ref * xcg_ref + 0.05
+    x_intersect_ref = (y_intersection_ref - b1_ref) / (a1_ref * cmac_ref) - x_ac_ref
+
+    print(r"S_{}/S_{} reference = {}".format("H", "W", np.round(y_intersection_ref, 4)))
+    print(f"new S_h = {y_intersection_ref * ref.s_w}")
+    print(f"cg range reference: {xcg_ref - x_intersect_ref}")
+
+    ax2.plot(x1_ref, y1_ref, label=r'Control', color="tab:orange")
+    ax2.plot(x2_ref, y3_ref, label=r'Static margin', color="tab:green", linestyle="--")
+    ax2.plot(x2_ref, y2_ref, label=r'Stability', color="tab:green")
+    ax2.vlines(xcg_ref, 0, y_intersection_ref, color="tab:blue", linestyle="dotted")
+    ax2.scatter(xcg_ref, 0, color='tab:blue', zorder=5, label="CG")
+    ax2.hlines(y_intersection_ref, x_intersect_ref, xcg_ref, color='tab:red', linestyle='dotted', label='CG range')
+    ax2.scatter(xcg_ref, y_intersection_ref, color='tab:red', zorder=3)  # Start marker
+    ax2.scatter(x_intersect_ref, y_intersection_ref, color='tab:red', zorder=3)
+    ax2.set_xlabel(r'Center of Gravity [m]')
+    ax2.set_ylabel(r'$S_{H}/S_{W}$ [-]')
+    ax2.set_ylim([-0.6, 0.8])
+    ax2.set_title("Reference data")
+    ax2.legend()
+    ax2.grid(True)
+
+    # Third subplot: Table of key values
+    table_data = [
+        ['a1', np.round(a1, 4), np.round(a1_ref, 4), np.round(((a1 - a1_ref) / a1_ref) * 100, 2)],
+        ['b1', np.round(b1, 4), np.round(b1_ref, 4), np.round(((b1 - b1_ref) / b1_ref) * 100, 2)],
+        ['a2', np.round(a2, 4), np.round(a2_ref, 4), np.round(((a2 - a2_ref) / a2_ref) * 100, 2)],
+        [r'$x_{cg}$', np.round(xcg, 4), np.round(xcg_ref, 4), np.round(((xcg - xcg_ref) / xcg_ref) * 100, 2)],
+        [r'$S_{H}/S_{W}$', np.round(y_intersection, 4), np.round(y_intersection_ref, 4), np.round(((y_intersection - y_intersection_ref) / y_intersection_ref) * 100, 2)],
+    ]
+
+    col_labels = ['Parameter', 'Value model', 'Value reference', '% difference']
+    ax3.axis('tight')
+    ax3.axis('off')
+    ax3.table(cellText=table_data, colLabels=col_labels, loc='center', cellLoc='center')
+    axs[1, 1].axis('off')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+
+    plt.show()
+
+# xplot(-0.4887, 0.20768, 0.305, 0.3, 5, 2.2345, (0.25 * 2.2345), 'test')
