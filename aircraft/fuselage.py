@@ -3,6 +3,7 @@ import data.atr_reference as ref
 import matplotlib.pyplot as plt
 import config
 from analysis_modules.factors import skin_friction, mach_correction
+import flow_conditions
 
 
 class Fuselage:
@@ -168,6 +169,15 @@ class Fuselage:
 
         cm = self.cm() * norm_area * norm_speed * self.c_wing
         return cm
+
+    """  --------------------------------------- Determine the forces of the fuselage ---------------------------- """
+    def lift(self):
+        lift_fuselage = self.cl_prime() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * flow_conditions.rho
+        return lift_fuselage
+
+    def drag(self):
+        drag_fuselage = self.cd_prime() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * flow_conditions.rho
+        return drag_fuselage
 
     """  --------------------------------------- Determine the weight of the fuselage ---------------------------- """
     def weight(self):
