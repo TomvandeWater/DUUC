@@ -71,10 +71,13 @@ class SupportStrut:
         cl5 = airfoil_polar(f"support{self.support_profile}.txt", float(10.0))
         cl5_val = float(cl5[0])
         cl_da_support = (cl5_val - cl0_val) / 10
+        # print(f"dcl da: {cl_da_support}")
         return cl_da_support
 
     def cl(self):
         cl_support = self.cl_da() * self.inflow_angle()
+        # print(f"inflow angle support: {self.inflow_angle()}")
+        # print(f"support cl: {cl_support}")
         return cl_support
 
     def cd0(self):
@@ -110,7 +113,9 @@ class SupportStrut:
         norm_area = self.area() / self.ref_area
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cl_cl = (self.cl() * np.cos(self.cant_angle) * np.cos(np.radians(self.inflow_angle())) * norm_speed
+        cant = np.radians(self.cant_angle)
+
+        cl_cl = (self.cl() * np.cos(cant) * np.cos(np.radians(self.inflow_angle())) * norm_speed
                  * norm_area)
 
         cl_cd = (self.cd() * np.sin(np.radians(self.inflow_angle())) * norm_speed
@@ -123,10 +128,12 @@ class SupportStrut:
         norm_area = self.area() / self.ref_area
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
+        cant = np.radians(self.cant_angle)
+
         cd_cd = (self.cd() * np.cos(np.radians(self.inflow_angle())) * norm_speed
                  * norm_area)
 
-        cd_cl = (self.cl() * np.cos(self.cant_angle) * np.sin(np.radians(self.inflow_angle())) * norm_speed
+        cd_cl = (self.cl() * np.cos(cant) * np.sin(np.radians(self.inflow_angle())) * norm_speed
                  * norm_area)
 
         cd_support = cd_cd + cd_cl
@@ -143,10 +150,10 @@ class SupportStrut:
 
 
 """ Test section """
-
+"""
 if __name__ == "__main__":
 
-    a = np.linspace(0, 15, 31)
+    a = np.linspace(1, 2, 3)
     cl = []
     #a_ref = np.linspace(0, 15, 16)
     cl_ref = []
@@ -222,4 +229,4 @@ if __name__ == "__main__":
     print(f"cd interference: {support.cd_interference():.5f}")
     print(f"cd prime: {support.cd_prime():.5f}")
     print(f"cl: {support.cl():.5f}")
-    print(f"cl prime: {support.cl_prime():.5f}")
+    print(f"cl prime: {support.cl_prime():.5f}") """

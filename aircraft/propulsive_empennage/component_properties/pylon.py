@@ -105,7 +105,9 @@ class Pylon:
         norm_area = self.area() / self.ref_area
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cl_cl = (self.cl() * np.cos(np.radians(self.cant_angle)) * np.cos(np.radians(self.inflow_angle())) * norm_speed
+        cant = np.radians(self.cant_angle)
+
+        cl_cl = (self.cl() * np.cos(cant) * np.cos(np.radians(self.inflow_angle())) * norm_speed
                  * norm_area)
 
         cl_cd = (self.cd() * np.sin(np.radians(self.inflow_angle())) * norm_speed
@@ -118,10 +120,12 @@ class Pylon:
         norm_area = self.area() / self.ref_area
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
+        cant = np.radians(self.cant_angle)
+
         cd_cd = (self.cd() * np.cos(np.radians(self.inflow_angle())) * norm_speed
                  * norm_area)
 
-        cd_cl = (self.cl() * np.cos(np.radians(self.cant_angle)) * np.sin(np.radians(self.inflow_angle()))
+        cd_cl = (self.cl() * np.cos(np.radians(cant)) * np.sin(np.radians(self.inflow_angle()))
                  * norm_speed * norm_area)
 
         cd_pylon = cd_cd + cd_cl
