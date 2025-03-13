@@ -52,7 +52,7 @@ class Wing:
         return t_c_wing, x_camb
 
     def area_wetted(self):
-        s_wet = 2 * (1 + 0.5 * (self.t_c()[0])) * self.b_wing * self.c_root
+        s_wet = 2 * self.area() * (1 + 0.25 * 0.18 * (1 + 13/18 * self.tr_wing) / (1 + self.tr_wing))
         return s_wet
 
     def oswald(self):
@@ -76,8 +76,7 @@ class Wing:
         cf = skin_friction(self.re, "t")
         f_wing = ((1 + (0.6 / 0.15) * self.t_c()[0] + 100 * self.t_c()[0] ** 4)
                   * (1.34 * self.mach ** 0.18 * (np.cos(np.radians(ref.phi_qc_w))) ** 0.28))
-
-        cd0_wing = fm * cf * f_wing
+        cd0_wing = fm * cf * f_wing * (self.area_wetted() / self.area())
         return cd0_wing
 
     def cdi(self):
@@ -225,7 +224,7 @@ if __name__ == "__main__":
                     alpha=a[i],
                     velocity=128,
                     mach=0.443,
-                    reynolds_number=8422274,
+                    reynolds_number=11599321,
                     wing_type="conventional")
 
         duc = Wing(b_wing=ref.b_w,
@@ -286,6 +285,7 @@ if __name__ == "__main__":
 
 
     print(f"inflow vel: {wing.inflow_velocity()}")
+    print(f"Re: {wing.re}")
     print(f"inflow ang: {wing.inflow_angle()}, oswald: {wing.oswald()}")
     print(f"area: {wing.area()}, wetted area: {wing.area_wetted()}")
     print(f"aspect ratio: {wing.aspect_ratio()}, t_c: {wing.t_c()}")
