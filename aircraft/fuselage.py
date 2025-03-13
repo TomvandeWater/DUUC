@@ -3,6 +3,8 @@ import data.atr_reference as ref
 import matplotlib.pyplot as plt
 import config
 from analysis_modules.factors import skin_friction, mach_correction
+from analysis_modules.ISA import air_density_isa
+from analysis_modules.aerodynamic import reynolds
 import flow_conditions
 
 
@@ -34,6 +36,10 @@ class Fuselage:
         """ flow is undisturbed in the free stream, returned in radians"""
         ang_fus = self.alpha
         return ang_fus
+
+    def rey_fuselage(self):
+        re_fus = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.fuselage_length)
+        return re_fus
 
     """ ---------------------------- Determine geometric properties ---------------------------------------------- """
     @staticmethod
