@@ -99,3 +99,7 @@ def tail_volume(surface, lever_arm, surface_wing, reference_l):
     tail_volume_coefficient = (surface * lever_arm) / (surface_wing * reference_l)
     return tail_volume_coefficient
 
+
+def c_mac(croot, ctip, tr):
+    mac = 2/3 * (croot + ctip - (croot * ctip / (croot + ctip)) / (1 + tr))
+    return mac
