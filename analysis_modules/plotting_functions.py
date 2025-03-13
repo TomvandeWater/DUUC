@@ -6,44 +6,49 @@ from analysis_modules.aerodynamic import cl_cd_bucket_polar
 
 
 def plot_inflow_properties2(v_input, a_input, station):
-    v_input2 = [100, 150, 175, 150, 125, 150, 180, 100]
-    a_input2 = [0, 10, 20, 30, 25, 10, 25, 0]
+    v_input2 = [127.0, 127.0, 78, 78, 78, 63, 96, 127.0]
+    a_input2 = [0, 0, 0, 0, 0, 0, 0, 0]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
-    fig.canvas.manager.set_window_title("Inflow parameters per component")
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    # fig.canvas.manager.set_window_title("Inflow parameters per component")
 
     # Load background image
     img = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\propulsive_empennage.png")
 
     # Plot for inflow velocity
-    ax1.imshow(img, extent=[0.35, 6.00, 0.00, 200.00])
+    fig1, ax1 = plt.subplots(figsize=(10, 6))
+    fig1.canvas.manager.set_window_title("Inflow Velocity per Component")
+    ax1.imshow(img, extent=[0.35, 6.00, 0.00, 200.00], aspect='auto')
     ax1.plot(station, v_input, label=r"$V_{inflow}$ - power on", color="tab:blue", marker='o')
     ax1.plot(station, v_input2, label=r"$V_{inflow}$ - power off", color="tab:blue", linestyle="dotted", marker='o')
     ax1.set_xlim(0, 6)
     ax1.set_ylim(0, 200)
     ax1.xaxis.set_major_locator(ticker.NullLocator())
-    ax1.set_aspect(aspect=0.02)
+    #ax1.set_aspect(aspect=0.02)
     ax1.set_ylabel(r'$V_{\infty}$ [m/s]')
     ax1.set_title(r'Inflow Velocity per Component')
     ax1.tick_params(axis='y')
     ax1.grid(True)
     ax1.legend(loc="upper left")
+    #plt.tight_layout
 
     # Plot for inflow angle
-    ax2.imshow(img, extent=[0.35, 6.00, -100, 100])
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+    fig2.canvas.manager.set_window_title("Inflow Angle per Component")
+    ax2.imshow(img, extent=[0.35, 6.00, -100, 100], aspect='auto')
     ax2.plot(station, a_input, label=r"$\alpha$ - power on", color="tab:orange", marker='o')
     ax2.plot(station, a_input2, label=r"$\alpha$ - power off", color="tab:orange", linestyle="dotted", marker='o')
     ax2.set_xlim(0, 6)
     ax2.set_ylim(-100, 100)
     ax2.xaxis.set_major_locator(ticker.NullLocator())
-    ax2.set_aspect(aspect=0.02)
+    #ax2.set_aspect(aspect=0.02)
     ax2.set_ylabel(r"$\alpha$ [deg]")
     ax2.set_title(r'Inflow Angle per Component')
     ax2.tick_params(axis='y')
     ax2.grid(True)
     ax2.legend(loc="upper left")
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
 
 
@@ -284,7 +289,7 @@ def propulsive_efficiency_plot(eta_prop_results):
 
 def cd0_drag_comparison(cd0_vector1, cd0_vector2):
     cd0_vector1 = np.array(cd0_vector1)
-    cd0_ref1 = np.array([1.6e-3, 8.347e-4, 1.315e-3, 0.014, 8.053e-3])
+    cd0_ref1 = np.array([1.6e-3, 8.347e-4, 2.615e-3, 0.014, 8.053e-3])
     cd0_vector2 = np.array(cd0_vector2)
     cd0_ref2 = np.array([0, 0, 0, 0, 0, 0, 0])
     cd_totals = np.array([sum(cd0_vector1), sum(cd0_vector2)])
@@ -339,6 +344,65 @@ def cd0_drag_comparison(cd0_vector1, cd0_vector2):
 
     # Show the plot
     plt.show()
+
+
+def cd0_drag_empennage(cd0_vector1, cd0_vector2):
+    cd0_vector1 = np.array(cd0_vector1)
+    cd0_ref1 = np.array([8.347e-4, 2.065e-3])
+    cd0_vector2 = np.array(cd0_vector2)
+    cd0_ref2 = np.array([49.2e-4, 2.8e-4, 0, 0])
+    cd_totals = np.array([sum(cd0_vector1), sum(cd0_vector2)])
+    cd_totals_ref = np.array([sum(cd0_ref1), sum(cd0_ref2)])
+
+    # Labels for the x-axis
+    label1 = ['Hor. Tail', 'Vert. Tail']
+    label2 = ['Duct', 'Pylon', 'Support', 'Control']
+    label3 = ['ATR72-600', 'DUUC']
+
+    # Combine labels for both ATR72-600 and DUUC
+    combined_labels = label1 + label2
+    combined_cd0_vector = np.concatenate([cd0_vector1, cd0_vector2])
+    combined_cd0_ref = np.concatenate([cd0_ref1, cd0_ref2])
+
+    # Create the figure and subplots
+    # fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(10, 6))
+    # fig.canvas.manager.set_window_title("Zero Lift Drag comparison")
+    # fig.suptitle("Zero Lift Drag per component")
+
+    width = 0.35  # the width of the bars
+
+    fig1, ax1 = plt.subplots()
+    fig1.canvas.manager.set_window_title("Zero lift drag per component")
+    # Plot combined components of ATR72-600 and DUUC in the first subplot
+    x = np.arange(len(combined_labels))  # the label locations
+    ax1.bar(x - width / 2, combined_cd0_vector, width, label='Model', color="tab:blue")
+    ax1.bar(x + width / 2, combined_cd0_ref, width, label='Reference', color="tab:green")
+
+    ax1.set_title('Comparison of Empennage components')
+    ax1.set_ylabel('$C_{D0}$ [-]')
+    ax1.set_ylim([0, 0.01])
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(combined_labels)
+    ax1.legend(loc='upper left')
+
+    fig2, ax3 = plt.subplots()
+    fig2.canvas.manager.set_window_title("Zero lift drag empennage sum")
+    colors = ['tab:blue', 'tab:blue']
+    x = np.arange(len(label3))
+    ax3.bar(x - width / 2, cd_totals, width, label='Model', color=colors)
+    ax3.bar(x + width / 2, cd_totals_ref, width, label='Reference', color="tab:green")  # added ref bar and label.
+    ax3.set_title('Empennage totals')
+    ax3.set_ylabel('$C_{D0}$ [-]')
+    ax3.set_xticks(x)
+    ax3.set_xticklabels(label3)
+    ax3.legend(loc='upper left')
+
+    # Adjust layout to prevent overlapping titles/labels
+    #plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+
 
 
 def cl_cd_bucket(cd01, cdi1, alpha):
