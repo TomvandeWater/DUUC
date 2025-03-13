@@ -2,14 +2,16 @@ import numpy as np
 from analysis_modules.factors import oswald, skin_friction, mach_correction
 from data.read_data import airfoil_polar
 import data.atr_reference as ref
-from analysis_modules.aerodynamic import drag_interference
+from analysis_modules.aerodynamic import drag_interference, reynolds
+from analysis_modules.ISA import air_density_isa
+import flow_conditions
 
 
 class VerticalTail:
     """ Vertical Tail class for conventional empennage"""
     def __init__(self, vt_span: float, vt_chord: float, vt_profile: str,
                  vt_taper: float, vt_sweep: float, vt_croot: float, tail_type: str,
-                 alpha: float, v_inf: float, area_ref: float, reynolds: float, mach: float):
+                 alpha: float, v_inf: float, area_ref: float, mach: float):
         super().__init__()
         self.vt_span = vt_span
         self.vt_chord = vt_chord
@@ -22,7 +24,6 @@ class VerticalTail:
         self.alpha = alpha
         self.area_ref = area_ref
         self.mach = mach
-        self.reynolds = reynolds
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -33,6 +34,10 @@ class VerticalTail:
     def inflow_angle():
         inflow_angle = 0
         return inflow_angle
+
+    def reynolds_number(self):
+        re_vtail = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.vt_chord)
+        return re_vtail
 
     """" --------------------------- Calculate geometric properties of the vertical tail -------------------------- """
 
@@ -53,7 +58,7 @@ class VerticalTail:
         return thickness
 
     def wet_area(self):
-        wet_vt = 2 * (1 + 0.5 * self.t_c()) * self.vt_span * self.vt_chord
+        wet_vt = 2 * self.area() * (1 + 0.25 * self.t_c() * (1 + 0.7 * ref.tr_v) / (1 + ref.tr_v))
         return wet_vt
 
     def aspect_ratio(self):
@@ -75,6 +80,7 @@ class VerticalTail:
         else:
             z_tail = 0
             return z_tail
+
     """ -------------------------------- Coefficient calculation -------------------------------------------------- """
     def cd_interference(self):
         norm_area = (self.t_c() * self.vt_chord ** 2) / self.area()
@@ -95,7 +101,7 @@ class VerticalTail:
         return cdi_vt
 
     def cd0(self):
-        cf = skin_friction(self.reynolds, "t")
+        cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         norm_area = self.wet_area() / self.area_ref
         sweep_corr = 1.34 * self.mach ** 0.18 * (np.cos(np.radians(self.vt_sweep)) ** 0.28)
@@ -105,7 +111,10 @@ class VerticalTail:
         return cd0_vt
 
     def cd(self):
-        cd_vt = self.cd0() + self.cdi()
+        norm_area = self.wet_area() / self.area_ref
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+
+        cd_vt = self.cd0() * norm_speed + self.cdi() * norm_speed * norm_area
         return cd_vt
 
     """ ------------------------------ calculate output primes ---------------------------------------------------- """
@@ -151,7 +160,7 @@ class VerticalTail:
 
 
 """ Test section"""
-"""
+
 if __name__ == "__main__":
     hor = VerticalTail(vt_span=ref.b_v,
                        vt_chord=ref.c_root_v,
@@ -162,16 +171,16 @@ if __name__ == "__main__":
                        alpha=0,
                        v_inf=128,
                        area_ref=ref.s_w,
-                       mach=0.576,
-                       reynolds=8422274, tail_type="t-tail")
+                       mach=0.44, tail_type="t-tail")
 
     print(f"inflow vel: {hor.inflow_velocity()}")
     print(f"inflow ang: {hor.inflow_angle()}")
     print(f"cd: {hor.cd():.5f}")
     print(f"cd prime: {hor.cd_prime():.5f}")
+    print(f"cd0: {hor.cd0()}")
     print(f"cl: {hor.cl():.5f}")
 
     print(f"weight: {hor.weight()}")
     print(f"area: {hor.area()}")
     print(f"span: {hor.vt_span}")
-    print(f"area: {hor.area()}, wet_area: {hor.wet_area()}") """
+    print(f"area: {hor.area()}, wet_area: {hor.wet_area()}")
