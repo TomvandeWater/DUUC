@@ -75,7 +75,7 @@ class BEM:
         return 2 / np.pi * np.arccos(cos_value)
 
     def get_airfoil_data(self, alpha):
-        filepath = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\Polars",
+        filepath = os.path.join(r"/data/Polars",
                                 f"{self.prop_airfoil}_polar.txt")
         # Normalize the filepath to ensure it resolves correctly
         filepath = os.path.abspath(filepath)

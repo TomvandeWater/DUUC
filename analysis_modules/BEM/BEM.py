@@ -71,7 +71,7 @@ def prandtl_correction(r_R, rootradius_r, tipradius_r, tsr, n_blades, axial_indu
 
 
 def data_polar(prop_airfoil):
-    filepath = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\Polars",
+    filepath = os.path.join(r"/data/Polars",
                             f"{prop_airfoil}_polar.txt")
     # Normalize the filepath to ensure it resolves correctly
     filepath = os.path.abspath(filepath)
