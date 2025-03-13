@@ -1,16 +1,18 @@
 import numpy as np
 import flow_conditions
-from analysis_modules.BEM_simplified import BEM
-from analysis_modules.aerodynamic import drag_interference
+from analysis_modules.aerodynamic import drag_interference, reynolds
+from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import skin_friction
 import data.atr_reference as ref
+import matlab.engine
+BEM_matlab_engine = matlab.engine.start_matlab()
 
 
 class Propeller:
     """ This is the propeller class for the propulsive empennage"""
     def __init__(self, n_blades: float, prop_diameter: float, hub_diameter: float,
                  prop_airfoil: str, prop_sweep: float, prop_pitch: float, rpm: float,
-                 power_condition: str, va_inlet: float, alpha: float, re_inflow: float,
+                 power_condition: str, va_inlet: float, alpha: float,
                  s_ref: float, c_root: float, c_tip: float, v_inf: float):
         super().__init__()
         self.n_blades = n_blades
@@ -23,7 +25,6 @@ class Propeller:
         self.pc = power_condition
         self.va_inlet = va_inlet
         self.alpha = alpha
-        self.re_inflow = re_inflow
         self.ref_area = s_ref
         self.c_root = c_root
         self.c_tip = c_tip
@@ -42,6 +43,10 @@ class Propeller:
     def inflow_angle(self):
         inflow_prop = self.alpha / 2
         return inflow_prop
+
+    def reynolds_number(self):
+        re_blade = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.c_root)
+        return re_blade
 
     def area(self):
         area_prop = np.pi * (self.prop_diameter / 2) ** 2
@@ -62,11 +67,20 @@ class Propeller:
         wet_prop = self.n_blades * wet_prop_bl
         return wet_prop
 
+    """ ----------------------- run BEM model -----------------------------------------------------------------------"""
+    def BEM(self):
+        BEM_matlab_engine.cd(r'C:\Users\tomva\pythonProject\DUUC\analysis_modules\BEM')
+        T_out, Q_out, N_out, Tc, Cp, CT = BEM_matlab_engine.BEM2(6, 3.9, 10, 0, 50, 0, 0.6, 1.225, 15, nargout=6)
+
+        BEM_matlab_engine.quit()
+
+        return T_out, Q_out, N_out, Tc, Cp, CT
+
     """ Coefficient calculations """
     def cd0(self):
         if self.pc == "off":
             """ in power off conditions the drag is estimated by only the skin friction drag"""
-            cd0_prop = skin_friction(self.re_inflow, "t") * self.n_blades
+            cd0_prop = skin_friction(self.reynolds_number(), "t") * self.n_blades
             return cd0_prop
         else:
             """ in power on conditions the skin friction drag is assumed to be neglible"""
@@ -174,11 +188,16 @@ class Propeller:
         return m_fan
 
 
-"""
------ test section -----
+"""----- test section -----"""
 duuc: Propeller = Propeller(n_blades=3, prop_diameter=3.6,
                             hub_diameter=0.2, prop_airfoil='ARAD8',
-                            prop_sweep=0, prop_pitch=2, rpm=6000)
+                            prop_sweep=0, prop_pitch=2, rpm=6000,
+                            power_condition="on",
+                            va_inlet=750,
+                            alpha=0,
+                            s_ref=62,
+                            c_root=0.2,
+                            c_tip=0.2,
+                            v_inf=30)
 
-duuc.thrust()
-"""
+print(f"BEM output: {duuc.BEM()}")

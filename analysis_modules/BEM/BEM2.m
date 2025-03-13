@@ -29,16 +29,16 @@
 % een complexe waarde en doen de interpolaties van Cl en Cd het niet meer.
 %-------------------------------------------------------------------------
 function [T_out, Q_out, N_out, Tc, Cp, CT] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature)
-clc;clear all;clf;close all;tic;
+clc;clf;close all;tic;
 
 % State what needs to be displayed
-plotBladeGeometry  = 1; % plot blade angle and blade chord
-plotPolars         = 1; % plot the airfoils Cl and Cd vs aoa
-plotLoopOutput     = 1; % plot phi, total velocity, Reynolds number and lift and drag, as well as axial and tangential inflow factor along the blade
-plotFinalVariables = 1; % plot axial and swirl velocities, pressure rise, swirl angle, distributions of Cl and Cd along the blade and Normal force vs psi
-plotCTandEff       = 1; % plot thrust coefficient and efficiency versus advance ratio
+plotBladeGeometry  = 0; % plot blade angle and blade chord
+plotPolars         = 0; % plot the airfoils Cl and Cd vs aoa
+plotLoopOutput     = 0; % plot phi, total velocity, Reynolds number and lift and drag, as well as axial and tangential inflow factor along the blade
+plotFinalVariables = 0; % plot axial and swirl velocities, pressure rise, swirl angle, distributions of Cl and Cd along the blade and Normal force vs psi
+plotCTandEff       = 0; % plot thrust coefficient and efficiency versus advance ratio
 
-printDistributions = 1; % print a, cl, cd, alast_ax and alast_tang distributions along the blade
+printDistributions = 0; % print a, cl, cd, alast_ax and alast_tang distributions along the blade
 printCoefficients  = 1; % print propeller coefficients (Tc, CT, Qc, Pc, Cp, CNp and n)
 
 % Inputfiles
@@ -46,10 +46,10 @@ propdata          = importdata('HM568_propeller.dat',' '); % contains propeller 
 airfoildata1      = importdata('HM568_airfoil.dat',' ');       % contains airfoils polars
 
 % Input of propeller parameters
-B       = n_blades;      % number of blades
-Dp      = dp;  % propeller diameter            [m]
-Beta075 = beta75;     % blade angle at 3/4 R postion  [deg]
-ducted  = ducted_opt;      % set to 1 if ducted, 0 if unducted
+B       = double(n_blades);      % number of blades
+Dp      = double(dp);  % propeller diameter            [m]
+Beta075 = double(beta75);     % blade angle at 3/4 R postion  [deg]
+ducted  = double(ducted_opt);      % set to 1 if ducted, 0 if unducted
 
 %Scale for drag coefficient to see its effect (1.0 means drag is unaltered)
 factor_CD=1.00;
@@ -60,13 +60,13 @@ fid = fopen('outputfile.dat','w');
 fprintf(fid,'% U0      J      ap     Tc     CT     Qc     Pc     Cp    CNp     n \n'); 
 fprintf(fid,'%---------------------------------------------------------------------\n');
 
-for U0  = v_inf    % Airspeed                      [m/s]
-for J   = advance    % Advance Ratio
-for ap  = a_inf       % effective propeller anlge of attack with respect to the incoming flow [deg]
+for U0  = double(v_inf)    % Airspeed                      [m/s]
+for J   = double(advance)    % Advance Ratio
+for ap  = double(a_inf)       % effective propeller anlge of attack with respect to the incoming flow [deg]
 
 % Constants
-TC      = temperature;    % air temperature               [deg celsius]
-rho     = density; % air density                   [kg/m3]
+TC      = double(temperature);    % air temperature               [deg celsius]
+rho     = double(density); % air density                   [kg/m3]
 
 %% read the proller geometry file
 nsections = length(propdata(:,1)); % number of input blade sections  

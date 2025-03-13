@@ -1,4 +1,4 @@
 import matlab.engine
 
 
-BEM_matlab = matlab.engine.start_matlab()
+BEM_matlab_engine = matlab.engine.start_matlab()
