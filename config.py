@@ -2,6 +2,7 @@
 duct_diameter = 3.6  # duct diameter in [m]
 AR_duct = 2  # aspect ratio of the duct [-]
 duct_chord = duct_diameter / AR_duct  # duct chord in [m]
+ai_duct = 0  # installation angle duct [deg]
 
 pylon_length = 1  # pylon length in [m]
 pylon_chord = 1  # pylon chord length [m]
