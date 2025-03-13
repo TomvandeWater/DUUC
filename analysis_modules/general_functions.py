@@ -66,3 +66,33 @@ def shp_conversion(shp, unit: str):
         print("Wrong unit input. Options: SI or metric")
         return None
 
+
+def write_blade_data(prop_name, prop_diam, n_blades, temperature, density, alpha, tas, advance,
+                     beta75, n_sections):
+    input_folder = r"C:\Users\tomva\pythonProject\DUUC\data"
+    geometry_folder = r"C:\Users\tomva\pythonProject\DUUC\data\airfoil_coordinates"
+    os.makedirs(input_folder, exist_ok=True)
+    input_file_path = os.path.join(input_folder, f"{prop_name}_data.txt")
+
+    with open(input_file_path, "w") as file:
+        file.write(f"{prop_name}\n\n")
+        file.write(f"{prop_diam}\n")
+        file.write(f"{n_blades}\n")
+        file.write(f"{temperature}\n")
+        file.write(f"{density}\n")
+        file.write(f"{alpha}\n")
+        file.write(f"{tas}\n")
+        file.write(f"{advance}\n")
+        file.write(f"{beta75}\n")
+        file.write(f"{n_sections}\n")
+
+        file_path = os.path.join(geometry_folder, f"{prop_name}_geometry.txt")
+        with open(file_path, "r") as coordinates:
+            next(coordinates)
+            for line in coordinates:
+                file.write(f"{line}")
+
+        file.write("same\n")
+        file.write(f"{prop_name}_airfoil.txt")
+        file.close()
+    return print(f"file written")
