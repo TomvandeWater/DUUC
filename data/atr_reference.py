@@ -1,4 +1,4 @@
-from analysis_modules.aerodynamic import c_tip, c_root, drag_zero_lift
+from analysis_modules.aerodynamic import c_tip, c_root, drag_zero_lift, c_mac
 """ Reference data from the fact sheet ATR72-600 and from this 
 website: https://www.fzt.haw-hamburg.de/pers/Scholz/arbeiten/DataHirsch/Aircraft_Database.html"""
 import numpy as np
@@ -10,16 +10,16 @@ h_ac = 7.65  # height aircraft [m]
 l_cab = 19.21  # cabin length [m]
 diameter = 2.57  # diameter of the fuselage [m]
 
-""" Wing parameters"""
+""" --------------------------------- Wing parameters -------------------------------------------------------------- """
 s_w = 61  # wing area [m^2]
 tr_w = 0.47  # taper ratio wing [-]
 phi_qc_w = 3.5  # quarter chord sweep [deg]
-c_mac_w = 2.2345
 c_root_w = c_root(s_w / 2, b_w / 2, tr_w)
 c_tip_w = c_tip(c_root_w, tr_w)
 ar_w = b_w ** 2 / s_w
+c_mac_w = c_mac(c_root_w, c_tip_w, tr_w)  # MAC of the wing 2.2345 is reference value from Nita (no double taper yet)
 cl_wing = -0.116  # clean wing lift coefficient M = 0.0792 Re 2.005e5
-alpha_install_wing = 4  # installation angle of the wing (w.r.t zero lift line) onto the fuselage [deg]
+alpha_install_wing = 2  # installation angle of the wing (w.r.t zero lift line) onto the fuselage [deg]
 wing_airfoil = "43013"  # wing airfoil profile from the Naca 5 series -> or 43018
 
 """ Horizontal tail surface"""
@@ -36,6 +36,7 @@ tail_volume_h = 1.05  # tail volume coefficient horizontal tail (from Hamburg Un
 airfoil_ht = "0009"  # horizontal tailplane airfoil profile from NACA 4 series
 lever_h = 13.565  # leverage arm between tail [m]
 installation_angle = -3  # installation angle of the stabilizer [deg]
+z_h = 3.4  # height of the htail compared to fuselage
 
 """ Vertical tail surface"""
 s_vt = 14.9  # vertical tail surface [m^2]
