@@ -1,5 +1,7 @@
 import numpy as np
-from analysis_modules.aerodynamic import drag_interference
+from analysis_modules.aerodynamic import drag_interference, reynolds
+import flow_conditions
+from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import skin_friction, mach_correction, oswald
 from data.read_data import airfoil_polar
 import data.atr_reference as ref
@@ -10,7 +12,7 @@ class HorizontalTail:
     """ Horizontal tail class for the conventional empennage """
     def __init__(self, ht_span: float, ht_chord: float, ht_profile: str,
                  ht_taper: float, ht_sweep: float, ht_croot: float, alpha: float, v_inf: float,
-                 area_ref: float, mach: float, reynolds: float):
+                 area_ref: float, mach: float, ar_wing: float, cl_wing: float, cla_wing: float):
         super().__init__()
         self.ht_span = ht_span
         self.ht_chord = ht_chord
@@ -22,18 +24,29 @@ class HorizontalTail:
         self.v_inf = v_inf
         self.area_ref = area_ref
         self.mach = mach
-        self.reynolds = reynolds
+        self.ar_wing = ar_wing
+        self.cl_wing = cl_wing
+        self.cla_wing = cla_wing
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
-        de = (2 * ref.cl_wing) / (np.pi * ref.ar_w)
+        de = (2 * self.cl_wing) / (np.pi * self.ar_wing)
         inflow_ht = self.v_inf * (1 - (de ** 2) / 2)
         return inflow_ht
 
     def inflow_angle(self):
-        de = (2 * ref.cl_wing) / (np.pi * ref.ar_w)
-        inflow_angle = self.alpha - de + ref.installation_angle
+        e0 = (2 * self.cl_wing) / (np.pi * self.ar_wing)
+        de_da = 2 * self.cla_wing / (np.pi * self.ar_wing)
+
+        eta = e0 + de_da * self.alpha
+
+        inflow_angle = self.alpha - ref.alpha_install_wing - eta + ref.installation_angle
+        # inflow_angle = self.alpha -> for plotting validation
         return inflow_angle
+
+    def reynolds_number(self):
+        re_htail = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.ht_chord)
+        return re_htail
 
     """" ----------------------- Calculate geometric properties of the horizontal tail ---------------------------- """
     def tip_chord(self):
@@ -82,15 +95,17 @@ class HorizontalTail:
         norm_area = (self.t_c() * self.ht_chord ** 2) / self.area()
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        cd_int_ht = (drag_interference(self.t_c(), 't-junction') * norm_speed
-                     * norm_area)
+        cd_int_ht = (drag_interference(self.t_c(), 't-junction') * norm_speed * norm_area)
 
         return cd_int_ht
 
     def cl_al(self):
-        cl_al_tail = (np.pi * 2 * self.aspect_ratio()) / (2 + np.sqrt(4 + self.aspect_ratio() ** 2
-                                                                      * (1 + np.tan(np.radians(ref.phi_qc_h)) ** 2
-                                                                         - self.mach ** 2)))
+        tan2 = np.tan(np.radians(self.ht_sweep)) ** 2
+        an = 2 * np.pi * self.aspect_ratio()
+        bn = 2 + np.sqrt(4 + self.aspect_ratio() ** 2 * (1 + tan2))
+        cl_al_tail = an / bn
+
+        cl_al_tail = (2 * np.pi * self.aspect_ratio()) / (2 + np.sqrt(4 + self.aspect_ratio() ** 2))
         return cl_al_tail
 
     def cl(self):
@@ -101,48 +116,71 @@ class HorizontalTail:
         return cl_ht
 
     def cd0(self):
-        cf = skin_friction(self.reynolds, "t")
+        cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         sweep_corr = 1.34 * self.mach ** 0.18 * (np.cos(np.radians(self.ht_sweep)) ** 0.28)
         ftc = (1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4) * sweep_corr
         norm_area = self.area() / self.area_ref
 
-        cd0_ht = cf * fm * ftc * norm_area * 1.04  # 1.04 for conventional empennage talking about interference
+        cd0_ht = cf * fm * ftc * 1.04 * norm_area   # 1.04 for conventional empennage talking about interference
+        # cd0_ht = cf * fm * ftc * 1.04
         return cd0_ht
 
     def cdi(self):
         e = self.oswald()
-        cdi_ht = self.cl() ** 2 / (np.pi * self.aspect_ratio() * e)
+        cdi_ht = (self.cl() ** 2) / (np.pi * self.aspect_ratio() * e)
         return cdi_ht
 
     def cd(self):
+        norm_area = self.area() / self.area_ref
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+
+        cd_ht = self.cd0() * norm_speed + self.cdi() * norm_speed * norm_area
         cd_ht = self.cd0() + self.cdi()
         return cd_ht
+
+    @staticmethod
+    def cm():
+        """ as this contribution is small to the whole aircraft we assume it zero"""
+        cm_ht = 0
+        return cm_ht
 
     """ ------------------------ Output primes ----------------------------------------------------------------- """
     def cd_prime(self):
         norm_area = self.area() / self.area_ref
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
 
-        alpha = np.radians(self.inflow_angle())
-
-        cd_cd = self.cd() * np.cos(alpha) * norm_speed * norm_area
-        cd_cl = self.cl() * np.sin(alpha) * norm_speed * norm_area
-
-        cd_prime_ht = cd_cd + cd_cl
+        cd_prime_ht = self.cd() * norm_speed * norm_area
         return cd_prime_ht
 
     def cl_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
         norm_area = self.area() / self.area_ref
 
+        cl_prime_vt = self.cl() * norm_speed * norm_area
+        return cl_prime_vt
+
+    def ct(self):
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.area() / self.area_ref
+
         alpha = np.radians(self.inflow_angle())
 
-        cl_cl = self.cl() * np.cos(alpha) * norm_speed * norm_area
-        cl_cd = self.cd() * np.sin(alpha) * norm_speed * norm_area
+        ct = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
+        ct_norm = ct * norm_area * norm_speed
 
-        cl_prime_vt = cl_cl + cl_cd
-        return cl_prime_vt
+        return ct, ct_norm
+
+    def cn(self):
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.area() / self.area_ref
+
+        alpha = np.radians(self.inflow_angle())
+
+        cn = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
+        cn_norm = cn * norm_area * norm_speed
+
+        return cn, cn_norm
 
     """" ----------------------------------- Calculate weight --------------------------------------------------- """
     def weight(self):
@@ -180,16 +218,19 @@ if __name__ == "__main__":
                              v_inf=128,
                              area_ref=ref.s_w,
                              mach=0.443,
-                             reynolds=8422274)
+                             ar_wing=12,
+                             cl_wing=1.44,
+                             cla_wing=5.89
+                             )
 
-        polar = airfoil_polar(f"ht0009.txt", float(a[i] + ref.installation_angle))
-        cd_val = float(polar[1] + polar[2])
+        polar = airfoil_polar(f"ht0009.txt", float(a[i]))
+        cd_val = float(polar[1])
         cl_val = float(polar[0])
 
-        al = np.radians(a[i] + ref.installation_angle)
-        cl_theory = np.pi * 2 * al
+        al = np.radians(a[i])
+        cl_theory = 5.7 * al  # from experimental data
         cl_the.append(cl_theory)
-        cd_the.append(hor.cd0() + cl_theory ** 2 / (np.pi * hor.aspect_ratio() * 0.7))
+        cd_the.append(hor.cd0() + (cl_theory ** 2) / (np.pi * hor.aspect_ratio() * 0.6))
 
         cl.append(hor.cl())
         cd.append(hor.cd())
@@ -225,6 +266,21 @@ if __name__ == "__main__":
     plt.title(r'Horizontal tail')
     plt.legend()
     plt.grid(True)
+
+    [cl_val ** 2 for cl_val in cl]
+
+    plt.figure('CD - CL^2')
+    plt.plot([cl ** 2 for cl in cl], cd, label=r'Model', color="tab:orange")
+    plt.plot([cl_ref ** 2 for cl_ref in cl_ref], cd_ref, label=r'XFoil', color="tab:green", marker='o')
+    plt.plot([cl_the ** 2 for cl_the in cl_the], cd_the, label='Theory', color="tab:green", linestyle="--")
+    plt.xlabel(r'$C_{L}^2$ [-]')
+    plt.ylabel(r'$C_{D}$ [-]')
+    plt.title(r'Horizontal tail')
+    plt.xlim(0, 1)
+    plt.ylim(0, 0.15)
+    plt.legend()
+    plt.grid(True)
+
     plt.show()
 
 
