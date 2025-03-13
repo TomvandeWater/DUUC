@@ -24,7 +24,8 @@ def airfoil_polar(filename, search_value):
     cdp_val = np.interp(search_value, alpha, cdp_polar)
     cm_val = np.interp(search_value, alpha, cm_polar)
 
-    cd = cdp_val + cd_val
+    cd = cd_val
+    cd0 = cd_val - cdp_val
 
     # index = np.where(alpha == search_value)[0]
     """
@@ -37,7 +38,7 @@ def airfoil_polar(filename, search_value):
     else:
         return None, print("Value not found in the file") """
 
-    return cl_val, cd, cm_val
+    return cl_val, cd, cm_val, cd0
 
 
 """ Test case for this function """
