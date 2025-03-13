@@ -1,0 +1,24 @@
+Output data Hamilton568F                                              
+
+ Propeller identification: Hamilton568F
+
+       r/R         beta     phi     alpha      Cl       Cd       a        a'   
+          0.2300    42.89      nan      nan      nan      nan      nan      nan
+          0.4050    33.87    -6.74   -40.61   -0.500   0.0800   -1.587   -0.022
+          0.5100    28.73    -5.99   -34.72   -0.500   0.0800   -1.654   -0.018
+          0.6150    23.75    -5.60   -29.35   -0.500   0.0800   -1.734   -0.017
+          0.7200    19.27    -5.39   -24.66   -0.500   0.0800   -1.828   -0.016
+          0.7900    17.09    -5.34   -22.43   -0.500   0.0800   -1.901   -0.017
+          0.8600    15.20    -5.29   -20.49   -0.500   0.0800   -1.970   -0.017
+          0.9300    13.47    -5.27   -18.74   -0.500   0.0800   -2.046   -0.017
+          0.9650    12.63    -5.49   -18.12   -0.500   0.0800   -2.134   -0.020
+          0.9900    12.00    -6.15   -18.15   -0.500   0.0800   -2.314   -0.027
+
+ Final results:
+ Propeller identification:  Hamilton568F
+ Thrust coefficient        = nan
+ Power  coefficient        = nan
+ Efficiency                = nan
+ Power                     = nan
+ Total Thrust              = nan
+ Total Torque              = nan
