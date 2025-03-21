@@ -46,3 +46,16 @@ def oswald(aspect_ratio, sweep):
         e = 1.78 * (1 - 0.045 * aspect_ratio ** 0.68) / np.cos(np.radians(sweep)) ** 0.25
         return e
 
+
+def area_ratio(nacaprofile, chord, radius, x_location):
+    num_list = [int(digit) for digit in nacaprofile]
+    thickness = num_list[2] * 10 + num_list[3]  # naca 4 series thickness of profile
+    t = thickness / 100
+    x = x_location / chord
+
+    y = (t / 0.2) * (0.2969 * np.sqrt(x) - 0.1260 * x - 0.3516 * x**2 + 0.2843 * x**3 - 0.1015 * x**4)
+
+    diameter = 2 * (radius - (y * chord))
+
+    return diameter
+
