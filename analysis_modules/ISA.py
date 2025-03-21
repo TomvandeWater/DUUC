@@ -26,4 +26,4 @@ def air_density_isa(altitude):
     # print("\n----- ISA calculator:")
     # print(f'Air density =', np.round(rho, 3), "kg/m3")
     # print(f'Air temperature =', np.round(T, 1), "K")
-    return np.round(rho, 3), np.round(T, 1)
+    return np.round(rho, 3), np.round(T, 1), np.round(T - 273.15, 1)
