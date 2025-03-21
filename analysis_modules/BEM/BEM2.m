@@ -28,9 +28,10 @@
 % wortel wordt dan negatief. Vervolgens krijgt onder andere de invalshoek
 % een complexe waarde en doen de interpolaties van Cl en Cd het niet meer.
 %-------------------------------------------------------------------------
-function [T_out, Q_out, N_out, Tc, Cp, CT] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature)
+function [T_out, Q_out, N_out, Tc, Cp, CT] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature, prop_id)
 clc;clf;close all;tic;
 
+disp('----- MATLAB BEM calculator -----');
 % State what needs to be displayed
 plotBladeGeometry  = 0; % plot blade angle and blade chord
 plotPolars         = 0; % plot the airfoils Cl and Cd vs aoa
@@ -40,10 +41,16 @@ plotCTandEff       = 0; % plot thrust coefficient and efficiency versus advance 
 
 printDistributions = 0; % print a, cl, cd, alast_ax and alast_tang distributions along the blade
 printCoefficients  = 1; % print propeller coefficients (Tc, CT, Qc, Pc, Cp, CNp and n)
+prop_id = string(prop_id);
+
+folder_path1 = 'C:\Users\tomva\pythonProject\DUUC\data';
+folder_path2 = 'C:\Users\tomva\pythonProject\DUUC\data\Polars';
+filename_propdata = fullfile(folder_path1, prop_id + '_propeller.dat');
+filename_airfoildata = fullfile(folder_path2, prop_id  + '_airfoil.dat');
 
 % Inputfiles
-propdata          = importdata('HM568_propeller.dat',' '); % contains propeller geometry
-airfoildata1      = importdata('HM568_airfoil.dat',' ');       % contains airfoils polars
+propdata          = importdata(filename_propdata,' '); % contains propeller geometry
+airfoildata1      = importdata(filename_airfoildata,' ');       % contains airfoils polars
 
 % Input of propeller parameters
 B       = double(n_blades);      % number of blades
@@ -129,7 +136,7 @@ count = 0;
 vdiff = 1;
 pgcount = 0;
 while vdiff > 0.005
-    count = count + 1
+    count = count + 1;
     for i = 1:nsections % i = spanwise section
         for j = 1:length(psirad) % j = psi, the blade angle in propeller plane 
             % calculate the velocity in the propeller plane
@@ -231,9 +238,9 @@ for j = 1:length(psirad) % j = psi, the blade angle in propeller plane
     nblade(j) = nblade(j) + ((dndr(end,j)/2)*(Rp-r(end)));  
 end
 % Total values integrated over propeller
-T = (1/(2*pi))* sum(((tblade(2:end)+tblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)))
-Q = (1/(2*pi))* sum(((qblade(2:end)+qblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)))
-FN = (1/(2*pi))* sum(((nblade(2:end)+nblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)))
+T = (1/(2*pi))* sum(((tblade(2:end)+tblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)));
+Q = (1/(2*pi))* sum(((qblade(2:end)+qblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)));
+FN = (1/(2*pi))* sum(((nblade(2:end)+nblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)));
 
 % Coefficients
 Tc  = T / (2*q*Dp^2);
@@ -244,9 +251,9 @@ Cp  = (2*pi*rps*Q) / (rho*rps^3*Dp^5);
 CNp = FN / (q*Sp);
 n   = Tc / Pc;
 
-T_out = T
-Q_out = Q
-N_out = FN
+T_out = T;
+Q_out = Q;
+N_out = FN;
 
 %% Display results
 if pgcount > 0
