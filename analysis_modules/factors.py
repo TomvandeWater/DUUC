@@ -59,3 +59,16 @@ def area_ratio(nacaprofile, chord, radius, x_location):
 
     return diameter
 
+
+def mass_of_section(m_total, l, x1, x2):
+    # Validate input
+    if not (0 <= x1 <= l and 0 <= x2 <= l and x1 <= x2):
+        raise ValueError("x1 and x2 must be within [0, L] and x1 <= x2")
+
+    factor = (2 * m_total) / l
+    term1 = x2 - (x2 ** 2) / (2 * l)
+    term2 = x1 - (x1 ** 2) / (2 * l)
+
+    m_section = factor * (term1 - term2)
+    return m_section
+
