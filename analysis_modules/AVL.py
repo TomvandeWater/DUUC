@@ -189,10 +189,132 @@ def run_avl(file_name, alpha, velocity, mach, ref_matrix):
 
 
 """ test section"""
-write_geometry("test_avl", flow_conditions.Mach, ref.airfoil_ht, ref.airfoil_vt, 10,
-                2, 25, 0, 0, 0, 0, ref.c_root_h, ref.tr_h,
-               ref.phi_qc_h, ref.b_h, 0, ref.c_root_v, ref.tr_v, ref.phi_qc_v, ref.b_v)
-write_mass("test_avl", ref.m_vt, ref.m_ht, ref.b_v, ref.b_h, ref.c_root_v)
-write_case("test_avl",10, 181)
+# write_geometry("test_avl", flow_conditions.Mach, ref.airfoil_ht, ref.airfoil_vt, 10,
+#                 2, 25, 0, 0, 0, 0, ref.c_root_h, ref.tr_h,
+#               ref.phi_qc_h, ref.b_h, 0, ref.c_root_v, ref.tr_v, ref.phi_qc_v, ref.b_v)
+# write_mass("test_avl", ref.m_vt, ref.m_ht, ref.b_v, ref.b_h, ref.c_root_v)
+# write_case("test_avl",10, 181)
+
+
+def create_ringwing_avl():
+    # User inputs
+    print(f"\n----- AVL file writer -----")
+    radius = float(input("Enter ring radius (m): "))
+    chord = float(input("Enter chord length (m): "))
+    num_sections = int(input("Enter number of sections: "))
+
+    # AVL file setup
+    filename = "ringwing.avl"
+
+    with open(filename, 'w') as f:
+        # Surface header
+        f.write("ring wing test\n")
+        f.write("0.05\n")
+        f.write("0   0   0\n")
+        f.write("10   2   25\n")
+        f.write("0   0   0\n")
+        f.write("0\n")
+        f.write("#\n")
+        f.write("#--------------------------------\n")
+        f.write("#\n")
+        f.write("SURFACE\n")
+        f.write("RING WING\n")
+        f.write("# Nchordwise  Cspace   Nspanwise   Sspace\n")
+        f.write("10         1      20        1\n")
+        f.write("#\n")
+        f.write(f"YDUPLICATE\n")
+        f.write(f"0.0\n")
+        f.write("#\n")
+        f.write("ANGLE\n")
+        f.write("0.00\n")
+        f.write("#\n")
+        f.write("# x,y,z bias for whole surface\n")
+        f.write("TRANSLATE\n")
+        f.write("0.00    0.00      0.00\n")
+        f.write("#----------------------------------------------------------\n")
+        f.write("    Xle         Yle         Zle         chord       angle   Nspan  Sspace\n")
+        # Generate sections
+        angle = 90 / num_sections  # Tangential chord alignment
+        for i in range(num_sections):
+            theta = - np.pi * i / num_sections + 0.5 * np.pi  # Angular position in radians
+            x = 0
+            y = (radius * np.cos(theta))
+            z = (radius * np.sin(theta)) + radius  # Y-coordinate
+            angle = 90 / num_sections  # Tangential chord alignment
+
+            f.write("SECTION\n")
+            f.write(f"{x:.6f} {y:.6f} {z:.6f} {chord:.6f} {angle:.6f}\n")
+            f.write("NACA\n")
+            f.write(f"0012\n")
+        f.write("SECTION\n")
+        f.write(f"0  0   0  {chord:.6f}   {angle:.6f}\n")
+        f.write("NACA\n")
+        f.write(f"0012\n")
+
+
+        f.write("#\n")
+        f.write("#--------------------------------\n")
+        f.write("#\n")
+        f.write("SURFACE\n")
+        f.write("CONTROL VANE 1\n")
+        f.write("# Nchordwise  Cspace   Nspanwise   Sspace\n")
+        f.write("10         1      20        1\n")
+        f.write("SECTION\n")
+        f.write(f"{0.95 * chord} {0} {0} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0016\n")
+        f.write("SECTION\n")
+        f.write(f"{0.95 * chord} {0} {radius * 2} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0016\n")
+
+        f.write("#\n")
+        f.write("#--------------------------------\n")
+        f.write("#\n")
+        f.write("SURFACE\n")
+        f.write("CONTROL VANE 2\n")
+        f.write("# Nchordwise  Cspace   Nspanwise   Sspace\n")
+        f.write("10         1      20        1\n")
+        f.write("SECTION\n")
+        f.write(f"{0.95 * chord} {- radius} {radius} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0016\n")
+        f.write("SECTION\n")
+        f.write(f"{0.95 * chord} {radius} {radius} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0016\n")
+
+
+        f.write("#\n")
+        f.write("#--------------------------------\n")
+        f.write("#\n")
+        f.write("SURFACE\n")
+        f.write("Support\n")
+        f.write("# Nchordwise  Cspace   Nspanwise   Sspace\n")
+        f.write("10         1      20        1\n")
+        #f.write("# x,y,z bias for whole surface\n")
+        #f.write("TRANSLATE\n")
+        #f.write(f"0.00    {-0.5 * radius}      0.00\n")
+        f.write("SECTION\n")
+        f.write(f"{0.25 * chord} {radius * np.cos(np.radians(30))} {radius + radius * np.sin(np.radians(30))} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0012\n")
+        f.write("SECTION\n")
+        f.write(f"{0.25 * chord} {-2.5} {0} {0.5} {0}\n")
+        f.write("NACA\n")
+        f.write(f"0012\n")
+
+
+    print(f"\nAVL file '{filename}' generated successfully!")
+    print(f"Ring wing characteristics:")
+    print(f"- Radius: {radius} m")
+    print(f"- Chord: {chord} m")
+    print(f"- Sections: {num_sections}")
+    print(f"- Aspect Ratio: {(2 * radius) / chord:.1f}")
+
+
+# Run the generator
+create_ringwing_avl()
+
 
 
