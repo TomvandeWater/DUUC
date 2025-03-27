@@ -17,10 +17,10 @@ support_chord = 0.5  # support chord [m]
 control_vane_length = 0.5 * duct_diameter  # one control vane length [m]
 control_vane_chord = 0.30  # control vane chord [m]
 
-propulsor_type = "traditional"  # options are: traditional, hybrid
+propulsor_type = "conventional"  # options are: traditional, hybrid
 n_blades = 6  # number of propeller blades [-]
 rpm = 1000  # RPM of the propulsor
-c_root = 0.1  # root chord of the propeller blade [m]
+c_root = 0.2  # root chord of the propeller blade [m]
 c_tip = 0.2  # tip chord of the propeller blade [m]
 hub_diameter = 0.6  # spinner hub diameter [m]
 propeller_sweep = 0  # propeller sweep [deg]
