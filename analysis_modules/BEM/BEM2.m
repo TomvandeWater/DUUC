@@ -28,8 +28,8 @@
 % wortel wordt dan negatief. Vervolgens krijgt onder andere de invalshoek
 % een complexe waarde en doen de interpolaties van Cl en Cd het niet meer.
 %-------------------------------------------------------------------------
-function [T_out, Q_out, N_out, Tc, Cp, CT] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature, prop_id)
-clc;clf;close all;tic;
+function [T_out, Q_out, N_out, Tc, Cp, CT, Va_avg, Vt_avg] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature, prop_id)
+% clc;clf;close all;tic;
 
 disp('----- MATLAB BEM calculator -----');
 % State what needs to be displayed
@@ -64,7 +64,7 @@ factor_CD=1.00;
 % Generate general outputfile(s) and open it
 fid = fopen('outputfile.dat','w');
 % Print the header in this file
-fprintf(fid,'% U0      J      ap     Tc     CT     Qc     Pc     Cp    CNp     n \n'); 
+fprintf(fid,'% U0      J      ap     Tc     CT     Qc     Pc     Cp    CNp     n \n');
 fprintf(fid,'%---------------------------------------------------------------------\n');
 
 for U0  = double(v_inf)    % Airspeed                      [m/s]
@@ -76,7 +76,7 @@ TC      = double(temperature);    % air temperature               [deg celsius]
 rho     = double(density); % air density                   [kg/m3]
 
 %% read the proller geometry file
-nsections = length(propdata(:,1)); % number of input blade sections  
+nsections = length(propdata(:,1)); % number of input blade sections
 rR        = propdata(:,1);  % r/R, radial coordinate
 cR        = propdata(:,2);  % c/R, chord normalized with blade length
 beta      = propdata(:,3);  % beta with respect to the 3/4R position [deg]
@@ -138,16 +138,16 @@ pgcount = 0;
 while vdiff > 0.005
     count = count + 1;
     for i = 1:nsections % i = spanwise section
-        for j = 1:length(psirad) % j = psi, the blade angle in propeller plane 
+        for j = 1:length(psirad) % j = psi, the blade angle in propeller plane
             % calculate the velocity in the propeller plane
             vplane(i,j) = omega*r(i) - vt(i,j) + U0*sin(aprad)*sin(psirad(j));
             vplane(i,j) = vplane(i,j) + vti(i,j); % add tang. ind. vel.
 
-            % calculate the angle phi for all blade sections: 
+            % calculate the angle phi for all blade sections:
             phi(i,j)    = atan( ((U0+va(i,j))*cos(aprad)+vai(i,j)) / vplane(i,j));
-            
+
             % calculate the local blade aoa
-            a(i,j)      = betarad(i) - phi(i,j); 
+            a(i,j)      = betarad(i) - phi(i,j);
 
             % Total velocity at the blade section
             w(i,j)      = sqrt( (U0*cos(aprad) + vai(i,j) + va(i,j))^2 + vplane(i,j)^2);
@@ -173,15 +173,13 @@ while vdiff > 0.005
             % Calculate the loading
             dtdr(i,j)   = .5*rho*w(i,j)^2*B*cR(i)*Rp*(Cl(i,j)*cos(phi(i,j))-Cdr(i,j)*sin(phi(i,j))); % thrust component
             dqdr(i,j)   = .5*rho*w(i,j)^2*B*cR(i)*Rp*r(i)*(Cl(i,j)*sin(phi(i,j))+Cdr(i,j)*cos(phi(i,j))); % torque component
-            dndr(i,j)   = dqdr(i,j)*sin(psirad(j)) / r(i); % normal force component
-
-            phi1(i,j)   = asin( ((U0+va(i,j))*cos(aprad)+vai(i,j)) / w(i,j) ); % don't know what it is and what its use is
+            dndr(i,j)   = dqdr(i,j)*sin(psirad(j)) / r(i); % normal force component... phi1(i,j)   = asin( ((U0+va(i,j))*cos(aprad)+vai(i,j)) / w(i,j) ); % don't know what it is and what its use is
             phit(i,j)   = atan(rR(i)*tan(phi(i,j))); % shouldn't this be phi1? Seems to be no difference in outcome
             ss(i,j)     = (pi*Dp*sin(phit(i,j))) / B;
-            
+
             % Prandtl Tip Loss factor
             if ducted ~= 1
-                factorf(i,j)= (2/pi)*acos(exp(-pi*((Rp-r(i))/ss(i,j)))); 
+                factorf(i,j)= (2/pi)*acos(exp(-pi*((Rp-r(i))/ss(i,j))));
             else
                 factorf(i,j)= 1;
             end
@@ -194,12 +192,12 @@ while vdiff > 0.005
             % Use relaxation
             va(i,j)     = .5*va(i,j) + .5*vanew(i,j);
             vt(i,j)     = .5*vt(i,j) + .5*vtnew(i,j);
-            
+
             if count == 1
             a1ax        = va / (U0*cos(aprad));
             a1tang(i,j) = vt(i,j) / (omega*r(i));
             end
-            
+
             alasttang(i,j) = vt(i,j) / (omega*r(i));
         end
     end
@@ -211,7 +209,7 @@ alastax = va / (U0*cos(aprad));
 
 %% Calculate Propeller coefficients
 
-for j = 1:length(psirad) % j = psi, the blade angle in propeller plane     
+for j = 1:length(psirad) % j = psi, the blade angle in propeller plane
     for i = 1:nsections % i = spanwise section
         % swirl angle (deg)
         dswi(i,j) = (180/pi) * atan( (2*vt(i,j)*factorf(i,j)-U0*sin(aprad)*sin(psirad(j))) / (U0*cos(aprad)+factorf(i,j)*va(i,j)));
@@ -228,14 +226,14 @@ for j = 1:length(psirad) % j = psi, the blade angle in propeller plane
     % Thrust
     tblade(j) = sum(((dtdr(2:end,j)+dtdr(1:end-1,j))/2).*(r(2:end)-r(1:end-1)));
     tblade(j) = tblade(j) + ((dtdr(end,j)/2)*(Rp-r(end)));
-    
+
     % Torque
     qblade(j) = sum(((dqdr(2:end,j)+dqdr(1:end-1,j))/2).*(r(2:end)-r(1:end-1)));
     qblade(j) = qblade(j) + ((dqdr(end,j)/2)*(Rp-r(end)));
 
     % Normal Force
     nblade(j) = sum(((dndr(2:end,j)+dndr(1:end-1,j))/2).*(r(2:end)-r(1:end-1)));
-    nblade(j) = nblade(j) + ((dndr(end,j)/2)*(Rp-r(end)));  
+    nblade(j) = nblade(j) + ((dndr(end,j)/2)*(Rp-r(end)));
 end
 % Total values integrated over propeller
 T = (1/(2*pi))* sum(((tblade(2:end)+tblade(1:end-1))/2).*(psirad(2:end)-psirad(1:end-1)));
@@ -254,6 +252,14 @@ n   = Tc / Pc;
 T_out = T;
 Q_out = Q;
 N_out = FN;
+
+%% Display results
+if pgcount > 0
+    disp('Warning: Prandtl-Glauert corrections applied');
+end
+
+% Prepare va and vt for output
+% The va and vt variables are already calculated inside the loop
 
 %% Display results
 if pgcount > 0
@@ -289,7 +295,7 @@ if plotLoopOutput == 1
 end
 
 if printDistributions == 1
-    disp('    rR        a(deg)    cl        cd        alast_ax  alast_tang');   
+    disp('    rR        a(deg)    cl        cd        alast_ax  alast_tang');
     disp('----------------------------------------------------------------');
     disp([rR a(:,1)*180/pi feval(clfit,a(:,1)*180/pi) feval(cdfit,a(:,1)*180/pi) alastax(:,1) alasttang(:,1)]);
 end
@@ -297,30 +303,30 @@ end
 if printCoefficients  == 1
     disp('');
     disp(num2str([U0 ap J],'V = %1.0f m/s, ap = %1.0f, J = %1.2f:'));
-    disp('    Tc        CT        Qc        Pc        Cp        CNp       n');   
+    disp('    Tc        CT        Qc        Pc        Cp        CNp       n');
     disp('----------------------------------------------------------------------');
     disp([Tc CT Qc Pc Cp CNp n]);
     disp('');
 end
 
-if plotFinalVariables == 1   
+if plotFinalVariables == 1
     figure()
     subplot(2,2,1); plotEdited(rR,vt(:,4)/U0,'b',2,'','','','on');hold on;
     subplot(2,2,1); plotEdited(rR,va(:,4)/U0,'r',2,'','','','on');hold on;
     subplot(2,2,1); plotEdited(-rR,vt(:,10)/U0,'b',2,'','','','on');hold on;
     subplot(2,2,1); plotEdited(-rR,va(:,10)/U0,'r',2,'r/R','induced velocity','Axial and swirl velocities','on');hold off;
-  
+
     subplot(2,2,2); plotEdited(rR,dps(:,4),'b',2,'','','','on');hold on;
     subplot(2,2,2); plotEdited(rR,dpt(:,4),'r',2,'','','','on');hold on;
     subplot(2,2,2); plotEdited(-rR,dps(:,10),'b',2,'','','','on');hold on;
     subplot(2,2,2); plotEdited(-rR,dpt(:,10),'r',2,'r/R','pressure rise','Total and static pressure rise (Pa)','on');hold off;
-    
+
     subplot(2,2,3); plotEdited(rR,dpt(:,4)/q,'r',2,'','','','on');hold on;
     subplot(2,2,3); plotEdited(-rR,dpt(:,10)/q,'r',2,'r/R','pressure rise','Dimenstionless total pressure rise','on');hold off;
-    
+
     subplot(2,2,4); plotEdited(rR,dswi(:,4),'r',2,'','','','on');hold on;
     subplot(2,2,4); plotEdited(-rR,dswi(:,10),'r',2,'r/R','swirl angle (deg)','Swirl angle (deg)','on');hold off;
-    
+
     figure()
     subplot(3,1,1); plotEdited(rR,Cl(:,4),'r',2,'','','','on');hold on;
     subplot(3,1,1); plotEdited(-rR,Cl(:,10),'r',2,'r/R','Cl','Distribution of lift coefficient','on');hold off;
@@ -332,6 +338,11 @@ end
 end   % alpha_p loop
 end   % advance ratio loop
 end   % airspeed loop
+
+% Calculate average Va and Vt along the blade
+Va_avg = mean(va, 'all');
+Vt_avg = mean(vt, 'all');
+
 
 % Close the general outputfile
 fclose(fid);
@@ -348,7 +359,7 @@ if plotCTandEff  == 1
     CT=data(:,5);
     efficiency=data(:,10);
     [ax,p1,p2] = plotyy(adv,CT,adv,efficiency,'plot','plot');
-    
+
     %plot(adv,CT,'-*',adv,efficiency,'-o');
     ylabel(ax(1),'C_T') % label left y-axis
     ylabel(ax(2),'\eta') % label right y-axis
@@ -357,4 +368,7 @@ if plotCTandEff  == 1
 end
 
 end
+
+
+
 
