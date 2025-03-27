@@ -2,6 +2,7 @@ import numpy as np
 import os
 import config
 import pyvista as pv
+pv.global_theme.allow_empty_mesh = True
 
 
 logo_texture = pv.read_texture(r"C:\Users\tomva\pythonProject\DUUC\data\images\TU_Delft.png")
@@ -354,26 +355,94 @@ def create_engine_nacelle(diameter=1.0, length=2.0, cone_length=0.5, center_poin
     return nacelle
 
 
-def visualize_propulsive_empennage(c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
-                                   LE_control, LE_support, x_prop):
-    # parameters for table
-    params = {
-        "Pylon Chord": f"{c_pylon} [m]",
-        "Pylon Span": f"{b_pylon} [m]",
-        "Cant angle": f"{cant} [deg]",
-        "Support Chord": f"{c_support} [m]",
-        "Support Span": f"{b_support} [m]",
-        "Duct Chord": f"{c_duct} [m]",
-        "Duct Diameter": f"{d_duct} [m]",
-        "Duct Aspect Ratio": f"{d_duct / c_duct} [-]",
-        "Number of blades": f"{config.n_blades} [-]",
-        "Leading Edge Duct": f"{0} [m]",
-        "Leading Edge Pylon": f"{LE_pylon} [m]",
-        "Leading Edge Support": f"{LE_support} [m]",
-        "Leading Edge Control": f"{LE_control} [m]",
-        "Propeller location": f"{x_prop} [m]",
+def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
+                                   LE_control, LE_support, x_prop, origin=(0, 0, 0)):
 
-    }
+    primary = cmyk_to_rgb(1, 0, 0, 0)
+    off_white = cmyk_to_rgb(0, 0, 0.02, 0.02)
+    file_path_0012 = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\airfoil_coordinates", "Naca0012" + ".txt")
+    cant_rad = np.radians(cant)
+
+    # Displace the origin by adding the origin offsets
+    origin_x, origin_y, origin_z = origin
+
+    # Create pylon, support, duct, and control surfaces with displacement
+    pylon = plot_straight_wing(file_path_0012, span=np.cos(cant_rad) * b_pylon, chord=c_pylon, dihedral_deg=cant,
+                               start_point=(LE_pylon + origin_x, origin_y, origin_z))
+
+    x_pylon_end = LE_support + origin_x
+    y_pylon_end = np.cos(cant_rad) * b_pylon + origin_y
+    z_pylon_end = np.sin(cant_rad) * b_pylon + origin_z
+
+    support = plot_straight_wing(file_path_0012, span=np.cos(cant_rad) * b_support, chord=c_support, dihedral_deg=cant,
+                                 start_point=(x_pylon_end, y_pylon_end, z_pylon_end))
+
+    x_duct = 0 + origin_x
+    y_duct = y_pylon_end + np.cos(cant_rad) * (0.5 * d_duct) + origin_y
+    z_duct = z_pylon_end + np.sin(cant_rad) * (0.5 * d_duct) + origin_z
+
+    duct = visualize_annular_wing(file_path_0012, chord=c_duct, diameter=d_duct,
+                                  start_point=(x_duct, y_duct, z_duct), num_sections=100)
+
+    logo_width = c_duct * 0.75  # meters
+    logo_height = c_duct * 0.4  # meters
+    logo_center = (x_duct + 0.15 * c_duct, y_duct + d_duct / 2, z_duct - 0.5 * logo_height)  # Top of the ring
+
+    # Apply logo texture to the duct mesh
+    duct_with_logo, logo_texture = apply_single_logo_texture(
+        duct,
+        r"C:\Users\tomva\pythonProject\DUUC\data\images\TU_Delft.png",
+        center=logo_center,
+        size_u=logo_width,
+        size_v=logo_height,
+        direction_u=(1, 0, 0),  # Logo width runs along Z+
+        direction_v=(0, 0, 1)  # Logo height runs along X+
+    )
+
+    x_control_h = LE_control + origin_x
+    y_control_h = y_pylon_end + np.cos(cant_rad) * b_support / 2 - 0.5 * d_duct + origin_y
+    z_control_h = z_pylon_end + np.sin(cant_rad) * b_support / 2 + origin_z
+    h_control = plot_straight_wing(file_path_0012, span=b_cv * 2, chord=c_cv, dihedral_deg=0,
+                                   start_point=(x_control_h, y_control_h, z_control_h))
+
+    x_control_v = LE_control + origin_x
+    y_control_v = y_pylon_end + np.cos(cant_rad) * b_support / 2 + origin_y
+    z_control_v = z_pylon_end + np.sin(cant_rad) * b_support / 2 - 0.5 * d_duct + origin_z
+    v_control = plot_vertical_wing(file_path_0012, span=b_cv * 2, chord=c_cv, sweep_deg=0.0,
+                                   start_point=(x_control_v, y_control_v, z_control_v))
+
+    x_engine = x_prop + origin_x
+    spinner = plot_half_sphere(config.hub_diameter, (x_engine, y_duct, z_duct))
+
+    propeller = create_propeller(file_path_0012, span=d_duct/2, center_point=(x_engine - config.c_root, y_duct, z_duct),
+                                 num_wings=config.n_blades, chord=config.c_root)
+
+    nacelle = create_engine_nacelle(diameter=config.hub_diameter, length=config.nacelle_length,
+                                    cone_length=0.5, center_point=(x_engine, y_duct, z_duct), resolution=100)
+
+    # Create primary plotter with the full geometry and table
+    plotter.set_background("skyblue")
+
+    # Add meshes to plotter, ensuring that everything is displaced by the origin
+    plotter.add_text("Propulsive Empennage", position='upper_edge', font_size=12, color='black')
+    plotter.add_mesh(pylon, color=off_white, smooth_shading=True)
+    plotter.add_mesh(support, color=off_white, smooth_shading=True)
+    plotter.add_mesh(h_control, color="darkblue", smooth_shading=True)
+    plotter.add_mesh(v_control, color="darkblue", smooth_shading=True)
+    plotter.add_mesh(duct_with_logo, texture=logo_texture, smooth_shading=True)
+    plotter.add_mesh(duct, color="lightgrey", smooth_shading=True)
+    plotter.add_mesh(spinner, color="grey", smooth_shading=True)
+    plotter.add_mesh(propeller, color="grey", smooth_shading=True)
+    plotter.add_mesh(nacelle, color="lightgrey", smooth_shading=True)
+    plotter.camera_position = [(-7, 0, 10), (2.5, 2.5, -0.5), (0, 0, 1)]
+    plotter.camera.zoom(-12)
+    plotter.add_axes()
+
+    plotter.show()
+
+
+def visualize_cross_section(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
+                            LE_control, LE_support, x_prop):
 
     primary = cmyk_to_rgb(1, 0, 0, 0)
     file_path_0012 = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\airfoil_coordinates", "Naca0012" + ".txt")
@@ -398,7 +467,6 @@ def visualize_propulsive_empennage(c_pylon, b_pylon, c_duct, d_duct, c_support, 
     logo_width = c_duct * 0.75  # meters
     logo_height = c_duct * 0.4  # meters
     logo_center = (x_duct + 0.15 * c_duct, y_duct + d_duct / 2, z_duct - 0.5 * logo_height)  # Top of the ring
-
 
     # Apply logo texture to the duct mesh
     duct_with_logo, logo_texture = apply_single_logo_texture(
@@ -425,43 +493,93 @@ def visualize_propulsive_empennage(c_pylon, b_pylon, c_duct, d_duct, c_support, 
     x_engine = x_prop
     spinner = plot_half_sphere(config.hub_diameter, (x_engine, y_duct, z_duct))
 
-    propeller = create_propeller(file_path_0012, span=d_duct/2, center_point=(x_engine - config.c_root, y_duct, z_duct),
+    propeller = create_propeller(file_path_0012, span=d_duct / 2,
+                                 center_point=(x_engine - config.c_root, y_duct, z_duct),
                                  num_wings=config.n_blades, chord=config.c_root)
 
     nacelle = create_engine_nacelle(diameter=config.hub_diameter, length=config.nacelle_length,
                                     cone_length=0.5, center_point=(x_engine, y_duct, z_duct), resolution=100)
 
-    plotter = pv.Plotter(shape=(1, 2), window_size=(1600, 800), title="Propulsive Empennage Visualization")
-    plotter.set_background("white")
+    # --- Create secondary plotter for cross-sectional view with slider ---
+    #cross_section_plotter = pv.Plotter(window_size=(800, 800), title="Cross-Sectional View")
+    plotter.set_background("skyblue")
+    #cross_section_plotter.add_text("Cross Section: XY Plane", position='upper_edge', font_size=12, color='black')
 
-    plotter.subplot(0, 0)
-    plotter.add_text("Propulsive Empennage", position='upper_edge', font_size=12, color='black')
-    plotter.add_mesh(pylon, color=primary, smooth_shading=True)
-    plotter.add_mesh(support, color=primary, smooth_shading=True)
-    plotter.add_mesh(h_control, color=primary, smooth_shading=True)
-    plotter.add_mesh(v_control, color=primary, smooth_shading=True)
-    plotter.add_mesh(duct_with_logo, texture=logo_texture, smooth_shading=True)
-    plotter.add_mesh(duct, color="white", smooth_shading=True)
-    plotter.add_mesh(spinner, color="grey", smooth_shading=True)
-    plotter.add_mesh(propeller, color="grey", smooth_shading=True)
-    plotter.add_mesh(nacelle, color="lightgrey", smooth_shading=True)
-    plotter.camera_position = [(-7, 0, 10), (2.5, 2.5, -0.5),
-                               (0, 0, 1)]  # Example: camera looking from (5, 5, 5) towards (0, 0, 0)
+    # Add the original full geometry for reference (light grey, transparent)
+    combined = pylon + support + h_control + v_control + duct_with_logo + spinner + propeller + nacelle
+    plotter.add_mesh(combined, color="lightgrey", opacity=0.2)
 
-    plotter.camera.zoom(-12)  # Zoom factor > 1 to zoom in, < 1 to zoom out
-    plotter.add_axes()
+    # Initial Z position for slicing
+    initial_z = z_duct  # center of the duct location
 
-    plotter.subplot(0, 1)
+    # Slice function to update with slider
+    def update_slice(z_value):
+        plotter.clear_actors()  # Clear previous slice and re-add reference
+        plotter.add_mesh(combined, color="lightgrey", opacity=0.2)
+        plotter.add_text("Cross Section: XY Plane", position='upper_edge', font_size=12, color='black')
+
+        # Create the slice through all components at z=z_value
+        slice_plane_origin = (0, 0, z_value)
+        slice_normal = (0, 0, 1)  # Normal in Z-direction (XY-plane slice)
+
+        sliced = combined.slice(origin=slice_plane_origin, normal=slice_normal)
+        plotter.add_mesh(sliced, color="black", line_width=2)
+        plotter.add_axes()
+        plotter.view_xy()
+
+    # Add slider to control Z slicing position
+    z_min = z_duct - d_duct * 0.5  # Extend below duct
+    z_max = z_duct + d_duct * 0.5  # Extend above duct
+    plotter.add_slider_widget(update_slice, value=initial_z,
+                                            rng=[z_min, z_max],
+                                            title='Z-slider [m]',
+                                            pointa=(0.225, .1), pointb=(0.425, .1),
+                                            style='modern')
+
+    # Initial slice display
+    update_slice(initial_z)
+    plotter.show()
+
+
+def get_parameters(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
+                  LE_control, LE_support, x_prop):
+    # parameters for table
+    params = {
+        "Pylon Chord": f"{c_pylon} [m]",
+        "Pylon Span": f"{b_pylon} [m]",
+        "Cant angle": f"{cant} [deg]",
+        "Support Chord": f"{c_support} [m]",
+        "Support Span": f"{b_support} [m]",
+        "Duct Chord": f"{c_duct} [m]",
+        "Duct Diameter": f"{d_duct} [m]",
+        "Duct Aspect Ratio": f"{d_duct / c_duct} [-]",
+        "Number of blades": f"{config.n_blades} [-]",
+        "Leading Edge Duct": f"{0} [m]",
+        "Leading Edge Pylon": f"{LE_pylon} [m]",
+        "Leading Edge Support": f"{LE_support} [m]",
+        "Leading Edge Control": f"{LE_control} [m]",
+        "Propeller location": f"{x_prop} [m]",
+    }
+
     plotter.add_text("Parameters", font_size=12, position="upper_edge")
 
     y_pos = 0.85
     for key, value in params.items():
         plotter.add_text(f"{key}: {value}", position=(0.05, y_pos), font_size=10, viewport=True)
         y_pos -= 0.04  # Space between lines
+
     plotter.show()
 
 
-visualize_propulsive_empennage(config.pylon_chord, config.pylon_length, config.duct_chord, config.duct_diameter,
+"""
+visualize_cross_section(plotter, config.pylon_chord, config.pylon_length, config.duct_chord, config.duct_diameter,
                                config.support_chord, config.support_length, config.cant_angle,
                                config.control_vane_chord, config.control_vane_length, 0.25 * config.duct_chord,
                                0.95 * config.duct_chord, 0.40 * config.duct_chord, 0.30 * config.duct_chord)
+
+plotter = pv.Plotter()
+visualize_propulsive_empennage(plotter, config.pylon_chord, config.pylon_length, config.duct_chord, config.duct_diameter,
+                               config.support_chord, config.support_length, config.cant_angle,
+                               config.control_vane_chord, config.control_vane_length, 0.25 * config.duct_chord,
+                               0.95 * config.duct_chord, 0.40 * config.duct_chord, 0.30 * config.duct_chord)"""
+
