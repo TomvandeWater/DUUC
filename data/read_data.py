@@ -41,6 +41,27 @@ def airfoil_polar(filename, search_value):
     return cl_val, cd, cm_val, cd0
 
 
+def read_avl_output(filename):
+
+    # Construct the absolute path to the file in the "data/Polars" folder
+    filepath = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\AVL",
+                            filename)
+
+    # Normalize the filepath to ensure it resolves correctly
+    filepath = os.path.abspath(filepath)
+
+    start_line = 3
+    data_polar = np.loadtxt(filepath, skiprows=start_line - 1)
+    alpha = data_polar[:, 0]
+    cl_polar = data_polar[:, 1]
+    clff_polar = data_polar[:, 2]
+    cd_polar = data_polar[:, 3]
+    cdin_polar = data_polar[:, 4]
+    cdff_polar = data_polar[:, 5]
+
+    return alpha, cl_polar, clff_polar, cd_polar, cdin_polar, cdff_polar
+
+
 """ Test case for this function """
 # a = airfoil_polar("pylon0012.txt", 0)
 # print(a)
