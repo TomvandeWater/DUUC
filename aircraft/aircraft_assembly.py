@@ -7,33 +7,74 @@ from analysis_modules.cg_calculation import CenterOfGravity
 from analysis_modules.htail_sizing import slopes
 from aircraft.landing_gear import LandingGear
 from aircraft.operations import Operations
+from analysis_modules.factors import area_ratio
 
 
 class Aircraft:
-    def __init__(self, aircraft_type: str, alpha: float, reynolds_duct: float, v_inf: float, mach: float,
-                 reynolds_wing: float, reynolds_htail: float, power: str):
+    def __init__(self, aircraft_type: str, alpha: float, v_inf: float, mach: float, power: str, bem_input,
+                 altitude: float, delta_e: float, delta_r: float, wing_span: float, wing_sweep: float, wing_airfoil: str,
+                 wing_tr: float, wing_cr: float, l_coc: float, l_cab: float, l_tail: float, fus_d: float, pax: float,
+                 d_duct: float, c_duct: float, duct_airfoil: str, b_pylon: float, c_pylon: float, pylon_airfoil: str,
+                 cant_angle: float, b_support: float, c_support: float, support_airfoil: str, cv_airfoil: str,
+                 n_blades: float, l_nacelle: float, d_nacelle: float, l_cv: float, c_cv: float, propulsor_type: str,
+                 prop_airfoil: str, d_hub: float, rpm: float, prop_c_root: float, prop_c_tip: float, prop_diameter: float):
         self.aircraft_type = aircraft_type
         self.alpha = alpha
-        self.reynolds_duct = reynolds_duct
-        self.reynolds_wing = reynolds_wing
-        self.reynolds_htail = reynolds_htail
         self.v_inf = v_inf
         self.mach = mach
         self.pc = power
+        self.bem_input = bem_input
+        self.altitude = altitude
+        self.delta_e = delta_e
+        self.delta_r = delta_r
+        self.wing_span = wing_span
+        self.wing_sweep = wing_sweep
+        self.wing_airfoil = wing_airfoil
+        self.wing_tr = wing_tr
+        self.wing_cr = wing_cr
+        self.l_coc = l_coc
+        self.l_cab = l_cab
+        self.l_tail = l_tail
+        self.l_fuse = self.l_coc + self.l_coc + self.l_cab
+        self.fus_d = fus_d
+        self.pax = pax
+        self.d_duct = d_duct
+        self.c_duct = c_duct
+        self.duct_airfoil = duct_airfoil
+        self.l_pylon = b_pylon
+        self.c_pylon = c_pylon
+        self.pylon_airfoil = pylon_airfoil
+        self.cant_angle = cant_angle
+        self.b_support = b_support
+        self.c_support = c_support
+        self.support_airfoil = support_airfoil
+        self.control_vanes_airfoil = cv_airfoil
+        self.n_blades = n_blades
+        self.l_nacelle = l_nacelle
+        self.d_nacelle = d_nacelle
+        self.control_vane_length = l_cv
+        self.control_vane_chord = c_cv
+        self.propulsor_type = propulsor_type
+        self.hub_diameter = d_hub
+        self.propeller_airfoil = prop_airfoil
+        self.RPM = rpm
+        self.c_root = prop_c_root
+        self.c_tip = prop_c_tip
+        self.prop_diameter = prop_diameter
 
-        self.wing = Wing(b_wing=ref.b_w, sweep_wing=ref.phi_qc_w, wing_airfoil=ref.wing_airfoil,
-                         taper_ratio_wing=ref.tr_w, c_root_wing=ref.c_root_w, alpha=self.alpha, velocity=self.v_inf,
-                         mach=self.mach, reynolds_number=self.reynolds_wing, wing_type=self.aircraft_type)
+        self.wing = Wing(b_wing=self.wing_span, sweep_wing=self.wing_sweep, wing_airfoil=self.wing_airfoil,
+                         taper_ratio_wing=self.wing_tr, c_root_wing=self.wing_cr, alpha=self.alpha, velocity=self.v_inf,
+                         mach=self.mach, wing_type=self.aircraft_type, altitude=self.altitude)
 
-        self.fuselage = Fuselage(fuselage_length=ref.l_cab + ref.l_cockpit + ref.l_cabin,
-                                 fuselage_diameter=ref.diameter_fuselage, l_cabin=ref.l_cabin, l_cockpit=ref.l_cockpit,
-                                 l_tail=ref.l_tail, velocity=self.v_inf, alpha=self.alpha, ref_area=self.wing.area(),
-                                 reynolds_number=self.reynolds_wing, mach=self.mach, cl_wing=self.wing.cl_prime(),
-                                 cmac_wing=ref.c_root_w)
+        self.fuselage = Fuselage(fuselage_length=self.l_fuse,
+                                 fuselage_diameter=self.fus_d, l_cabin=self.l_cab, l_cockpit=self.l_coc,
+                                 l_tail=self.l_tail, velocity=self.v_inf, alpha=self.alpha, ref_area=self.wing.area(),
+                                 mach=self.mach, cl_wing=self.wing.cl_prime(),
+                                 cmac_wing=self.wing_cr, altitude=self.altitude)
 
         self.lg = LandingGear(aircraft_type=self.aircraft_type)
 
-        self.operation = Operations(MTOM=ref.MTOW, pax=config.n_pax)
+        self.operation = Operations(MTOM=ref.MTOW, pax=self.pax)
 
         self.empennage = self.make_empennage()
 
@@ -44,46 +85,49 @@ class Aircraft:
 
         if self.aircraft_type == "DUUC":
             from aircraft.propulsive_empennage.empennage_assembly_PE import PropulsiveEmpennage
-            va_inlet = self.v_inf * (np.pi * (config.duct_diameter / 2))
-            print(f"va inlet: {va_inlet}")
-            return PropulsiveEmpennage(rpm=config.rpm,
+            va_inlet = self.v_inf * (np.pi * (self.d_duct / 2))
+            return PropulsiveEmpennage(rpm=self.RPM,
                                        alpha=self.alpha,
                                        power_condition=self.pc,
                                        va_inlet=va_inlet,
-                                       n_blades=config.n_blades,
-                                       prop_diameter=config.duct_diameter * 0.95,
-                                       hub_diameter=config.hub_diameter,
-                                       prop_airfoil=config.prop_airfoil,
-                                       prop_sweep=config.propeller_sweep,
-                                       prop_pitch=config.propeller_pitch,
-                                       c_root=config.c_root,
-                                       c_tip=config.c_tip,
-                                       duct_diameter=config.duct_diameter,
-                                       duct_chord=config.duct_chord,
-                                       duct_profile=config.duct_airfoil,
-                                       cant_angle=config.cant_angle,
-                                       pylon_length=config.pylon_length,
-                                       pylon_chord=config.pylon_chord,
-                                       pylon_profile=config.pylon_airfoil,
-                                       d_exit=config.d_exit,
-                                       nacelle_length=config.nacelle_length,
-                                       nacelle_diameter=config.nacelle_diameter,
-                                       support_length=config.support_length,
-                                       support_chord=config.support_chord,
-                                       support_profile=config.support_airfoil,
-                                       hcv_span=config.control_vane_length,
-                                       hcv_chord=config.control_vane_chord,
-                                       control_profile=config.control_vanes_airfoil,
-                                       vcv_span=config.control_vane_length,
-                                       vcv_chord=config.control_vane_chord,
-                                       propulsor_type=config.propulsor_type,
+                                       n_blades=self.n_blades,
+                                       prop_diameter=self.prop_diameter,
+                                       hub_diameter=self.hub_diameter,
+                                       prop_airfoil=self.propeller_airfoil,
+                                       prop_sweep=0,
+                                       prop_pitch=0,
+                                       c_root=self.c_root,
+                                       c_tip=self.c_tip,
+                                       duct_diameter=self.d_duct,
+                                       duct_chord=self.c_duct,
+                                       duct_profile=self.duct_airfoil,
+                                       cant_angle=self.cant_angle,
+                                       pylon_length=self.l_pylon,
+                                       pylon_chord=self.c_pylon,
+                                       pylon_profile=self.pylon_airfoil,
+                                       d_exit=area_ratio("0016", self.c_duct, self.d_duct/2, 1),
+                                       nacelle_length=self.l_nacelle,
+                                       nacelle_diameter=self.d_nacelle,
+                                       support_length=self.b_support,
+                                       support_chord=self.c_support,
+                                       support_profile=self.support_airfoil,
+                                       hcv_span=self.control_vane_length,
+                                       hcv_chord=self.control_vane_chord,
+                                       control_profile=self.control_vanes_airfoil,
+                                       vcv_span=self.control_vane_length,
+                                       vcv_chord=self.control_vane_chord,
+                                       propulsor_type=self.propulsor_type,
                                        v_inf=self.v_inf,
                                        mach=self.mach,
                                        ref_area=ref.s_w,
                                        ref_chord=ref.c_mac_w,
                                        ar_wing=ar_wing,
                                        cl_wing=cl_wing,
-                                       cla_wing=cla_wing)
+                                       cla_wing=cla_wing,
+                                       bem_input=self.bem_input,
+                                       altitude=self.altitude,
+                                       delta_e=self.delta_e,
+                                       delta_r=self.delta_r)
         if self.aircraft_type == "conventional":
             from aircraft.conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
             return ConventionalEmpennage(ht_span=ref.b_h,
@@ -114,10 +158,11 @@ class Aircraft:
                                          nacelle_diameter=ref.d_nacelle,
                                          v_inf=self.v_inf,
                                          mach=self.mach,
-                                         reynolds=self.reynolds_htail,
                                          ar_wing=ar_wing,
                                          cl_wing=cl_wing,
-                                         cla_wing=cla_wing)
+                                         cla_wing=cla_wing,
+                                         bem_input=self.bem_input,
+                                         altitude=self.altitude)
         else:
             print("Wrong aircraft type defined!!")
             return None
@@ -134,10 +179,10 @@ class Aircraft:
                                   w_ht=self.empennage.ht_tail.weight(),
                                   w_duct=0,
                                   w_sys=self.operation.weight_sys(),
-                                  l_fuselage=(ref.l_tail + ref.l_cockpit + ref.l_cabin),
+                                  l_fuselage=(self.l_tail + self.l_coc + self.l_cab),
                                   aircraft_type=self.aircraft_type,
                                   c_mac_wing=ref.c_mac_w)
-            return cog.x_cg()[0], cog.x_cg()[1]
+            return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0]
         if self.aircraft_type == "DUUC":
             cog = CenterOfGravity(w_lg_nose=self.lg.weight()[0],
                                   w_lg_main=self.lg.weight()[1],
@@ -150,7 +195,7 @@ class Aircraft:
                                   l_fuselage=(ref.l_tail + ref.l_cockpit + ref.l_cabin),
                                   aircraft_type=self.aircraft_type,
                                   c_mac_wing=ref.c_mac_w)
-            return cog.x_cg()[0], cog.x_cg()[1]
+            return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0]
         else:
             return 0, 0
 
