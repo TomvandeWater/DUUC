@@ -70,8 +70,8 @@ class CenterOfGravity:
             cg_wing_group = sum_mcg / sum_w
 
             components = ["Wing", "Main", "Engine", "Nacelle"]
-            print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          "wing    ", self.aircraft_type)
+            # print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
+                          # "wing    ", self.aircraft_type)
 
             return cg_wing_group, sum_w
 
@@ -90,8 +90,8 @@ class CenterOfGravity:
             cg_wing_group = sum_mcg / sum_w
 
             components = ["Wing", "Main"]
-            print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          "wing     ", self.aircraft_type)
+            # print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
+                          # "wing     ", self.aircraft_type)
 
             return cg_wing_group, sum_w
         else:
@@ -116,8 +116,8 @@ class CenterOfGravity:
             cg_fuse_group = sum_mcg / sum_w
 
             components = ["Fuselage", "Vertical Tail", "Horizontal Tail", "Nose", "Systems"]
-            print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          "fuselage", self.aircraft_type)
+            # print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
+                          # "fuselage", self.aircraft_type)
 
             return cg_fuse_group, sum_w
 
@@ -136,8 +136,8 @@ class CenterOfGravity:
             cg_fuse_group = sum_mcg / sum_w
 
             components = ["Fuselage", "Nose", "Systems", "Duct"]
-            print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          "fuselage", self.aircraft_type)
+            # print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
+                          # "fuselage", self.aircraft_type)
 
             return cg_fuse_group, sum_w
         else:
