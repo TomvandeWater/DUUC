@@ -38,20 +38,8 @@ def s_control(aircraft_type, sweep25, l_v, power, eta, approach_velocity, n_engi
         raise ValueError("Invalid aircraft type specified. Choose 'conventional' or 'DUUC'.")
 
     s_vertical = (top * 2 * np.pi) / denominator
-    print(f"ne: {ne}, nd: {nd}")
-    print(f"v approach: {approach_velocity}")
-    print(f"s_vertical: {s_vertical}")
 
     return s_vertical
-
-cyd = 0.975
-#a = s_control("conventional", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 3.608)
-a = 13.788741676315057
-b = s_control("DUUC", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 2.8,
-          cy_duuc=cyd, cd_pe=0.00568, cd_wind=0.06)
-
-
-
 
 
 def s_stability(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect_v, sweep50, mach, cy_duuc=0):
@@ -71,18 +59,10 @@ def s_stability(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect
         raise ValueError("Invalid aircraft type specified. Choose 'conventional' or 'DUUC'.")
 
     s_ratio = ((cn_beta - cn_beta_f) / (- cy_beta_v)) * (b_w / l_v)
-    print(f"reynolds_num: {reynolds_num}")
-    print(f"kn: {k_n}, krj: {k_rj}")
-    print(f"cn_beta_f: {cn_beta_f}")
-    print(f"cy_beta_v: {cy_beta_v}")
-    print(f"b_w: {b_w}, lv: {l_v}")
 
     s_vertical = s_ratio * s_wing
-    print(f"s_vertical: {s_vertical}")
+
     return s_vertical
-
-
-s_stability("conventional", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13, 141, ref.ar_v, 0.31, 0.44)
 
 
 def s_vertical_sized(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect_v, sweep50, mach, sweep25, power, eta,
@@ -95,6 +75,13 @@ def s_vertical_sized(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, a
     return s_vert
 
 
+cyd = 0.975
+#a = s_control("conventional", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 3.608)
+a = 13.788741676315057
+b = s_control("DUUC", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 2.8,
+          cy_duuc=cyd, cd_pe=0.00568, cd_wind=0.06)
+
+s_stability("conventional", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13, 141, ref.ar_v, 0.31, 0.44)
 array = np.linspace(0.1, 3.0, 301)
 s_array = []
 s_array_atr = []
@@ -110,7 +97,7 @@ for i in range(len(array)):
                                    141, ref.ar_v, 0.31, 0.44, cy_duuc=array[i]))
     s_stab_atr.append(s_stability("DUUC", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13,
                                    141, ref.ar_v, 0.31, 0.44, cy_duuc=array[i]))
-
+"""
 plt.figure('CY - vs S_V')
 plt.plot(array, s_array, label=r'Prediction line DUUC - control', color="tab:blue")
 plt.plot(array, s_array_atr, label=r'Prediction line ATR - control', color="tab:orange")
@@ -145,5 +132,5 @@ plt.legend()
 plt.grid(True)
 
 plt.show()
-
+"""
 
