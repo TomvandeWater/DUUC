@@ -165,7 +165,7 @@ def generate_cylinder(centers, radii, num_points=50):
     return cylinder
 
 
-def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_cog_f, x_cog, aircraft_type: str, lv,
+def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_cog_f, x_cog, x_duuc, y_duuc, z_duuc, aircraft_type: str, lv,
                        pe_input=None):
     off_white = cmyk_to_rgb(0, 0, 0.02, 0.02)
     r_fus = d_fus / 2
@@ -213,14 +213,16 @@ def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_
         htail2 = plot_straight_wing(file_path_0012, span=-ref.b_h/2, chord=ref.c_root_h, dihedral_deg=0,
                                     start_point=(x_tail + 0.5 * (ref.c_root_v-ref.c_tip_v), y_tail, z_tail + ref.b_v))
         empennage = htail1 + vtail + htail2
+        plotter.add_text("Reference Aircraft View", position='upper_edge', font_size=12, color='black')
     elif aircraft_type == "DUUC":
         duuc_left = visualize_propulsive_empennage_ac(pe_input[0], pe_input[1], pe_input[2], pe_input[3],
                                                       pe_input[4], pe_input[5], pe_input[6], pe_input[7],
                                                       pe_input[8], pe_input[9], pe_input[10], pe_input[11],
-                                                      pe_input[12], (x_cog + lv, 0, 2*r_fus))
+                                                      pe_input[12], (x_duuc, y_duuc, z_duuc))
 
         duuc_right = duuc_left.reflect((0, 1, 0))
         empennage = duuc_left + duuc_right
+        plotter.add_text("DUUC Aircraft View", position='upper_edge', font_size=12, color='black')
     else:
         raise ValueError("Invalid aircraft type specified. Choose 'conventional' or 'DUUC'.")
     # Plot the result
@@ -241,6 +243,18 @@ def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_
     plotter.camera_position = [(-7, 0, 10), (2.5, 2.5, -0.5), (0, 0, 1)]
     plotter.camera.zoom(-12)
     plotter.show()
+
+
+def screen_param():
+    from screeninfo import get_monitors
+
+    monitors = get_monitors()
+    second_monitor = monitors[2]  # Second screen (index 1)
+
+    # Get the position of the second monitor
+    x_position = second_monitor.x
+    y_position = second_monitor.y
+    return x_position, y_position
 
 """
 PE_input = [config.pylon_chord, config.pylon_length, config.duct_chord, config.duct_diameter,
