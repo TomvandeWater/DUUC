@@ -4,11 +4,13 @@ from analysis_modules.factors import skin_friction, mach_correction
 from data.read_data import airfoil_polar
 import matplotlib.pyplot as plt
 import flow_conditions
+from analysis_modules.aerodynamic import reynolds
+from analysis_modules.ISA import air_density_isa
 
 
 class Wing:
     def __init__(self, b_wing: float, sweep_wing: float, wing_airfoil: str, taper_ratio_wing: float, c_root_wing: float,
-                 alpha: float, velocity: float, mach: float, reynolds_number: float, wing_type: str):
+                 alpha: float, velocity: float, mach: float, wing_type: str, altitude: float):
         super().__init__()
         self.b_wing = b_wing
         self.sweep_wing = sweep_wing
@@ -18,8 +20,8 @@ class Wing:
         self.alpha = alpha
         self.velocity = velocity
         self.mach = mach
-        self.re = reynolds_number
         self.wing_type = wing_type
+        self.altitude = altitude
 
     """ -------------------------------- Define inflow properties ------------------------------------------------ """
     def inflow_velocity(self):
@@ -30,6 +32,10 @@ class Wing:
         """ inflow angle in degrees"""
         a_wing = self.alpha
         return a_wing
+
+    def reynolds_number(self):
+        re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.c_root)
+        return re_nac
 
     """ ------------------------------------ Define geometric properties ---------------------------------------- """
     @staticmethod
@@ -73,7 +79,7 @@ class Wing:
     """ ------------------------------------ determine coefficients -------------------------------------------- """
     def cd0(self):
         fm = mach_correction(self.mach)
-        cf = skin_friction(self.re, "t")
+        cf = skin_friction(self.reynolds_number(), "t")
         f_wing = ((1 + (0.6 / 0.15) * self.t_c()[0] + 100 * self.t_c()[0] ** 4)
                   * (1.34 * self.mach ** 0.18 * (np.cos(np.radians(ref.phi_qc_w))) ** 0.28))
         cd0_wing = fm * cf * f_wing * (self.area_wetted() / self.area())
@@ -224,8 +230,7 @@ if __name__ == "__main__":
                     alpha=a[i],
                     velocity=128,
                     mach=0.443,
-                    reynolds_number=11599321,
-                    wing_type="conventional")
+                    wing_type="conventional", altitude=7000)
 
         duc = Wing(b_wing=ref.b_w,
                    sweep_wing=ref.phi_qc_w,
@@ -235,8 +240,7 @@ if __name__ == "__main__":
                    alpha=a[i],
                    velocity=128,
                    mach=0.443,
-                   reynolds_number=8422274,
-                   wing_type="DUUC")
+                   wing_type="DUUC", altitude=7000)
 
         al = np.radians(a[i] + ref.alpha_install_wing)
         cl_theory = np.pi * 2 * al
