@@ -1,5 +1,4 @@
 import numpy as np
-import flow_conditions
 from analysis_modules.aerodynamic import drag_interference, reynolds
 from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import skin_friction
@@ -13,7 +12,7 @@ class Propeller:
     def __init__(self, n_blades: float, prop_diameter: float, hub_diameter: float,
                  prop_airfoil: str, prop_sweep: float, prop_pitch: float, rpm: float,
                  power_condition: str, va_inlet: float, alpha: float,
-                 s_ref: float, c_root: float, c_tip: float, v_inf: float):
+                 s_ref: float, c_root: float, c_tip: float, v_inf: float, propulsor_type: str, altitude: float):
         super().__init__()
         self.n_blades = n_blades
         self.prop_diameter = prop_diameter
@@ -29,6 +28,9 @@ class Propeller:
         self.c_root = c_root
         self.c_tip = c_tip
         self.v_inf = v_inf
+        self.propulsor_type = propulsor_type
+        self.altitude = altitude
+        self.density = air_density_isa(self.altitude)[0]
 
     def inflow_velocity(self):
         if self.pc == "off":
@@ -45,7 +47,7 @@ class Propeller:
         return inflow_prop
 
     def reynolds_number(self):
-        re_blade = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.c_root)
+        re_blade = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.c_root)
         return re_blade
 
     def area(self):
@@ -69,11 +71,18 @@ class Propeller:
 
     """ ----------------------- run BEM model -----------------------------------------------------------------------"""
     def BEM(self):
-        BEM_matlab_engine.cd(r'C:\Users\tomva\pythonProject\DUUC\analysis_modules\BEM')
-        T_out, Q_out, N_out, Tc, Cp, CT = BEM_matlab_engine.BEM2(6, 3.9, 10, 0, 50, 0, 0.6, 1.225, 15, nargout=6)
+        #BEM_matlab_engine.cd(r'C:\Users\tomva\pythonProject\DUUC\analysis_modules\BEM')
+        #T_out, Q_out, N_out, Tc, Cp, CT = BEM_matlab_engine.BEM2(6, 3.9, 10, 0, 50, 0, 0.6, 1.225, 15, 'HM568F',
+                                                                 #nargout=6)
 
-        BEM_matlab_engine.quit()
+        #BEM_matlab_engine.quit()
 
+        T_out =1
+        Q_out =1
+        N_out = 1
+        Tc = 1
+        Cp = 1
+        CT = 1
         return T_out, Q_out, N_out, Tc, Cp, CT
 
     """ Coefficient calculations """
@@ -150,7 +159,7 @@ class Propeller:
         return thrust_prop
 
     def tc(self):
-        tc_prop = self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * self.area())
+        tc_prop = self.thrust() / (0.5 * self.density * self.inflow_velocity() ** 2 * self.area())
         return tc_prop
 
     def cn(self):
@@ -162,25 +171,31 @@ class Propeller:
         thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)"""
 
         normal_f = 3200
-        cn_prop = normal_f / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2
+        cn_prop = normal_f / (0.5 * self.density * self.inflow_velocity() ** 2
                               * self.area())
         return cn_prop
 
     def u1(self):
-        u1_prop = np.sqrt((2/flow_conditions.rho) * (self.thrust() / self.area()) +
+        u1_prop = np.sqrt((2/self.density) * (self.thrust() / self.area()) +
                           self.inflow_velocity() ** 2)
         return u1_prop
 
     """ Weight definition"""
-    @staticmethod
-    def weight_engine():
+    def weight_engine(self):
         """ based on 1 engine"""
         me = ref.m_eng
         ke = 1.35  # for propeller driven aircraft with more than 1 engine
         kthr = 1.18  # accounts for reverse thrust
+        if self.propulsor_type == "conventional":
+            m_eng = ke * kthr * me
+            return m_eng
+        if self.propulsor_type == "hybrid":
+            m_eng = 10000000
 
-        m_eng = ke * kthr * me
-        return m_eng
+            return m_eng
+        else:
+            print("PE propeller.py -> Propulsor type not correctly specified or included in the model")
+            return None
 
     def weight_fan(self):
         m_fan = ref.m_blade * self.n_blades
@@ -189,6 +204,7 @@ class Propeller:
 
 
 """----- test section -----"""
+"""
 duuc: Propeller = Propeller(n_blades=3, prop_diameter=3.6,
                             hub_diameter=0.2, prop_airfoil='ARAD8',
                             prop_sweep=0, prop_pitch=2, rpm=6000,
@@ -200,4 +216,4 @@ duuc: Propeller = Propeller(n_blades=3, prop_diameter=3.6,
                             c_tip=0.2,
                             v_inf=30)
 
-print(f"BEM output: {duuc.BEM()}")
+print(f"BEM output: {duuc.BEM()}") """
