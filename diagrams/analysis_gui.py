@@ -1,9 +1,9 @@
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget,
                              QGridLayout, QVBoxLayout, QHBoxLayout, QLabel,
-                             QLineEdit, QGroupBox, QFormLayout, QComboBox, QMessageBox)
+                             QLineEdit, QGroupBox, QFormLayout, QComboBox, QMessageBox, QMenu, QSystemTrayIcon)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QAction
 from pyvistaqt import QtInteractor
 from analysis_modules.aerodynamic import *
 from visualize_aircraft import *
@@ -12,6 +12,7 @@ from double_slide import DoubleSlider
 import config
 import data.atr_reference as ref
 import ctypes
+from calculation_manager import calculation_manager
 
 
 class MainWindow(QMainWindow):
@@ -26,9 +27,10 @@ class MainWindow(QMainWindow):
             'pylon_chord': config.pylon_chord, 'pylon_length': config.pylon_length,
             'support_chord': config.support_chord, 'support_length': config.support_length,
             'num_blades': config.n_blades, 'altitude': 7000,  'velocity': 10, 'alpha': 0.0, 'delta_e': 0, 'delta_r': 0,
-            'power_condition': 'on', 'plot_group': 'Aerodynamics', 'propulsion_type': 'conventional',
+            'power_condition': 'on', 'propulsion_type': 'conventional',
             'cant_angle': config.cant_angle, 'pylon_profile': config.pylon_airfoil,
-            'support_profile': config.support_airfoil, 'BEM1': 1,
+            'support_profile': config.support_airfoil, 'BEM1': 41420, 'BEM2':  26482, 'BEM3': -1.44, 'BEM4': 0.889,
+            'BEM5': 0.329, 'BEM6': 0.3201, 'BEM7': 5, 'BEM8': 10,
             'RPM': config.rpm, 'propeller_diameter': 0.95 * config.duct_diameter, 'hub_diameter': config.hub_diameter,
             'propeller_airfoil': config.prop_airfoil, 'propeller_c_root': config.c_root, 'propeller_c_tip': config.c_tip,
             'wing_span': ref.b_w, 'wing_phi_qc': ref.phi_qc_w, 'wing_airfoil': ref.wing_airfoil, 'wing_tr': ref.tr_w,
@@ -68,17 +70,6 @@ class MainWindow(QMainWindow):
         flight_conditions_layout = QVBoxLayout()
         flight_conditions_group.setFixedWidth(700)
         self.create_flight_condition_inputs(flight_conditions_layout)
-
-        self.plot_group_label = QLabel("Plot Group:")
-        self.plot_group_selector = QComboBox()
-        self.plot_group_selector.addItem("Aerodynamics")
-        self.plot_group_selector.addItem("Flight Mechanics")
-        self.plot_group_selector.setCurrentText(self.parameters['plot_group'])
-        self.plot_group_selector.currentTextChanged.connect(self.update_plot_group)
-
-        # Add to layout
-        flight_conditions_layout.addWidget(self.plot_group_label)
-        flight_conditions_layout.addWidget(self.plot_group_selector)
 
         flight_conditions_group.setLayout(flight_conditions_layout)
         left_side_layout.addWidget(flight_conditions_group)
@@ -126,8 +117,8 @@ class MainWindow(QMainWindow):
         self.add_input_tab("BEM output", self.create_bem_output)
 
         self.layout.addWidget(input_area, 0, 1, 1, 1)  # Spans 1 rows, 1 column
-
-        self.plot_manager = PlotManager(self.parameters, self.parameters['plot_group'])
+        self.calculation_results = calculation_manager(self.parameters)
+        self.plot_manager = PlotManager(self)
         self.layout.addWidget(self.plot_manager, 1, 0, 1, 2)  # Span full width
 
         # Set row and column weights
@@ -277,12 +268,16 @@ class MainWindow(QMainWindow):
                 value = text  # Treat as string
 
             self.parameters[parameter] = value
+
             self.start_calculation()  # Indicate calculation start
-            QTimer.singleShot(500, self.finish_calculation)  # Simulate calculation time
+            self.perform_calculation()
+            self.finish_calculation()
+
             self.start_plotting()  # Indicate plotting start
-            QTimer.singleShot(1000, self.finish_plotting)  # Simulate plotting time
+            self.finish_plotting()
             self.update_all_views()
             # self.update_all_plots()
+
             self.update_calculated_values()
             print(f"{parameter} updated to: {value}")  # For debugging
         except ValueError:
@@ -355,9 +350,8 @@ class MainWindow(QMainWindow):
     def update_power_condition(self, value):
         self.parameters['power_condition'] = value
         self.start_calculation()  # Indicate calculation start
-        QTimer.singleShot(500, self.finish_calculation)  # Simulate calculation time
+        self.perform_calculation()
         self.start_plotting()  # Indicate plotting start
-        QTimer.singleShot(1000, self.finish_plotting)  # Simulate plotting time
         # Add any additional logic needed when power condition changes
         print(f"Power condition updated to: {value}")
 
@@ -366,9 +360,12 @@ class MainWindow(QMainWindow):
             value = float(input_field.text())
             self.parameters[parameter] = value
             self.start_calculation()  # Indicate calculation start
-            QTimer.singleShot(500, self.finish_calculation)  # Simulate calculation time
+            self.perform_calculation()
+            self.finish_calculation()
+
             self.start_plotting()  # Indicate plotting start
-            QTimer.singleShot(1000, self.finish_plotting)  # Simulate plotting time
+            self.finish_plotting()
+
             self.update_calculated_values()  # Update calculated values when flight conditions change
             print(f"{parameter} updated to: {value}")  # For debugging
         except ValueError:
@@ -581,30 +578,6 @@ class MainWindow(QMainWindow):
             self.status_color_plots = "green"
         self.update_status_color_labels()
 
-    def update_plot_group(self, selected_plot_group):
-        """Update the plot_group variable and re-initialize the PlotManager."""
-        self.parameters['plot_group'] = selected_plot_group
-        self.start_plotting()  # Indicate plotting start
-        QTimer.singleShot(1000, self.finish_plotting)  # Simulate plotting time
-
-        # 1. Remove the old plot_manager widget from the layout
-        self.layout.removeWidget(self.plot_manager)
-
-        # 2. Disconnect signals and prepare for deletion
-        try:
-            self.plot_manager.disconnect()  # Disconnect all signals (if possible)
-        except AttributeError:
-            pass  # If disconnect() method doesn't exist
-
-        self.plot_manager.setParent(None)  # Disconnect from the parent (MainWindow)
-        self.plot_manager.deleteLater()  # Mark the old plot_manager for deletion
-
-        # 3. Create a new PlotManager instance
-        self.plot_manager = PlotManager(self.parameters, selected_plot_group)
-
-        # 4. Add the new plot_manager to the layout
-        self.layout.addWidget(self.plot_manager, 1, 0, 1, 2)  # Span full width
-
     def update_calculated_values(self):
         altitude = self.parameters['altitude']
         velocity = self.parameters['velocity']
@@ -631,6 +604,23 @@ class MainWindow(QMainWindow):
         self.thrust_label.setText(f"Thrust [N]: {thrust:.2f}")
         self.power_label.setText(f"Power [kW]: {power:.2f}")
 
+    def perform_calculation(self):
+        try:
+            self.calculation_results = calculation_manager(self.parameters)
+            self.finish_calculation()
+
+            self.start_plotting()
+            # Update each component separately
+            for component in self.calculation_results.keys():
+                self.plot_manager.update_plots(component)
+
+        except Exception as e:
+            print(f"Calculation error: {e}")
+            self.calculation_results = None
+
+        finally:
+            QTimer.singleShot(1000, self.finish_plotting)
+
     def showEvent(self, event):
         super().showEvent(event)
         self.showMaximized()
@@ -639,13 +629,20 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     icon_path = r"C:\Users\tomva\pythonProject\DUUC\data\images\flame.ico"
+
+    # Set taskbar icon via AUMID
+    if sys.platform == "win32":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DUUC_designer2.myapp")
+
+    # Set window icon
     app.setWindowIcon(QIcon(icon_path))
 
-    # Ensure Windows taskbar icon update
-    if sys.platform == "win32":
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DUUC_designer.myapp")
-
+    # Create main window
     window = MainWindow()
+    window.move(screen_param()[0], screen_param()[1])
+    window.setWindowIcon(QIcon(icon_path))  # Set window icon explicitly
     window.show()
+
+    # Start application event loop
     sys.exit(app.exec())
 
