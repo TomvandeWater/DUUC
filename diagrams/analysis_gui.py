@@ -1,18 +1,4 @@
-import sys
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget,
-                             QGridLayout, QVBoxLayout, QHBoxLayout, QLabel,
-                             QLineEdit, QGroupBox, QFormLayout, QComboBox, QMessageBox, QMenu, QSystemTrayIcon)
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QAction
-from pyvistaqt import QtInteractor
-from analysis_modules.aerodynamic import *
-from visualize_aircraft import *
-from plot_manager import PlotManager
-from double_slide import DoubleSlider
-import config
-import data.atr_reference as ref
-import ctypes
-from calculation_manager import calculation_manager
+from imports import *
 
 
 class MainWindow(QMainWindow):
@@ -23,10 +9,10 @@ class MainWindow(QMainWindow):
 
         # Store parameter values
         self.parameters = {
-            'duct_diameter': config.duct_diameter, 'duct_chord': config.duct_chord, 'duct_profile': "NACA0016",
+            'duct_diameter': config.duct_diameter, 'duct_chord': config.duct_chord, 'duct_profile': config.duct_airfoil,
             'pylon_chord': config.pylon_chord, 'pylon_length': config.pylon_length,
             'support_chord': config.support_chord, 'support_length': config.support_length,
-            'num_blades': config.n_blades, 'altitude': 7000,  'velocity': 10, 'alpha': 0.0, 'delta_e': 0, 'delta_r': 0,
+            'num_blades': config.n_blades, 'altitude': 7000,  'velocity': 128, 'alpha': 0.0, 'delta_e': 0, 'delta_r': 0,
             'power_condition': 'on', 'propulsion_type': 'conventional',
             'cant_angle': config.cant_angle, 'pylon_profile': config.pylon_airfoil,
             'support_profile': config.support_airfoil, 'BEM1': 41420, 'BEM2':  26482, 'BEM3': -1.44, 'BEM4': 0.889,
@@ -37,11 +23,15 @@ class MainWindow(QMainWindow):
             'wing_c_root': np.round(ref.c_root_w, 3),
             "fuselage_length": np.round((ref.l_tail+ref.l_cockpit+ref.l_cabin), 3),
             "fuselage_diameter": ref.diameter_fuselage, "fuselage_co_l": ref.l_cockpit, "fuselage_ca_l": ref.l_cabin,
-            "fuselage_ta_l": ref.l_tail, "aircraft_n_pax": config.n_pax, "x_PE": np.round((12 + ref.l_tail), 3),
+            "fuselage_ta_l": ref.l_tail, "aircraft_n_pax": config.n_pax, "x_PE": 12,
             "y_PE": 0, "z_PE": ref.diameter_fuselage, "nacelle_length": config.nacelle_length,
             "nacelle_diameter": config.nacelle_diameter, "hcv_span": config.control_vane_length, "hcv_chord": config.control_vane_chord,
             "vcv_span": config.control_vane_length, "vcv_chord": config.control_vane_chord, "cv_airfoil": config.control_vanes_airfoil,
+            "l_v": 9.13,
         }
+
+        self.calculation_results = calculation_manager(self.parameters)
+        self.previous_calculation_results = None
 
         # Main layout
         central_widget = QWidget()
@@ -76,18 +66,48 @@ class MainWindow(QMainWindow):
 
         # Calculated Values Display
         self.calculated_values_group = QGroupBox("Calculated Values")
-        calculated_values_layout = QFormLayout()
+        calculated_values_layout = QVBoxLayout()  # Changed to QVBoxLayout
         self.calculated_values_group.setFixedWidth(700)
+
+        # Create a form layout for the calculated values
+        form_layout = QFormLayout()
         self.mach_label = QLabel("Mach: ")
         self.density_label = QLabel("Density (kg/m^3): ")
         self.temperature_label = QLabel("Temperature (K): ")
-        calculated_values_layout.addRow(self.mach_label)
-        calculated_values_layout.addRow(self.density_label)
-        calculated_values_layout.addRow(self.temperature_label)
+        form_layout.addRow(self.mach_label)
+        form_layout.addRow(self.density_label)
+        form_layout.addRow(self.temperature_label)
+
+        # Add the form layout to the main layout
+        calculated_values_layout.addLayout(form_layout)
+
+        # Create two text boxes for displaying commands and errors
+        self.command_display = QTextEdit()
+        self.command_display.setReadOnly(True)
+        self.command_display.setFixedHeight(75)  # Adjust height as needed
+        self.command_display.setPlaceholderText("Commands will be displayed here")
+
+        # Create a horizontal layout for the two text boxes
+        display_layout = QHBoxLayout()
+        display_layout.addWidget(self.command_display)
+
+        # Add labels and the display layout to the main layout
+        calculated_values_layout.addWidget(QLabel("Terminal prints:"))
+        calculated_values_layout.addLayout(display_layout)
+
         self.calculated_values_group.setLayout(calculated_values_layout)
         left_side_layout.addWidget(self.calculated_values_group)
 
+        # Set up ConsoleOutput for both displays
+        self.command_output = ConsoleOutput(self.command_display)
+
+        # Redirect stdout and stderr
+        sys.stdout = self.command_output
+
         input_layout.addLayout(left_side_layout)  # Add left side layout to main input layout
+
+        # Redirect print statements to the QTextEdit widget
+        sys.stdout = ConsoleOutput(self.command_display)
 
         # Right Side: KPI and Calculation Status
         right_side_layout = QVBoxLayout()
@@ -95,6 +115,10 @@ class MainWindow(QMainWindow):
         # Key Performance Indicators Display
         self.kpi_group = self.create_kpi_display()
         right_side_layout.addWidget(self.kpi_group)
+
+        # Requirements Display
+        self.requirements_group = self.create_requirements_display()
+        right_side_layout.addWidget(self.requirements_group)
 
         # Calculation Status Display
         self.calculation_status_group = self.create_calculation_status_display()
@@ -117,7 +141,6 @@ class MainWindow(QMainWindow):
         self.add_input_tab("BEM output", self.create_bem_output)
 
         self.layout.addWidget(input_area, 0, 1, 1, 1)  # Spans 1 rows, 1 column
-        self.calculation_results = calculation_manager(self.parameters)
         self.plot_manager = PlotManager(self)
         self.layout.addWidget(self.plot_manager, 1, 0, 1, 2)  # Span full width
 
@@ -142,6 +165,16 @@ class MainWindow(QMainWindow):
 
         # self.update_all_plots()
         self.update_calculated_values()
+
+    def create_requirements_display(self):
+        self.requirements_group = QGroupBox("Requirements")
+        self.requirements_layout = QVBoxLayout()
+        self.requirements_group.setLayout(self.requirements_layout)
+        self.requirements_group.setFixedHeight(75)
+
+        self.refresh_requirements_display()
+
+        return self.requirements_group
 
     def add_visualization_tab(self, tab_name, visualization_callback):
         plotter = QtInteractor(self.visualization_tabs)
@@ -209,15 +242,15 @@ class MainWindow(QMainWindow):
             ref.diameter_fuselage,
             ref.b_w / 2,
             ref.c_root_w,
-            11.25,
-            11.5,
-            25,
-            15,
-            self.parameters['x_PE'],
+            self.calculation_results["X_cog"]["x_cog_duuc"][3],
+            self.calculation_results["X_cog"]["x_cog_duuc"][1],
+            self.calculation_results["X_cog"]["x_cog_duuc"][0],
+            self.calculation_results["X_cog"]["x_cog_duuc"][2],
+            self.parameters['x_PE'] + self.calculation_results["X_cog"]["x_cog_duuc"][3],
             self.parameters['y_PE'],
             self.parameters['z_PE'],
             "DUUC",
-            14,
+            self.parameters['l_v'],
             [self.parameters['pylon_chord'], self.parameters['pylon_length'], self.parameters['duct_chord'],
              self.parameters['duct_diameter'], self.parameters['support_chord'], self.parameters['support_length'],
              config.cant_angle, config.control_vane_chord, config.control_vane_length,
@@ -234,10 +267,10 @@ class MainWindow(QMainWindow):
             ref.diameter_fuselage,
             ref.b_w / 2,
             ref.c_root_w,
-            11.25,
-            11.5,
-            25,
-            15,
+            self.calculation_results["X_cog"]["x_cog_atr"][3],
+            self.calculation_results["X_cog"]["x_cog_atr"][1],
+            self.calculation_results["X_cog"]["x_cog_atr"][0],
+            self.calculation_results["X_cog"]["x_cog_atr"][2],
             0, 0, 0,
             "conventional",
             14,
@@ -256,6 +289,72 @@ class MainWindow(QMainWindow):
         input_field.editingFinished.connect(lambda: self.update_parameter(param_name, input_field, data_type))
         layout.addWidget(label, row, col * 2)
         layout.addWidget(input_field, row, col * 2 + 1)
+
+    def refresh_requirements_display(self):
+        # Clear all existing widgets from the layout
+        for i in reversed(range(self.requirements_layout.count())):
+            item = self.requirements_layout.itemAt(i)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                # If it's a layout, we need to clear and remove it
+                self.clear_layout(item.layout())
+                self.requirements_layout.removeItem(item)
+
+        requirements = self.calculation_results.get('requirements', [])
+        s_vert_requirement = requirements[0] if requirements else 0
+
+        para = [
+            (r"S-vert", np.round(s_vert_requirement, 2),
+             2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord")),
+            (r"S-hor", 20, 2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord")),
+            ("Parameter 3", 30, 31),
+            # Add more parameters as needed
+        ]
+
+        for name, requirement, actual in para:
+            row_layout = QHBoxLayout()
+
+            # Parameter name
+            name_label = QLabel(name)
+            row_layout.addWidget(name_label)
+
+            # Requirement value
+            req_label = QLabel(f"Req: {requirement}")
+            row_layout.addWidget(req_label)
+
+            # Actual value
+            actual_label = QLabel(f"Actual: {actual}")
+            row_layout.addWidget(actual_label)
+
+            # Status indicator
+            status_label = QLabel()
+            status_label.setFixedSize(20, 20)
+            status_label.setStyleSheet(
+                f"""
+                QLabel {{
+                    background-color: {"green" if actual >= requirement else "red"};
+                    border-radius: 7px;  /* Half of the width/height to make it circular */
+                    min-width: 14px;
+                    max-width: 14px;
+                    min-height: 14px;
+                    max-height: 14px;
+                }}
+                """
+            )
+            row_layout.addWidget(status_label)
+
+            self.requirements_layout.addLayout(row_layout)
+
+    def clear_layout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.deleteLater()
+                else:
+                    self.clear_layout(item.layout())
 
     def update_parameter(self, parameter, input_field, data_type=float):
         text = input_field.text()
@@ -279,6 +378,7 @@ class MainWindow(QMainWindow):
             # self.update_all_plots()
 
             self.update_calculated_values()
+            self.refresh_requirements_display()
             print(f"{parameter} updated to: {value}")  # For debugging
         except ValueError:
             QMessageBox.warning(self, "Input Error",
@@ -420,6 +520,7 @@ class MainWindow(QMainWindow):
         self.create_input_field(layout, 2, 0, "Cabin length:", "fuselage_ca_l")
         self.create_input_field(layout, 2, 1, "Tail length:", "fuselage_ta_l")
         self.create_input_field(layout, 2, 2, "Pax:", "aircraft_n_pax")
+        self.create_input_field(layout, 2, 3, "Tail location:", "l_v")
 
     def create_bem_output(self, layout):
         self.create_input_field(layout, 0, 0, "BEM1:", "BEM1")
@@ -486,7 +587,7 @@ class MainWindow(QMainWindow):
         print(f"Propulsion Type updated to: {text}")
 
     def create_calculation_status_display(self):
-        status_group = QGroupBox("Calculation Status")
+        status_group = QGroupBox("Prediction Model Status")
         status_group.setFixedHeight(75)  # Setting the height of the status box
         status_layout = QGridLayout()  # Using QGridLayout for two rows
         status_group.setFixedWidth(300)
@@ -606,6 +707,10 @@ class MainWindow(QMainWindow):
 
     def perform_calculation(self):
         try:
+            # Store the previous calculation results
+            if self.calculation_results is not None:
+                self.previous_calculation_results = copy.deepcopy(self.calculation_results)
+
             self.calculation_results = calculation_manager(self.parameters)
             self.finish_calculation()
 
@@ -617,6 +722,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"Calculation error: {e}")
             self.calculation_results = None
+            self.previous_calculation_results = None
 
         finally:
             QTimer.singleShot(1000, self.finish_plotting)

@@ -1,7 +1,6 @@
-import numpy as np
 from aircraft.aircraft_assembly import Aircraft
 from analysis_modules.aerodynamic import speed_of_sound
-import data.atr_reference as ref
+from analysis_modules.vtail_sizing import *
 
 
 def calculation_manager(parameters):
@@ -100,6 +99,32 @@ def calculation_manager(parameters):
                              d_hub=hub_diameter, rpm=RPM, prop_c_root=propeller_c_root, prop_c_tip=propeller_c_tip,
                              prop_diameter=propeller_diameter)
 
+    # ------                  Vertical Tail sizing coupled                        ----- #
+    array = np.linspace(0.1, 3.0, 301)
+
+    s_array = []
+    s_array_atr = []
+    s_stab_duuc = []
+    s_stab_atr = []
+    fuselage_length = fuselage_ca_l + fuselage_ta_l + fuselage_co_l
+
+    for y in range(len(array)):
+        s_array.append(s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 2.8,
+                                 cy_duuc=array[y], cd_pe=0.00568, cd_wind=0.06))
+        s_array_atr.append(s_control("conventional", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 3.608,
+                                     cy_atr=array[y]))
+        s_stab_duuc.append(s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
+                                       ref.b_w, x_PE, 141, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
+        s_stab_atr.append(s_stability("conventional", ref.s_w, atr.x_cog()[0], fuselage_length, fuselage_diameter,
+                                      ref.b_w, x_PE, 141, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
+
+    cyd = 0.975
+    a = 13.788741676315057
+    b = s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 2.8,
+                  cy_duuc=cyd, cd_pe=0.00568, cd_wind=0.06)
+    s_req = max(a, b)
+
+
     w_duuc = [duuc.fuselage.weight(), duuc.wing.weight(), duuc.empennage.duct.weight(),
               duuc.empennage.pylon.weight(), duuc.empennage.support.weight(),
               duuc.empennage.elevator.weight(), duuc.empennage.propeller.weight_engine(),
@@ -110,7 +135,25 @@ def calculation_manager(parameters):
              atr.empennage.weight_nac() / 2, atr.empennage.propeller.weight_engine() / 2,
              atr.empennage.propeller.weight_fan()]
 
-    results = {"Weight": {'w_vector_duuc': w_duuc, 'w_vector_atr': w_atr}}
+    v_inflow = [velocity, duuc.empennage.duct.inflow_velocity(), duuc.empennage.propeller.inflow_velocity(),
+                duuc.empennage.support.inflow_velocity(), duuc.empennage.support.inflow_velocity(),
+                duuc.empennage.elevator.inflow_velocity(), duuc.empennage.propeller.u1(), velocity]
+
+    a_inflow = [alpha, duuc.empennage.duct.inflow_angle(), duuc.empennage.propeller.inflow_angle(),
+                duuc.empennage.support.inflow_angle(), duuc.empennage.support.inflow_angle(),
+                duuc.empennage.elevator.inflow_angle(), delta_e / 2, alpha]
+
+    station = [0, 1, 1.8, 2.2, 2.55, 4.5, 5.5, 6]
+                 # fus              wing            cg              lemac
+    x_cog_duuc = [duuc.x_cog()[2], duuc.x_cog()[3], duuc.x_cog()[0], duuc.x_cog()[1]]
+    x_cog_atr = [atr.x_cog()[2], atr.x_cog()[3], atr.x_cog()[0], atr.x_cog()[1]]
+
+    results = {"Weight": {'w_vector_duuc': w_duuc, 'w_vector_atr': w_atr},
+               "Inflow": {'v_inflow': v_inflow, 'a_inflow': a_inflow, 'station': station},
+               "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr},
+               "CD0": {'cd0_duuc': duuc.cd0_empennage(), 'cd0_atr': atr.cd0_empennage()},
+               "Vtail": [s_array, s_array_atr, s_stab_duuc, s_stab_atr, a, b, cyd],
+               "requirements": [s_req]}
     return results
 
 
