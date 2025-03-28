@@ -1,6 +1,5 @@
 import numpy as np
 from analysis_modules.aerodynamic import drag_interference, reynolds
-import flow_conditions
 from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import skin_friction, mach_correction, oswald
 from data.read_data import airfoil_polar
@@ -12,7 +11,8 @@ class HorizontalTail:
     """ Horizontal tail class for the conventional empennage """
     def __init__(self, ht_span: float, ht_chord: float, ht_profile: str,
                  ht_taper: float, ht_sweep: float, ht_croot: float, alpha: float, v_inf: float,
-                 area_ref: float, mach: float, ar_wing: float, cl_wing: float, cla_wing: float):
+                 area_ref: float, mach: float, ar_wing: float, cl_wing: float, cla_wing: float,
+                 altitude: float):
         super().__init__()
         self.ht_span = ht_span
         self.ht_chord = ht_chord
@@ -27,6 +27,7 @@ class HorizontalTail:
         self.ar_wing = ar_wing
         self.cl_wing = cl_wing
         self.cla_wing = cla_wing
+        self.altitude = altitude
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -45,7 +46,7 @@ class HorizontalTail:
         return inflow_angle
 
     def reynolds_number(self):
-        re_htail = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.ht_chord)
+        re_htail = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.ht_chord)
         return re_htail
 
     """" ----------------------- Calculate geometric properties of the horizontal tail ---------------------------- """

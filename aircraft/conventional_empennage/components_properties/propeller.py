@@ -1,7 +1,7 @@
 import numpy as np
-
+from analysis_modules.aerodynamic import reynolds
+from analysis_modules.ISA import air_density_isa
 import config
-from analysis_modules.BEM_simplified import BEM
 from analysis_modules.factors import skin_friction
 import flow_conditions
 import data.atr_reference as ref
@@ -12,7 +12,7 @@ class Propeller:
     def __init__(self, rpm: float, alpha: float, power_condition: str, n_blades: float,
                  prop_diameter: float, hub_diameter: float, prop_airfoil: str, prop_sweep: float,
                  prop_pitch: float, c_root: float, c_tip: float, v_inf: float,
-                 area_ref: float, reynolds: float):
+                 area_ref: float, altitude: float):
         super().__init__()
         self.rpm = rpm
         self.alpha = alpha
@@ -27,7 +27,7 @@ class Propeller:
         self.c_tip = c_tip
         self.v_inf = v_inf
         self.area_ref = area_ref
-        self.reynolds = reynolds
+        self.altitude = altitude
 
     """ inflow velocity and angles """
     def inflow_velocity(self):
@@ -37,6 +37,10 @@ class Propeller:
     def inflow_angle(self):
         a_prop = self.alpha
         return a_prop
+
+    def reynolds_number(self):
+        re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.c_root)
+        return re_nac
 
     """ areas and geometric properties"""
     def area(self):
@@ -62,7 +66,7 @@ class Propeller:
     def cd0(self):
         if self.pc == "off":
             """ in power off conditions the drag is estimated by only the skin friction drag"""
-            cd0_prop = skin_friction(self.reynolds, "t") * self.n_blades
+            cd0_prop = skin_friction(self.reynolds_number(), "t") * self.n_blades
             return cd0_prop
         else:
             """ in power on conditions the skin friction drag is assumed to be neglible"""
@@ -83,6 +87,12 @@ class Propeller:
 
             cd_prime = self.cn() * np.sin(a - inflow_a) * norm_area * norm_speed
             return cd_prime
+
+    def cd_interference(self):
+        """ interference drag because of propeller installation on the wing -> Raymer 2012 """
+        k = 0.2  # between 0.1 - 0.2 based on emperical data
+        delta_d = k * (self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * ref.s_w))
+        return delta_d
 
     def cl_prime(self):
         a = np.radians(self.alpha)
@@ -165,7 +175,7 @@ if __name__ == "__main__":
                     area_ref=ref.s_w,
                     alpha=0,
                     v_inf=128,
-                    reynolds=8422274)
+                    altitude=7000)
 
     print(f"inflow vel: {hor.inflow_velocity()}")
     print(f"inflow ang: {hor.inflow_angle()}")

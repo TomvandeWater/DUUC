@@ -1,13 +1,13 @@
 import numpy as np
-from analysis_modules.aerodynamic import drag_interference
+from analysis_modules.aerodynamic import drag_interference, reynolds
 from analysis_modules.factors import mach_correction, skin_friction
-import data.atr_reference as ref
+from analysis_modules.ISA import air_density_isa
 
 
 class Nacelle:
     """ Nacelle class for conventional configuration"""
     def __init__(self, nacelle_length: float, nacelle_diameter: float, v_inf: float, alpha: float,
-                 area_ref: float, prop_airfoil: str, n_blades: float, mach: float, reynolds: float):
+                 area_ref: float, prop_airfoil: str, n_blades: float, mach: float, altitude: float):
         super().__init__()
         self.nacelle_length = nacelle_length
         self.nacelle_diameter = nacelle_diameter
@@ -17,7 +17,7 @@ class Nacelle:
         self.prop_airfoil = prop_airfoil
         self.n_blades = n_blades
         self.mach = mach
-        self.re_ref = reynolds
+        self.altitude = altitude
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -27,6 +27,10 @@ class Nacelle:
     def inflow_angle(self):
         alfa = self.alpha
         return alfa
+
+    def reynolds_number(self):
+        re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.nacelle_length)
+        return re_nac
 
     """" --------------------------- Calculate geometric properties ----------------------------------------------- """
 
@@ -61,14 +65,18 @@ class Nacelle:
         return cd_int_nac
 
     def cd0(self):
-        cf = skin_friction(self.re_ref, "t")
+        cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         l_d = self.nacelle_length / self.nacelle_diameter
         # f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
         f_nac = 1 + 0.35 / (self.nacelle_length / self.nacelle_diameter)
 
-        cd0_nacelle = cf * fm * f_nac * 1.5
+        cd0_nacelle = cf * fm * f_nac * 1.5 * (self.area() / self.area_ref)
         return cd0_nacelle
+
+    def cd(self):
+        cd_nac = self.cd0() * (self.area_ref / self.area())
+        return cd_nac
 
     def cd_prime(self):
         norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
@@ -77,12 +85,34 @@ class Nacelle:
         cd_nac = self.cd0() * norm_speed * norm_area
         return cd_nac
 
-    """ ------------------------ Output primes ----------------------------------------------------------------- """
     @staticmethod
-    def cl_prime():
+    def cl():
         """assume the nacelle does not produce lift"""
         cl_prime_nac = 0
         return cl_prime_nac
+
+    """ ------------------------ Output primes ----------------------------------------------------------------- """
+    def ct(self):
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.area() / self.area_ref
+
+        alpha = np.radians(self.inflow_angle())
+
+        ct = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
+        ct_norm = ct * norm_area * norm_speed
+
+        return ct, ct_norm
+
+    def cn(self):
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        norm_area = self.area() / self.area_ref
+
+        alpha = np.radians(self.inflow_angle())
+
+        cn = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
+        cn_norm = cn * norm_area * norm_speed
+
+        return cn, cn_norm
 
     """" ----------------------------------- Calculate weight --------------------------------------------------- """
     @staticmethod

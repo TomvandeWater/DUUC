@@ -10,8 +10,8 @@ import flow_conditions
 
 class Fuselage:
     def __init__(self, fuselage_length: float, fuselage_diameter: float, l_cabin: float, l_cockpit: float,
-                 l_tail: float, velocity: float, alpha: float, ref_area: float, reynolds_number: float, mach: float,
-                 cl_wing: float, cmac_wing: float):
+                 l_tail: float, velocity: float, alpha: float, ref_area: float, mach: float,
+                 cl_wing: float, cmac_wing: float, altitude:float):
         super().__init__()
         self.fuselage_length = fuselage_length
         self.fuselage_diameter = fuselage_diameter
@@ -21,10 +21,10 @@ class Fuselage:
         self.velocity = velocity
         self.alpha = alpha
         self.ref_area = ref_area
-        self.re = reynolds_number
         self.mach = mach
         self.cl_wing = cl_wing
         self.c_wing = cmac_wing
+        self.altitude = altitude
 
     """ ------------------------- Determine inflow properties ----------------------------------------------------- """
     def inflow_velocity(self):
@@ -38,7 +38,7 @@ class Fuselage:
         return ang_fus
 
     def rey_fuselage(self):
-        re_fus = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.fuselage_length)
+        re_fus = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.fuselage_length)
         return re_fus
 
     """ ---------------------------- Determine geometric properties ---------------------------------------------- """
@@ -208,10 +208,10 @@ if __name__ == "__main__":
                         velocity=128,
                         alpha=0,
                         ref_area=ref.s_w,
-                        reynolds_number=8422274,
                         mach=0.4,
                         cl_wing=0.813,
-                        cmac_wing=2.626)
+                        cmac_wing=2.626,
+                        altitude=7000)
 
     print(f"inflow vel: {fuselage.inflow_velocity()}")
     print(f"inflow ang: {fuselage.inflow_angle()}, oswald: {fuselage.e_fuselage()}")
