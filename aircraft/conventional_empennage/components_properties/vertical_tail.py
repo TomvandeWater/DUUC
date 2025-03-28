@@ -4,14 +4,13 @@ from data.read_data import airfoil_polar
 import data.atr_reference as ref
 from analysis_modules.aerodynamic import drag_interference, reynolds
 from analysis_modules.ISA import air_density_isa
-import flow_conditions
 
 
 class VerticalTail:
     """ Vertical Tail class for conventional empennage"""
     def __init__(self, vt_span: float, vt_chord: float, vt_profile: str,
                  vt_taper: float, vt_sweep: float, vt_croot: float, tail_type: str,
-                 alpha: float, v_inf: float, area_ref: float, mach: float):
+                 alpha: float, v_inf: float, area_ref: float, mach: float, altitude: float):
         super().__init__()
         self.vt_span = vt_span
         self.vt_chord = vt_chord
@@ -24,6 +23,7 @@ class VerticalTail:
         self.alpha = alpha
         self.area_ref = area_ref
         self.mach = mach
+        self.altitude = altitude
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -36,7 +36,7 @@ class VerticalTail:
         return inflow_angle
 
     def reynolds_number(self):
-        re_vtail = reynolds(air_density_isa(flow_conditions.altitude), self.inflow_velocity(), self.vt_chord)
+        re_vtail = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.vt_chord)
         return re_vtail
 
     """" --------------------------- Calculate geometric properties of the vertical tail -------------------------- """
