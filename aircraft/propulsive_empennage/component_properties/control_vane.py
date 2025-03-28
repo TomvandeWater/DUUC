@@ -1,5 +1,6 @@
 import numpy as np
-from analysis_modules.aerodynamic import drag_interference
+from analysis_modules.aerodynamic import drag_interference, reynolds
+from analysis_modules.ISA import air_density_isa
 from data.read_data import airfoil_polar
 from analysis_modules.factors import k_control, skin_friction, mach_correction, oswald
 import data.atr_reference as ref
@@ -10,8 +11,9 @@ class ControlVane:
     """ Reference for each control vane is the attachment to the nacelle the values calculated
     are for 1 control vane. """
     def __init__(self, cv_span: float, cv_chord: float, cv_profile: str, power_condition: str,
-                 va_inlet: float, d_exit: float, u1: float, ref_area: float, deflection: float,
-                 re_inflow: float, v_inf: float, alpha: float, mach: float, u_mom: float):
+                 va_inlet: float, d_exit: float, ref_area: float, deflection: float,
+                 v_inf: float, alpha: float, mach: float, v_after_prop: float, a_after_prop: float,
+                 altitude: float):
         super().__init__()
         self.cv_span = cv_span
         self.cv_chord = cv_chord
@@ -19,14 +21,15 @@ class ControlVane:
         self.pc = power_condition
         self.va_inlet = va_inlet
         self.d_exit = d_exit
-        self.u1 = u1
         self.ref_area = ref_area
         self.deflection_angle = deflection
-        self.ref_inflow = re_inflow
         self.v_inf = v_inf
         self.alpha = alpha
         self.mach = mach
-        self.u_mom = u_mom
+        self.v_after_prop = v_after_prop
+        self.a_after_prop = a_after_prop
+        self.altitude = altitude
+        self.density = air_density_isa(self.altitude)[0]
 
     """ ------------------------------ Determine inflow properties ------------------------------------------------ """
     def inflow_velocity(self):
@@ -37,14 +40,22 @@ class ControlVane:
             v_cv = v_vane
             return v_cv
         else:
-            v_cv = self.u_mom
+            v_cv = np.cos(np.radians(self.a_after_prop / 2)) * self.v_after_prop
             return v_cv
 
     def inflow_angle(self):
-        alpha_power_off = 0
-        deflection = self.deflection_angle
-        inflow = np.radians(alpha_power_off + deflection)
-        return inflow
+        if self.pc == "off":
+            alpha_power_off = 0
+            deflection = self.deflection_angle
+            inflow = alpha_power_off + deflection
+            return inflow
+        else:
+            inflow = (self.a_after_prop / 2) + self.deflection_angle
+            return inflow
+
+    def reynolds_number(self):
+        re_cv = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.cv_chord)
+        return re_cv
 
     """ -------------------------------- geometric properties --------------------------------------------------- """
     def area(self):
@@ -92,7 +103,7 @@ class ControlVane:
         return cl_vane
 
     def cd0(self):
-        cf = skin_friction(self.ref_inflow, "t")
+        cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         norm_area = self.wet_area() / self.ref_area
         ftc = 1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4
@@ -152,10 +163,12 @@ class ControlVane:
         wto = ref.MTOW * 2.20462
 
         # weight division 0.75 wing - 0.25 tail
-        w_cv = (ksc * wto ** 0.75) / 32  # assume equally spread over the 4 control surfaces and both PE's
+        w_cv = (ksc * wto ** (2/3)) / 32  # assume equally spread over the 4 control surfaces and both PE's
         return w_cv / 2.20462
 
 
+""" Test section"""
+"""
 if __name__ == "__main__":
     control = ControlVane(cv_span=config.control_vane_length,
                           cv_chord=config.control_vane_chord,
@@ -166,10 +179,9 @@ if __name__ == "__main__":
                           u1=130,
                           ref_area=config.duct_diameter * config.duct_chord,
                           deflection=0,
-                          re_inflow=8422274,
                           v_inf=128,
                           alpha=0,
-                          mach=0.576, u_mom=10)
+                          mach=0.576, u_mom=10, a_after_prop=50)
 
     print(f"inflow vel: {control.inflow_velocity()}")
     print(f"inflow ang: {control.inflow_angle()}")
@@ -181,3 +193,4 @@ if __name__ == "__main__":
     print(f"cl: {control.cl():.5f}")
     print(f"cl prime: {control.cl_prime():.5f}")
     print(f"weight: {control.weight()}")
+    print(f"wet area:{control.wet_area()}") """
