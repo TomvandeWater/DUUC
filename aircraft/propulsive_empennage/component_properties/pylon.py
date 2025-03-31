@@ -178,28 +178,13 @@ class Pylon:
 
     """ ------------------------------- Weight definition of the pylon ------------------------------------------- """
     def weight(self):
-        m_pylon = 0.20 * self.m_supported * self.pylon_length
-
-        nz = 1.5
-        r1 = (100 * self.t_c()) / np.cos(np.radians(0))
-        r2 = self.aspect_ratio() / np.cos(0)
-        tr = 1
-
-        m_ray_pylon = 0.026 * self.area() ** 1.2 * (self.aspect_ratio() / np.cos(0)) ** 0.25
-
-        m_tor_pylon = 0.04 * (nz * self.area()**2) ** 0.75
-
-        spy = self.area() * 10.7639
-        v_dive = 250
-
-        m_pylon_vos = spy * (3.81 * (spy ** 0.2) * v_dive - 0.287)
-
-        sigma_allow = 450
-
+        """ Pylon weight is calculated in empennage_assembly_PE.py """
+        m_pylon = None
         return m_pylon
 
 
 """      Test section      """
+"""
 if __name__ == "__main__":
 
     a = np.linspace(0, 15, 31)
@@ -304,4 +289,4 @@ if __name__ == "__main__":
     print(f"cd prime: {pylon.cd_prime():.5f}")
     print(f"cl: {pylon.cl():.5f}")
     print(f"cl prime: {pylon.cl_prime():.5f}")
-    print(f"weight per: {pylon.weight()}")
+    print(f"weight per: {pylon.weight()}") """

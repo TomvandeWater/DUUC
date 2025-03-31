@@ -187,8 +187,10 @@ class SupportStrut:
         return ct_support, ct_norm
 
     """ ----------------------------------- Weight estimation ------------------------------------------------- """
-    def weight(self):
-        m_support = 0.1 * self.m_supported
+    @staticmethod
+    def weight():
+        """ Weight is calculated in the empennage_assembly_PE.py file"""
+        m_support = None
         return m_support
 
 

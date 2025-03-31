@@ -130,7 +130,7 @@ for i in range(len(v_array)):
                 duuc.empennage.elevator.inflow_angle(), flow_conditions.delta_e / 2, alpha]
 
     w_duuc = [duuc.fuselage.weight(), duuc.wing.weight(), duuc.empennage.duct.weight(),
-              duuc.empennage.pylon.weight(), duuc.empennage.support.weight(),
+              duuc.empennage.weight_ps()[0], duuc.empennage.weight_ps()[1],
               duuc.empennage.elevator.weight(), duuc.empennage.propeller.weight_engine(),
               duuc.empennage.nacelle.weight(), duuc.empennage.propeller.weight_fan()]
 
@@ -279,7 +279,7 @@ weight_comp_table(w_duuc, "DUUC")
 # cd0_drag_comparison(atr.cd0_vector(), duuc.cd0_vector())
 # print(f"cd0 atr: {sum(atr.cd0_empennage())}, cd0 duuc: {sum(duuc.cd0_empennage())}")
 
-print(f"cd0 - analysis.py: {duuc.cd0_empennage()}")
+
 cd0_drag_empennage(atr.cd0_empennage(), duuc.cd0_empennage())
 
 """ Polar of the ATR with reference"""
@@ -293,7 +293,8 @@ cd0_drag_empennage(atr.cd0_empennage(), duuc.cd0_empennage())
 """ Plot to compare CL de-normalized per component"""
 # cl_comparison(atr.cl_vector(), duuc.cl_vector(), alpha)
 duuc.x_cog()
+atr.x_cog()
 
 """ Horizontal tail sizing """
-#xplot(-0.4, 0.189, 0.20, (atr.x_cog()[0] - atr.x_cog()[1] - 0.25), 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "ATR", bem_atr[0])
-#xplot(duuc_a1, duuc_b1, duuc_a2, cog_duuc - x_lemac_duuc, 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "DUUC", bem_duuc[0])
+# xplot(-0.4, 0.189, 0.20, (atr.x_cog()[0] - atr.x_cog()[1] - 0.25), 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "ATR", bem_atr[0])
+# xplot(duuc_a1, duuc_b1, duuc_a2, cog_duuc - x_lemac_duuc, 5, ref.c_mac_w, 0.25 * ref.c_mac_w, "DUUC", bem_duuc[0])
