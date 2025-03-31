@@ -190,8 +190,14 @@ class Propeller:
             m_eng = ke * kthr * me
             return m_eng
         if self.propulsor_type == "hybrid":
-            m_eng = 10000000
 
+            m_bat = 300000 / 250  # 250 Wh/kg estimate
+            m_gen = 800 / 1.5  # 800 kW generator -> 1.5 kg/kW estimate
+            m_elec = m_bat / 3.2
+            m_mot = 2 * (750 * 1.2)  # 750 kW per motor -> 1.2 kg/kW estimate
+            m_cool = 600
+
+            m_eng = m_bat + m_gen + m_elec + m_mot + m_cool
             return m_eng
         else:
             print("PE propeller.py -> Propulsor type not correctly specified or included in the model")
