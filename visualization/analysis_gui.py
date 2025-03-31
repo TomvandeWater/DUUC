@@ -1,3 +1,4 @@
+import config
 from imports import *
 
 
@@ -27,7 +28,7 @@ class MainWindow(QMainWindow):
             "y_PE": 0, "z_PE": ref.diameter_fuselage, "nacelle_length": config.nacelle_length,
             "nacelle_diameter": config.nacelle_diameter, "hcv_span": config.control_vane_length, "hcv_chord": config.control_vane_chord,
             "vcv_span": config.control_vane_length, "vcv_chord": config.control_vane_chord, "cv_airfoil": config.control_vanes_airfoil,
-            "l_v": 9.13,
+            "l_v": 9.13, "x_prop": 0.3, "y_engine": ref.y_engine,
         }
 
         self.calculation_results = calculation_manager(self.parameters)
@@ -201,7 +202,7 @@ class MainWindow(QMainWindow):
             self.parameters['duct_diameter'],
             self.parameters['support_chord'],
             self.parameters['support_length'],
-            config.cant_angle,
+            self.parameters['cant_angle'],
             config.control_vane_chord,
             config.control_vane_length,
             0.25 * self.parameters['duct_chord'],
@@ -223,7 +224,7 @@ class MainWindow(QMainWindow):
             self.parameters['duct_diameter'],
             self.parameters['support_chord'],
             self.parameters['support_length'],
-            config.cant_angle,
+            self.parameters['cant_angle'],
             config.control_vane_chord,
             config.control_vane_length,
             0.25 * self.parameters['duct_chord'],
@@ -251,6 +252,7 @@ class MainWindow(QMainWindow):
             self.parameters['z_PE'],
             "DUUC",
             self.parameters['l_v'],
+            0,
             [self.parameters['pylon_chord'], self.parameters['pylon_length'], self.parameters['duct_chord'],
              self.parameters['duct_diameter'], self.parameters['support_chord'], self.parameters['support_length'],
              config.cant_angle, config.control_vane_chord, config.control_vane_length,
@@ -273,7 +275,7 @@ class MainWindow(QMainWindow):
             self.calculation_results["X_cog"]["x_cog_atr"][2],
             0, 0, 0,
             "conventional",
-            14,
+            14, y_engine=self.parameters["y_engine"]
         )
         plotter.reset_camera()
 
@@ -494,12 +496,13 @@ class MainWindow(QMainWindow):
         self.create_input_field(layout, 0, 1, "Number of Blades:", "num_blades")
         self.create_input_field(layout, 0, 2, "RPM:", "RPM")
         self.create_input_field(layout, 0, 3, "Airfoil:", "propeller_airfoil", data_type=str)
-        self.create_input_field(layout, 1, 0, "Hub Diameter:", "hub_diameter")
-        self.create_input_field(layout, 1, 1, "Root chord:", "propeller_c_root")
-        self.create_input_field(layout, 1, 2, "Tip Chord:", "propeller_c_tip")
-        self.create_input_field(layout, 1, 3, "Nacelle diameter:", "nacelle_diameter")
-        self.create_input_field(layout, 2, 0, "Nacelle length:", "nacelle_length")
-        self.create_input_field(layout, 2, 1, "Propulsion type:", "propulsion_type")
+        self.create_input_field(layout, 1, 0, "Propeller loc.", "x_prop")
+        self.create_input_field(layout, 1, 1, "Hub Diameter:", "hub_diameter")
+        self.create_input_field(layout, 1, 2, "Root chord:", "propeller_c_root")
+        self.create_input_field(layout, 1, 3, "Tip Chord:", "propeller_c_tip")
+        self.create_input_field(layout, 2, 0, "Nacelle diameter:", "nacelle_diameter")
+        self.create_input_field(layout, 2, 1, "Nacelle length:", "nacelle_length")
+        self.create_input_field(layout, 2, 2, "Propulsion type:", "propulsion_type")
 
     def create_control_inputs(self, layout):
         self.create_input_field(layout, 0, 0, "Hor. vane span:", "hcv_span")
@@ -521,6 +524,7 @@ class MainWindow(QMainWindow):
         self.create_input_field(layout, 2, 1, "Tail length:", "fuselage_ta_l")
         self.create_input_field(layout, 2, 2, "Pax:", "aircraft_n_pax")
         self.create_input_field(layout, 2, 3, "Tail location:", "l_v")
+        self.create_input_field(layout, 3, 0, "Y-engine ATR:", "y_engine")
 
     def create_bem_output(self, layout):
         self.create_input_field(layout, 0, 0, "BEM1:", "BEM1")

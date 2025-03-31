@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtWidgets import QWidget, QGridLayout, QTabWidget
-import numpy as np
+from analysis_modules.factors import *
+from PyQt6.QtGui import QIcon
 
 
 class PlotManager(QWidget):
@@ -16,8 +16,8 @@ class PlotManager(QWidget):
 
         # Define all plot components
         self.components = [
-            "Inflow", "CD0", "Pylon", "PE", "Support",
-            "Weight", "X_cog", "Vtail", "Htail", "requirements"
+            "Inflow",  "Geometry", "CD0", "Pylon", "PE", "Support",
+            "Weight", "X_cog", "Vtail", "Htail", "requirements",
         ]
 
         # Initialize the layout
@@ -29,6 +29,24 @@ class PlotManager(QWidget):
 
         # Initialize tabs
         self.init_tabs()
+        self.placeholder_icon = QIcon(r"C:\Users\tomva\pythonProject\DUUC\data\images\flame.ico")
+        self.tab_widget.currentChanged.connect(self.on_tab_clicked)  # Connect to tab click
+
+    def add_placeholder_icons(self, component):
+        """Adds a placeholder icon to the center of each plot in the given component's tab."""
+        for fig, ax, canvas in self.plots[component]:
+            ax.clear()
+            img = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\flame.ico")  # Load the placeholder image
+            ax.imshow(img, aspect='auto', extent=[-1, 1, -1, 1])  # Set fixed aspect and limits
+            ax.set_xlim(-1, 1)  # Fix x-axis limits
+            ax.set_ylim(-1, 1)  # Fix y-axis limits
+            ax.axis('off')  # Hide axes
+            canvas.draw()
+
+    def on_tab_clicked(self, index):
+        """Handles the tab click event."""
+        component = self.components[index]  # Get the component name from the tab index
+        self.update_plots(component)  # Update plots on tab click
 
     def init_tabs(self):
         """Initialize tabs for all components."""
@@ -63,6 +81,7 @@ class PlotManager(QWidget):
 
             # Add the tab to the tab widget
             self.tab_widget.addTab(tab, component)
+            self.add_placeholder_icons(component)
 
     def update_aerodynamics_plot(self, component, plot_index, fig, ax, canvas):
         """Update the plot for Aerodynamics."""
@@ -108,6 +127,8 @@ class PlotManager(QWidget):
                 self.update_cd0_empennage(i, fig, ax, canvas)
             elif component in ["X_cog", "Vtail", "Htail"]:
                 self.update_flight_mechanics_plot(component, i, fig, ax, canvas)
+            elif component in [ "Geometry"]:
+                self.update_area_plot( i, fig, ax, canvas)
 
             canvas.draw()
 
@@ -275,6 +296,81 @@ class PlotManager(QWidget):
 
         canvas.draw()
 
+    def update_area_plot(self, plot_index, fig, ax, canvas):
+        """Update the Area vs Chord plot."""
+        if plot_index == 0:
+            # Data preparation for Area vs. Chord
+            x_c = np.linspace(0, 1, 101)
+            area = []
+            area_av = []
+            duct_radius = self.parameters['duct_diameter'] / 2
+
+            for i in range(len(x_c)):
+                area.append(np.pi * area_ratio(self.parameters['duct_profile'], 1, duct_radius, x_c[i])[1] ** 2)
+                area_av.append(
+                    np.pi * area_ratio(self.parameters['duct_profile'], 1, duct_radius, x_c[i])[1] ** 2 -
+                    cross_sectional_area(x_c[i], self.parameters['nacelle_diameter'], self.parameters['x_prop'])[0])
+
+            # Clear the axes
+            ax.clear()
+
+            # Plot Area vs. Chord
+            ax.plot(x_c, area, label=r'Duct area', color="tab:blue")
+            ax.plot(x_c, area_av, label=r'Duct minus Nacelle area', color="tab:orange")
+            ax.axvline(x=self.parameters["x_prop"], linestyle='--', color='black', label='Propeller location')
+
+            # Add labels and title
+            ax.set_xlabel(r'x/c [-]')
+            ax.set_ylabel(r'Cross sectional area [$m^2$]')
+            ax.set_title(r'Area vs. chord (NACA0012)')
+
+            # Add legend and grid
+            ax.legend()
+            ax.grid(True)
+
+        if plot_index == 1:
+            # Data preparation for Radius Duct vs Radius Available
+            x_c = np.linspace(0, 1, 101)
+            r_r1 = []
+            r_r2 = []
+            duct_radius = self.parameters['duct_diameter'] / 2
+
+            for i in range(len(x_c)):
+                r_r1.append(0.5 * area_ratio(self.parameters['duct_profile'], 1, duct_radius, x_c[i])[0] / duct_radius)
+                r_r2.append((0.5 * area_ratio(self.parameters['duct_profile'], 1, duct_radius, x_c[i])[0] -
+                             cross_sectional_area(x_c[i], self.parameters['nacelle_diameter'],
+                                                  self.parameters["x_prop"])[1]) /
+                            duct_radius)
+
+            # Clear the axes
+            ax.clear()
+
+            # Plot Radius Duct vs Radius Available
+            ax.plot(x_c, r_r1, label=r'Duct radius', color="tab:blue")
+            ax.plot(x_c, r_r2, label=r'Duct minus Nacelle radius', color="tab:orange")
+
+            # Add horizontal and vertical lines
+            ax.axvline(x=self.parameters["x_prop"], linestyle='--', color='black', alpha=0.5)
+            ax.axhline(y=1.0, linestyle='--', color='tab:blue', alpha=0.5)
+
+            # Add labels and title
+            ax.set_xlabel(r'x/c [-]')
+            ax.set_ylabel(r'$R_{i}$ / $R_{center}$ []')
+            ax.set_title(r'Radius duct vs Radius available')
+
+            # Add legend and grid
+            ax.legend()
+            ax.grid(True)
+
+        elif plot_index == 2:
+            # Empty plot for the third tab
+            ax.clear()
+            ax.set_axis_off()
+            ax.set_facecolor('white')  # Set the background color to white
+            fig.patch.set_facecolor('white')
+
+        canvas.draw()
+
     def update_x_cog_plot(self, plot_index, fig, ax, canvas):
         """Update X_cog plot with horizontal position lines for both DUUC and ATR."""
         if plot_index == 0:
@@ -412,6 +508,7 @@ class PlotManager(QWidget):
         ax.set_xticklabels(labels)
 
         ax.set_ylabel('Component mass [kg]')
+
 
     def update_cd0_empennage(self, plot_index, fig, ax, canvas):
         """Update CD0 empennage plots."""

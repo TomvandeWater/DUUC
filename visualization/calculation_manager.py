@@ -60,6 +60,7 @@ def calculation_manager(parameters):
     x_PE = parameters.get('x_PE')
     y_PE = parameters.get('y_PE')
     z_PE = parameters.get('z_PE')
+    y_engine = parameters.get('y_engine')
 
     nacelle_length = parameters.get('nacelle_length')
     nacelle_diameter = parameters.get('nacelle_diameter')
@@ -107,12 +108,13 @@ def calculation_manager(parameters):
     s_stab_duuc = []
     s_stab_atr = []
     fuselage_length = fuselage_ca_l + fuselage_ta_l + fuselage_co_l
+    y_center_duuc = np.radians(cant_angle) * (pylon_length + 0.5 * support_length)
 
     for y in range(len(array)):
-        s_array.append(s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 2.8,
-                                 cy_duuc=array[y], cd_pe=0.00568, cd_wind=0.06))
-        s_array_atr.append(s_control("conventional", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 3.608,
-                                     cy_atr=array[y]))
+        s_array.append(s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4,
+                                 2, y_center_duuc, cy_duuc=array[y], cd_pe=0.00568, cd_wind=0.06))
+        s_array_atr.append(s_control("conventional", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73,
+                                     60.4, 2, y_engine, cy_atr=array[y]))
         s_stab_duuc.append(s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
                                        ref.b_w, x_PE, 141, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
         s_stab_atr.append(s_stability("conventional", ref.s_w, atr.x_cog()[0], fuselage_length, fuselage_diameter,
@@ -120,8 +122,8 @@ def calculation_manager(parameters):
 
     cyd = 0.975
     a = 13.788741676315057
-    b = s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2, 2.8,
-                  cy_duuc=cyd, cd_pe=0.00568, cd_wind=0.06)
+    b = s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, 0.73, 60.4, 2,
+                  y_center_duuc, cy_duuc=cyd, cd_pe=0.00568, cd_wind=0.06)
     s_req = max(a, b)
 
 
