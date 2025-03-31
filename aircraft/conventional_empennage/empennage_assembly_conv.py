@@ -57,17 +57,17 @@ class ConventionalEmpennage:
         self.area_ref = data.atr_reference.s_w
 
         """ Inflow angle for htail is corrected for the wing inflow by ar_wing, cl_wing and cla_wing"""
-        self.ht_tail = HorizontalTail(self.ht_span, self.ht_chord, self.ht_profile,
-                                      self.ht_taper, self.ht_sweep, self.ht_croot,
-                                      self.alpha, self.v_inf, self.area_ref, self.mach,
+        self.ht_tail = HorizontalTail(ht_span=self.ht_span, ht_chord=self.ht_chord, ht_profile=self.ht_profile,
+                                      ht_taper=self.ht_taper, ht_sweep=self.ht_sweep, ht_croot=self.ht_croot,
+                                      alpha=self.alpha,  area_ref=self.area_ref, mach=self.mach,
                                       ar_wing=self.ar_wing, cl_wing=self.cl_wing, cla_wing=self.cla_wing,
-                                      altitude=self.altitude)
+                                      altitude=self.altitude, v_inf=self.v_inf)
 
         """ Vtail outputs cl_a in the form of a sideslip coefficient """
-        self.vt_tail = VerticalTail(self.vt_span, self.vt_chord, self.vt_profile,
-                                    self.vt_taper, self.vt_sweep, self.vt_croot,
-                                    self.tail_type, self.alpha, self.v_inf, self.area_ref,
-                                    self.mach, self.altitude)
+        self.vt_tail = VerticalTail(vt_span=self.vt_span, vt_chord=self.vt_chord, vt_profile=self.vt_profile,
+                                    vt_taper=self.vt_taper, vt_sweep=self.vt_sweep, vt_croot=self.vt_croot,
+                                    tail_type=self.tail_type, alpha=self.alpha, v_inf=self.v_inf,
+                                    area_ref=self.area_ref, mach=self.mach, altitude=self.altitude)
 
         self.propeller = Propeller(self.rpm, self.alpha, self.power_condition, self.n_blades,
                                    self.prop_diameter, self.hub_diameter, self.prop_airfoil,
