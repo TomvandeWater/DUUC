@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import math
 
@@ -57,7 +58,24 @@ def area_ratio(nacaprofile, chord, radius, x_location):
 
     diameter = 2 * (radius - (y * chord))
 
-    return diameter
+    radius_out = radius - (y * chord)
+    return diameter, radius_out
+
+
+def cross_sectional_area(x, r_input, x_prop):
+    if 0 <= x <= x_prop:
+        radius = 0
+    elif x_prop < x <= 0.8:
+        radius = r_input
+    elif 0.8 < x <= 1:
+        # Linear decrease from r_input at x=0.8 to 0 at x=1
+        radius = r_input * (1 - (x - 0.8) / (1 - 0.8))
+    else:
+        return 0  # Outside valid x range, return 0
+
+    # Compute area
+    area = math.pi * radius ** 2
+    return area, radius
 
 
 def mass_of_section(m_total, l, x1, x2):
@@ -72,3 +90,40 @@ def mass_of_section(m_total, l, x1, x2):
     m_section = factor * (term1 - term2)
     return m_section
 
+"""
+x_c = np.linspace(0, 1, 101)
+area = []
+area_av = []
+r_r1 = []
+r_r2 = []
+
+for i in range(len(x_c)):
+    area.append(np.pi * area_ratio("0012", 1, 1.8, x_c[i])[1] ** 2)
+    area_av.append(np.pi * area_ratio("0012", 1, 1.8, x_c[i])[1] ** 2 - cross_sectional_area(x_c[i], 0.3)[0])
+    r_r1.append(0.5 * area_ratio("0012", 1, 1.8, x_c[i])[0]/1.8)
+    r_r2.append((0.5 * area_ratio("0012", 1, 1.8, x_c[i])[0] - cross_sectional_area(x_c[i], 0.3)[1])/1.8)
+
+
+plt.figure('Area vs. chord')
+plt.plot(x_c, area, label=r'Duct area')
+plt.plot(x_c, area_av, label=r'Duct minus Nacelle area')
+plt.axvline(x=0.3, linestyle='--', color='black', label='Propeller location')
+plt.xlabel(r'x/c [-]')
+plt.ylabel(r'Cross sectional area [$m^2$]')
+plt.title(r'Area vs. chord (NACA0012)')
+plt.ylim([7, 10.5])
+plt.legend()
+plt.grid(True)
+
+plt.figure('Radius duct vs. Radius available')
+plt.plot(x_c, r_r1, label=r'Duct radius')
+plt.plot(x_c, r_r2, label=r'Duct minus Nacelle radius')
+plt.axvline(x=0.3, linestyle='--', color='black', label='Propeller location')
+plt.axhline(y=1.0, linestyle='--', color='tab:blue', alpha=0.5, label='Duct airfoil centerline')
+plt.xlabel(r'x/c [-]')
+plt.ylabel(r'$R_{i}$ / $R_{center}$ []')
+plt.title(r'Area vs. chord (NACA0012)')
+plt.legend()
+plt.grid(True)
+
+plt.show() """
