@@ -151,8 +151,7 @@ class PropulsiveEmpennage:
                                        a_after_prop, m_supported, propemp.ref_chord, altitude=propemp.altitude)
 
         m_supported2 = ((propemp.rudder.weight() * 4) + propemp.propeller.weight_engine()
-                        + propemp.propeller.weight_fan() + propemp.nacelle.weight() + propemp.duct.weight()
-                        + propemp.support.weight())
+                        + propemp.propeller.weight_fan() + propemp.nacelle.weight() + propemp.duct.weight())
 
         # Initiate pylon class
         propemp.pylon = Pylon(propemp.l_pylon, propemp.c_pylon, propemp.pylon_profile,
