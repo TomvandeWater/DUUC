@@ -400,17 +400,23 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
     )
 
     x_control_h = LE_control + origin_x
-    y_control_h = y_pylon_end + np.cos(cant_rad) * b_support / 2 - 0.5 * d_duct + origin_y
-    z_control_h = z_pylon_end + np.sin(cant_rad) * b_support / 2 + origin_z
-    h_control = plot_straight_wing(file_path_0012, span=b_cv * 2, chord=c_cv, dihedral_deg=0,
-                                   start_point=(x_control_h, y_control_h, z_control_h))
+    y_control_h = y_pylon_end + np.cos(cant_rad) * (d_duct / 2) + origin_y
+    z_control_h = z_pylon_end + np.sin(cant_rad) * (d_duct / 2) + origin_z
+    h_control1 = plot_straight_wing(file_path_0012, span=b_cv, chord=c_cv, dihedral_deg=0,
+                                    start_point=(x_control_h, y_control_h, z_control_h))
+    h_control2 = plot_straight_wing(file_path_0012, span=-b_cv, chord=c_cv, dihedral_deg=0,
+                                    start_point=(x_control_h, y_control_h, z_control_h))
+    h_control = h_control1 + h_control2
 
     x_control_v = LE_control + origin_x
-    y_control_v = y_pylon_end + np.cos(cant_rad) * b_support / 2 + origin_y
-    z_control_v = z_pylon_end + np.sin(cant_rad) * b_support / 2 - 0.5 * d_duct + origin_z
-    v_control = plot_vertical_wing(file_path_0012, span=b_cv * 2, chord=c_cv, sweep_deg=0.0,
-                                   start_point=(x_control_v, y_control_v, z_control_v))
+    y_control_v = y_pylon_end + np.cos(cant_rad) * (d_duct / 2) + origin_y
+    z_control_v = z_pylon_end + np.sin(cant_rad) * (d_duct / 2) + origin_z
+    v_control1 = plot_vertical_wing(file_path_0012, span=b_cv, chord=c_cv, sweep_deg=0.0,
+                                    start_point=(x_control_v, y_control_v, z_control_v))
+    v_control2 = plot_vertical_wing(file_path_0012, span=-b_cv, chord=c_cv, sweep_deg=0.0,
+                                    start_point=(x_control_v, y_control_v, z_control_v))
 
+    v_control = v_control1 + v_control2
     x_engine = x_prop + origin_x
     spinner = plot_half_sphere(config.hub_diameter, (x_engine, y_duct, z_duct))
 
@@ -423,6 +429,42 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
     # Create primary plotter with the full geometry and table
     plotter.set_background("skyblue")
 
+    # Add view control buttons
+    def set_view(state, view_name):
+        if state:  # Only change the view when the checkbox is checked
+            views = {
+                "Front": [(-7, 0, 0), (2.5, 2.5, -0.5), (0, 0, 1)],
+                "Top": [(0, 0, 20), (2.5, 2.5, -0.5), (1, 0, 0)],
+                "Side": [(0, -7, 0), (2.5, 2.5, -0.5), (0, 0, 1)],
+                "Iso": [(-7, -7, 7), (2.5, 2.5, -0.5), (0, 0, 1)]
+            }
+            plotter.camera_position = views[view_name]
+            plotter.reset_camera()
+            plotter.render()
+
+            # Reset all checkboxes to "off" state
+            for button in buttons:
+                button.set_value(False)
+
+    # Add checkbox buttons for each view
+    buttons = []
+    y_start = 110
+    label_positions = [(55, 123), (55, 178), (55, 233), (55, 288)]
+    labels = ["Front", "Top", "Side", "Iso"]
+    for view_name, label, pos in zip(["Front", "Top", "Side", "Iso"], labels, label_positions):
+        plotter.add_checkbox_button_widget(
+            lambda state, v=view_name: set_view(state, v),
+            value=False,
+            position=(10, y_start),
+            size=35,
+            border_size=2,
+            color_on='royalblue',
+            color_off='lightblue',
+            background_color='white'
+        )
+        plotter.add_text(label, position=pos, font_size=10, color='black')
+        y_start += 55
+
     # Add meshes to plotter, ensuring that everything is displaced by the origin
     plotter.add_text("Propulsive Empennage", position='upper_edge', font_size=12, color='black')
     plotter.add_mesh(pylon, color=off_white, smooth_shading=True)
@@ -434,7 +476,7 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
     plotter.add_mesh(spinner, color="grey", smooth_shading=True)
     plotter.add_mesh(propeller, color="grey", smooth_shading=True)
     plotter.add_mesh(nacelle, color="lightgrey", smooth_shading=True)
-    plotter.camera_position = [(-7, 0, 10), (2.5, 2.5, -0.5), (0, 0, 1)]
+    plotter.camera_position = [(-7, -7, 7), (2.5, 2.5, -0.5), (0, 0, 1)]
     plotter.camera.zoom(-12)
     plotter.add_axes()
 
@@ -480,15 +522,23 @@ def visualize_cross_section(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support
     )
 
     x_control_h = LE_control
-    y_control_h = y_pylon_end + np.cos(cant_rad) * b_support / 2 - 0.5 * d_duct
-    z_control_h = z_pylon_end + np.sin(cant_rad) * b_support / 2
-    h_control = plot_straight_wing(file_path_0012, span=b_cv * 2, chord=c_cv, dihedral_deg=0,
-                                   start_point=(x_control_h, y_control_h, z_control_h))
+    y_control_h = y_pylon_end + np.cos(cant_rad) * (d_duct / 2)
+    z_control_h = z_pylon_end + np.sin(cant_rad) * (d_duct / 2)
+    h_control1 = plot_straight_wing(file_path_0012, span=b_cv, chord=c_cv, dihedral_deg=0,
+                                    start_point=(x_control_h, y_control_h, z_control_h))
+    h_control2 = plot_straight_wing(file_path_0012, span=-b_cv, chord=c_cv, dihedral_deg=0,
+                                    start_point=(x_control_h, y_control_h, z_control_h))
+    h_control = h_control1 + h_control2
+
     x_control_v = LE_control
-    y_control_v = y_pylon_end + np.cos(cant_rad) * b_support / 2
-    z_control_v = z_pylon_end + np.sin(cant_rad) * b_support / 2 - 0.5 * d_duct
-    v_control = plot_vertical_wing(file_path_0012, span=b_cv * 2, chord=c_cv, sweep_deg=0.0,
-                                   start_point=(x_control_v, y_control_v, z_control_v))
+    y_control_v = y_pylon_end + np.cos(cant_rad) * (d_duct / 2)
+    z_control_v = z_pylon_end + np.sin(cant_rad) * (d_duct / 2)
+    v_control1 = plot_vertical_wing(file_path_0012, span=b_cv, chord=c_cv, sweep_deg=0.0,
+                                    start_point=(x_control_v, y_control_v, z_control_v))
+    v_control2 = plot_vertical_wing(file_path_0012, span=-b_cv, chord=c_cv, sweep_deg=0.0,
+                                    start_point=(x_control_v, y_control_v, z_control_v))
+
+    v_control = v_control1 + v_control2
 
     x_engine = x_prop
     spinner = plot_half_sphere(config.hub_diameter, (x_engine, y_duct, z_duct))
