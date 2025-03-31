@@ -69,6 +69,7 @@ l_nacelle = 3.4425  # nacelle length [m] (based on dimensional drawing)
 d_nacelle = 1.1475  # nacelle diameter (average) [m] (based on dimensional drawing)
                     # -> assume constant diameter
 m_eng = 481  # engine mass in [kg]
+y_engine = 3.608  # y-location of the engine on the wing
 
 """ Blades Hamilton Standard 568F """
 blade_diameter = 3.93  # blade diameter [m]

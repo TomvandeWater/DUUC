@@ -165,7 +165,8 @@ def generate_cylinder(centers, radii, num_points=50):
     return cylinder
 
 
-def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_cog_f, x_cog, x_duuc, y_duuc, z_duuc, aircraft_type: str, lv,
+def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_cog_f, x_cog, x_duuc, y_duuc, z_duuc,
+                       aircraft_type: str, lv, y_engine,
                        pe_input=None):
     off_white = cmyk_to_rgb(0, 0, 0.02, 0.02)
     r_fus = d_fus / 2
@@ -207,13 +208,28 @@ def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_
         y_tail = 0
         z_tail = 2 * r_fus
         htail1 = plot_straight_wing(file_path_0012, span=ref.b_h/2, chord=ref.c_root_h, dihedral_deg=0,
-                                    start_point=(x_tail + 0.5 *(ref.c_root_v-ref.c_tip_v), y_tail, z_tail + ref.b_v))
+                                    start_point=(x_tail + 0.5 * (ref.c_root_v-ref.c_tip_v), y_tail, z_tail + ref.b_v))
         vtail = plot_vertical_wing_t(file_path_0012, span=ref.b_v, root_chord=ref.c_root_v, tip_chord=ref.c_tip_v,
                                      sweep_deg=0, start_point=(x_tail, y_tail, z_tail))
         htail2 = plot_straight_wing(file_path_0012, span=-ref.b_h/2, chord=ref.c_root_h, dihedral_deg=0,
                                     start_point=(x_tail + 0.5 * (ref.c_root_v-ref.c_tip_v), y_tail, z_tail + ref.b_v))
         empennage = htail1 + vtail + htail2
         plotter.add_text("Reference Aircraft View", position='upper_edge', font_size=12, color='black')
+
+        spinner = plot_half_sphere(config.hub_diameter, (x_lemac * 0.95, y_engine, 1.90*r_fus))
+
+        propeller = create_propeller(file_path_0012, span=config.duct_diameter / 2,
+                                     center_point=(x_lemac * 0.95, y_engine, 1.90*r_fus),
+                                     num_wings=config.n_blades, chord=config.c_root)
+
+        nacelle = create_engine_nacelle(diameter=config.hub_diameter, length=config.nacelle_length,
+                                        cone_length=0.5, center_point=(x_lemac * 0.95, y_engine, 1.90*r_fus), resolution=100)
+
+        engine = spinner + propeller + nacelle
+        engine2 = engine.reflect((0, 1, 0))
+        plotter.add_mesh(engine, color='lightgrey', show_edges=False, smooth_shading=True)
+        plotter.add_mesh(engine2, color='lightgrey', show_edges=False, smooth_shading=True)
+
     elif aircraft_type == "DUUC":
         duuc_left = visualize_propulsive_empennage_ac(pe_input[0], pe_input[1], pe_input[2], pe_input[3],
                                                       pe_input[4], pe_input[5], pe_input[6], pe_input[7],
@@ -262,5 +278,5 @@ PE_input = [config.pylon_chord, config.pylon_length, config.duct_chord, config.d
             config.control_vane_chord, config.control_vane_length, 0.25 * config.duct_chord,
             0.95 * config.duct_chord, 0.40 * config.duct_chord, 0.30 * config.duct_chord]
 
-visualize_aircraft(3.7, ref.b_w/2, ref.c_root_w, 11.25, 11.5, 25, 15,
-                   aircraft_type="DUUC", lv=14, pe_input=PE_input) """
+visualize_aircraft(3.7, ref.b_w/2, ref.c_root_w, 3.25, 11.25, 11.5, 25, 15, 
+                   aircraft_type="conventional", lv=14, pe_input=PE_input, y_engine=3.6, x_duuc=0, y_duuc=0, z_duuc=0)"""
