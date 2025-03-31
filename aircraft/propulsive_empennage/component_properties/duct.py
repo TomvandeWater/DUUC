@@ -81,7 +81,7 @@ class Duct:
 
     def cl_da(self):
         cl_da_duct = np.pi / 2 * self.zeta() * self.cl_a()
-        print(f"cl_Da: {cl_da_duct}")
+        # print(f"cl_Da: {cl_da_duct}")
         return cl_da_duct
 
     def cl(self):
