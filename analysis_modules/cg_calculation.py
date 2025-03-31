@@ -117,7 +117,7 @@ class CenterOfGravity:
 
             components = ["Fuselage", "Vertical Tail", "Horizontal Tail", "Nose", "Systems"]
             # print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          # "fuselage", self.aircraft_type)
+                         # "fuselage", self.aircraft_type)
 
             return cg_fuse_group, sum_w
 
@@ -148,7 +148,7 @@ class CenterOfGravity:
         x_wg_lemac = self.cg_wing_group()[0] - x_lemac_guess
         x_cg_lemac = 0.25 * ref.c_mac_w
 
-        x_lemac = (self.cg_fuselage_group()[0] - x_cg_lemac + (self.cg_wing_group()[1] / self.cg_fuselage_group()[1])
+        x_lemac = ((self.cg_fuselage_group()[0] - x_cg_lemac) + (self.cg_wing_group()[1] / self.cg_fuselage_group()[1])
                    * (x_wg_lemac - x_cg_lemac))
 
         x_cg = x_cg_lemac + x_lemac
@@ -176,6 +176,8 @@ if __name__ == "__main__":
                          w_duct=2000,
                          w_sys=1000,
                          l_fuselage=ref.l_cab + ref.l_tail + ref.l_cockpit,
-                         aircraft_type="DUUC")
+                         aircraft_type="DUUC",
+                         c_mac_wing=ref.c_mac_w)
     print(cg.cg_wing_group())
     print(cg.cg_fuselage_group())
+    print(f"xcg xlmc {cg.x_cg()}")
