@@ -105,7 +105,7 @@ class Aircraft:
                                        pylon_length=self.l_pylon,
                                        pylon_chord=self.c_pylon,
                                        pylon_profile=self.pylon_airfoil,
-                                       d_exit=area_ratio("0016", self.c_duct, self.d_duct/2, 1),
+                                       d_exit=area_ratio("0016", self.c_duct, self.d_duct/2, 1)[0],
                                        nacelle_length=self.l_nacelle,
                                        nacelle_diameter=self.d_nacelle,
                                        support_length=self.b_support,

@@ -46,7 +46,7 @@ class PropulsiveEmpennage:
         propemp.a_inflow = propemp.alpha
 
         propemp.power_condition = power_condition
-        propemp.va_inlet = area_ratio("0016", duct_chord, duct_diameter/2, 0) * propemp.v_inf
+        propemp.va_inlet = area_ratio("0012", duct_chord, duct_diameter/2, 0)[0] * propemp.v_inf
         propemp.cant = cant_angle
         propemp.d_exit = d_exit
         propemp.prop_type = propulsor_type
@@ -281,59 +281,69 @@ class PropulsiveEmpennage:
         return thrust_pe
 
     """ -------------------------------------- Weight ------------------------------------------------------------- """
+
     def weight_ps(self):
-        n_ult = 1.5
-        k_stoot = 1.5
-        k_misc = 1.25
+        # Safety factors
+        n_ult = 1.5  # Ultimate load factor
+        k_stoot = 1.5  # Impact factor
+        k_misc = 1.25  # Miscellaneous factor
+
+        # Convert cant angle to radians
         c_rad = np.radians(self.cant)
-        l_tot = self.l_support + self.l_pylon
 
-        """ material properties  -> AL 6061-T6 """
-        sigma_allow = 290
-        mass_per_meter = 0.54  # kg/m for rectangular beam
+        # Total length of the beam
+        l_tot = self.l_support + self.l_pylon  # [m]
 
+        """ Material properties -> AL 6061-T6 """
+        sigma_allow = 241 * 1e6  # Allowable stress [Pa] (converted from MPa to N/m^2)
+        rho = 2700  # Mass per unit length of the beam [density]
+
+        # Aerodynamic forces on pylon and support
         f_pylon = (0.5 * self.density * self.pylon.inflow_velocity() ** 2 * self.pylon.cl() * self.c_pylon
-                   * self.l_pylon)
+                   * self.l_pylon)  # [N]
         f_support = (0.5 * self.density * self.support.inflow_velocity() ** 2 * self.support.cl()
-                     * self.c_support * self.l_support)
+                     * self.c_support * self.l_support)  # [N]
 
-        m_aero = (0.5 * f_pylon * self.l_pylon + (0.5 * self.l_support + self.l_pylon) * f_support) * np.cos(c_rad)
+        # Aerodynamic moment about the root
+        m_aero = (0.5 * f_pylon * self.l_pylon + (0.5 * self.l_support + self.l_pylon) * f_support) * np.cos(
+            c_rad)  # [N·m]
 
+        # Weight moment about the root
         m_weight = (self.duct.weight() + self.nacelle.weight() + self.propeller.weight_engine()
-                    + self.propeller.weight_fan()) * (self.l_pylon + self.l_support * 0.5) * 9.81 * np.cos(c_rad)
-        print(f"moment aero: {m_aero}, moment weight: {m_weight}")
-        m_sizing = max(m_aero, m_weight)
-        print(f"m sizing: {m_sizing}")
+                    + self.propeller.weight_fan()) * (self.l_pylon + self.l_support * 0.5) * 9.81 * np.cos(
+            c_rad)  # [N·m]
 
-        # determine max thickness of the airfoil section
+        # Sizing moment (maximum of aerodynamic and weight moments)
+        m_sizing = max(m_aero, m_weight)  # [N·m]
+
+        # Determine maximum thickness of the airfoil section
         num_list = [int(digit) for digit in self.pylon_profile]
-        thickness = num_list[2] * 10 + num_list[3]  # naca thickness of profile
-        thickness_pylon = (thickness / 100) * self.c_pylon
+        thickness = num_list[2] * 10 + num_list[3]  # NACA thickness percentage
+        thickness_pylon = (thickness / 100) * self.c_pylon  # [m]
 
         num_list2 = [int(digit) for digit in self.support_profile]
-        thickness_sup = num_list2[2] * 10 + num_list2[3]  # naca thickness of profile
-        thickness_support = (thickness_sup / 100) * self.c_support
-        print(f"t_supp: {thickness_support}, t_pylon: {thickness_pylon}")
+        thickness_sup = num_list2[2] * 10 + num_list2[3]  # NACA thickness percentage
+        thickness_support = (thickness_sup / 100) * self.c_support  # [m]
 
-        height = max(thickness_pylon, thickness_support) * 0.90  # reduce maximum thickness to ensure beam fits in w
-        print(f"height: {height}")
+        height = max(thickness_pylon, thickness_support) * 0.90  # Reduce maximum thickness by a safety factor [m]
 
-        width = (((6 * m_sizing * 1000) / sigma_allow) / (height ** 2)) * n_ult * k_stoot * k_misc
-        print(f"width: {width}")
+        # Calculate width using bending stress formula
+        width = (((6 * m_sizing * n_ult * k_stoot) / sigma_allow) / (height ** 2)) * k_misc  # [m]
 
-        mass_tot = height * width * mass_per_meter * (self.l_pylon + self.l_support)
+        # Total mass of the beam
+        mass_tot = height * width * l_tot * rho  # [kg]
 
-        m_pylon = mass_of_section(mass_tot, l_tot, 0, self.l_pylon)
+        # Split mass into pylon and support sections
+        m_pylon = mass_of_section(mass_tot, l_tot, 0, self.l_pylon)  # Mass of pylon section [kg]
+        m_support = mass_of_section(mass_tot, l_tot, self.l_pylon, l_tot)  # Mass of support section [kg]
 
-        m_support = mass_of_section(mass_tot, l_tot, self.l_pylon, l_tot)
-        print(f"mass pylon: {m_pylon}, mass support: {m_support}, mass total: {mass_tot}")
         return m_pylon, m_support
 
     def weight(self):
         """ determines mass of 1 PE -> output in [kg]"""
         w_pe = (self.duct.weight() + self.propeller.weight_fan() + self.propeller.weight_engine()
-                + self.nacelle.weight() + 2 * self.rudder.weight() + 2 * self.elevator.weight() + self.pylon.weight()
-                + self.support.weight())
+                + self.nacelle.weight() + 2 * self.rudder.weight() + 2 * self.elevator.weight() + self.weight_ps()[0]
+                + self.weight_ps()[1])
         return w_pe
 
     """ -------------------------------------- NASA prediction model ----------------------------------------------- """
@@ -385,7 +395,7 @@ class PropulsiveEmpennage:
         return cm_pe
 
 """ Test section"""
-"""
+
 if __name__ == "__main__":
 
     a = np.linspace(0, 20, 41)
@@ -507,7 +517,8 @@ if __name__ == "__main__":
                                  ar_wing=12,
                                  cl_wing=1.44,
                                  cla_wing=5.89,
-                                 bem_input=[41420.85603250924, 26482.06279555917, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10])
+                                 bem_input=[41420.85603250924, 26482.06279555917, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
+                                 delta_e=0, delta_r=0, altitude=7000)
         cd_intereference.append(PE.cd_interference_vector())
         cl.append(PE.cl_norm_vector())
         cd.append(PE.cd_norm_vector())
@@ -560,7 +571,7 @@ if __name__ == "__main__":
 
     results = np.array(cd_intereference)
 
-    PE.weight_ps()"""
+    PE.weight_ps()
 """
     create_gui(results_duct, results_pylon, results_nacelle, results_support, results_control_vanes,
                reference_results_duct, reference_results_pylon, None,
@@ -640,6 +651,6 @@ if __name__ == "__main__":
     plt.title(r'$C_{L}$ vs. $C_{D}$ - Propulsive Empennage')
     plt.legend(loc='lower right')
     plt.grid(True)
-    plt.show() 
-"""
+    plt.show() """
+
 

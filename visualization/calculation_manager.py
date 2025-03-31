@@ -126,7 +126,7 @@ def calculation_manager(parameters):
 
 
     w_duuc = [duuc.fuselage.weight(), duuc.wing.weight(), duuc.empennage.duct.weight(),
-              duuc.empennage.pylon.weight(), duuc.empennage.support.weight(),
+              duuc.empennage.weight_ps()[0], duuc.empennage.weight_ps()[1],
               duuc.empennage.elevator.weight(), duuc.empennage.propeller.weight_engine(),
               duuc.empennage.nacelle.weight(), duuc.empennage.propeller.weight_fan()]
 
@@ -153,7 +153,7 @@ def calculation_manager(parameters):
                "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr},
                "CD0": {'cd0_duuc': duuc.cd0_empennage(), 'cd0_atr': atr.cd0_empennage()},
                "Vtail": [s_array, s_array_atr, s_stab_duuc, s_stab_atr, a, b, cyd],
-               "requirements": [s_req]}
+               "requirements": [s_req], "Geometry": [0]}
     return results
 
 
