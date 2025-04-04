@@ -17,7 +17,7 @@ class MainWindow(QMainWindow):
             'power_condition': 'on', 'propulsion_type': 'conventional',
             'cant_angle': config.cant_angle, 'pylon_profile': config.pylon_airfoil,
             'support_profile': config.support_airfoil, 'BEM1': 41420, 'BEM2':  26482, 'BEM3': -1.44, 'BEM4': 0.889,
-            'BEM5': 0.329, 'BEM6': 0.3201, 'BEM7': 5, 'BEM8': 10,
+            'BEM5': 0.329, 'BEM6': 0.3201, 'BEM7': 5, 'BEM8': 10, 'BEM9': 1820,
             'RPM': config.rpm, 'propeller_diameter': 0.95 * config.duct_diameter, 'hub_diameter': config.hub_diameter,
             'propeller_airfoil': config.prop_airfoil, 'propeller_c_root': config.c_root, 'propeller_c_tip': config.c_tip,
             'wing_span': ref.b_w, 'wing_phi_qc': ref.phi_qc_w, 'wing_airfoil': ref.wing_airfoil, 'wing_tr': ref.tr_w,
@@ -28,9 +28,12 @@ class MainWindow(QMainWindow):
             "y_PE": 0, "z_PE": ref.diameter_fuselage, "nacelle_length": config.nacelle_length,
             "nacelle_diameter": config.nacelle_diameter, "hcv_span": config.control_vane_length, "hcv_chord": config.control_vane_chord,
             "vcv_span": config.control_vane_length, "vcv_chord": config.control_vane_chord, "cv_airfoil": config.control_vanes_airfoil,
-            "l_v": 9.13, "x_prop": 0.3, "y_engine": ref.y_engine,
+            "l_v": 9.13, "x_prop": 0.3, "y_engine": ref.y_engine, "x_support": 0.5 * config.duct_chord,
+            "x_control_vanes": 0.95 * config.duct_chord
         }
-
+        print("----- INITIALIZING XFOIL POLARS -----")
+        self.update_xfoil_polars()  # initialized Xfoil polars for set parameters
+        print("----- INITIALIZING POLARS COMPLETE -----")
         self.calculation_results = calculation_manager(self.parameters)
         self.previous_calculation_results = None
 
@@ -369,6 +372,11 @@ class MainWindow(QMainWindow):
                 value = text  # Treat as string
 
             self.parameters[parameter] = value
+            xfoil_parameters = {'duct_chord', 'duct_profile', 'pylon_chord', 'support_chord',
+                                'power_condition', 'pylon_profile', 'support_profile', 'BEM6', 'BEM7',
+                                'hcv_chord', 'cv_airfoil'}
+            if parameter in xfoil_parameters:
+                self.update_xfoil_polars()
 
             self.start_calculation()  # Indicate calculation start
             self.perform_calculation()
@@ -461,6 +469,10 @@ class MainWindow(QMainWindow):
         try:
             value = float(input_field.text())
             self.parameters[parameter] = value
+            xfoil_parameters = {'velocity', 'altitude'}
+            if parameter in xfoil_parameters:
+                self.update_xfoil_polars()
+
             self.start_calculation()  # Indicate calculation start
             self.perform_calculation()
             self.finish_calculation()
@@ -490,6 +502,7 @@ class MainWindow(QMainWindow):
         self.create_input_field(layout, 0, 0, "Support Chord:", "support_chord")
         self.create_input_field(layout, 0, 1, "Support Length:", "support_length")
         self.create_input_field(layout, 0, 2, "Airfoil:", "support_profile", data_type=str)
+        self.create_input_field(layout, 0, 3, "X-location support:", 'x_support')
 
     def create_propeller_inputs(self, layout):
         self.create_input_field(layout, 0, 0, "Propeller Diameter:", "propeller_diameter")
@@ -510,6 +523,7 @@ class MainWindow(QMainWindow):
         self.create_input_field(layout, 0, 2, "Airfoil:", "cv_airfoil", data_type=str)
         self.create_input_field(layout, 1, 0, "Ver. vane span:", "vcv_span")
         self.create_input_field(layout, 1, 1, "Ver. vane chord:", "vcv_chord")
+        self.create_input_field(layout, 1, 2, "X-location control:", 'x_control_vanes')
 
     def create_aircraft_inputs(self, layout):
         self.create_input_field(layout, 0, 0, "Wing span:", "wing_span")
@@ -528,6 +542,14 @@ class MainWindow(QMainWindow):
 
     def create_bem_output(self, layout):
         self.create_input_field(layout, 0, 0, "BEM1:", "BEM1")
+        self.create_input_field(layout, 0, 1, "BEM2:", "BEM2")
+        self.create_input_field(layout, 0, 2, "BEM3:", "BEM3")
+        self.create_input_field(layout, 0, 3, "BEM4:", "BEM4")
+        self.create_input_field(layout, 1, 0, "BEM5:", "BEM5")
+        self.create_input_field(layout, 1, 1, "BEM6:", "BEM6")
+        self.create_input_field(layout, 1, 2, "BEM7:", "BEM7")
+        self.create_input_field(layout, 1, 3, "BEM8:", "BEM8")
+        self.create_input_field(layout, 2, 0, "BEM9:", "BEM9")
 
     def create_pe_inputs(self, layout):
         self.create_input_field(layout, 0, 0, "X-position:", "x_PE")
@@ -615,6 +637,44 @@ class MainWindow(QMainWindow):
         status_group.setLayout(status_layout)
         return status_group
 
+    def update_xfoil_polars(self):
+        # -----                 NEW POLARS XFOIL                    ----- #
+        altitude = self.parameters["altitude"]
+        duct_chord = self.parameters['duct_chord']
+        duct_profile = self.parameters['duct_profile']
+        pylon_chord = self.parameters['pylon_chord']
+        support_chord = self.parameters['support_chord']
+        velocity = self.parameters['velocity']
+        mach = velocity / speed_of_sound(altitude)
+        power_condition = self.parameters['power_condition']
+        pylon_profile = self.parameters['pylon_profile']
+        support_profile = self.parameters['support_profile']
+        BEM6 = self.parameters['BEM6']
+        BEM7 = self.parameters['BEM7']
+        hcv_chord = self.parameters['hcv_chord']
+        cv_airfoil = self.parameters['cv_airfoil']
+
+        density = air_density_isa(altitude)
+        re_duct = reynolds(density, velocity, duct_chord)
+        re_pylon = reynolds(density, velocity, pylon_chord)
+        if power_condition == "off":
+            v_sup = velocity
+            v_control = velocity
+        elif power_condition == "on":
+            v_ax = 2 * abs(BEM6) + velocity
+            v_tan = abs(BEM7)
+
+            v_effective = np.sqrt(v_ax ** 2 + v_tan ** 2)
+            v_sup = v_effective
+            v_control = v_effective
+        else:
+            raise ValueError("Power Condition not properly specified")
+        re_support = reynolds(density, v_sup, support_chord)
+        re_control = reynolds(density, v_control, hcv_chord)
+        return create_new_polars(profile_pylon=pylon_profile, profile_duct=duct_profile,
+                                 profile_support=support_profile, profile_control=cv_airfoil, re_pylon=re_pylon,
+                                 re_support=re_support, re_control=re_control, re_duct=re_duct, mach=mach)
+
     def update_status_color_labels(self):
         """Updates the color of the status labels."""
         style_sheet_calc = f"""
@@ -694,7 +754,7 @@ class MainWindow(QMainWindow):
 
         self.mach_label.setText(f"Mach [-]: {mach:>30.3f}")
         self.density_label.setText(f"Density [kg/m^3]: {density:>15.3f}")
-        self.temperature_label.setText(f"Temperature [K]: {temperature:>20.3f}")
+        self.temperature_label.setText(f"Temperature [K]: {temperature:>20.1f}")
 
         # Dummy KPI calculations (not physically accurate)
         lift = density * velocity ** 2 * alpha * 10

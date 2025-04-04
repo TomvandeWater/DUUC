@@ -1,8 +1,13 @@
 import matplotlib.ticker as ticker
+import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt6.QtWidgets import QWidget, QGridLayout, QTabWidget
 from analysis_modules.factors import *
 from PyQt6.QtGui import QIcon
+from data.read_data import get_polar
+from analysis_modules.factors import area_ratio
+from table_config import style_table
+import data.experiment_reference_5annular_airfoil as ref5r
 
 
 class PlotManager(QWidget):
@@ -16,8 +21,8 @@ class PlotManager(QWidget):
 
         # Define all plot components
         self.components = [
-            "Inflow",  "Geometry", "CD0", "Pylon", "PE", "Support",
-            "Weight", "X_cog", "Vtail", "Htail", "requirements",
+            "Inflow", "Geometry", "Duct", "Pylon", "Nacelle", "Support", "Elevator", "Rudder", "Propulsive Empennage",
+            "CD0", "Weight", "X_cog", "Vtail", "Htail", "requirements",
         ]
 
         # Initialize the layout
@@ -85,21 +90,410 @@ class PlotManager(QWidget):
 
     def update_aerodynamics_plot(self, component, plot_index, fig, ax, canvas):
         """Update the plot for Aerodynamics."""
-        if component == 'Duct':
+        if component == 'Pylon':
             if plot_index == 0:
-                data = [self.parameters['duct_diameter'], self.parameters['duct_chord']]
-                labels = ['Diameter', 'Chord']
-                ax.bar(labels, data)
+                ax.clear()
+                file = 'pylon' + self.parameters['pylon_profile']
+                alpha_pylon = self.calculation_results['Pylon'][0]
+                polars_pylon = get_polar(file)
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(polars_pylon[0], polars_pylon[1], label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_pylon, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{pylon}$')
+                ax1.plot(alpha_pylon, self.calculation_results['Pylon'][2], marker='o', color='tab:blue')
+
+                ax1.set_ylabel(r'$C_l$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+                ax.secondary_ax.clear()
+
+                ax.secondary_ax.plot(polars_pylon[0], polars_pylon[2], label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_pylon, self.calculation_results['Pylon'][5], marker='o', color='tab:red')
+                ax.secondary_ax.plot(polars_pylon[0], polars_pylon[3], label=r'$C_m$', color='tab:green')
+                ax.secondary_ax.plot(alpha_pylon, self.calculation_results['Pylon'][8], marker='o', color='tab:green')
+                ax.secondary_ax.set_ylabel(r'$C_d$, $C_m$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.20, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                # Common x-axis
+
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('XFoil Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 =  ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
             elif plot_index == 1:
-                data = [self.parameters['duct_diameter'], self.parameters['duct_chord']]
-                labels = ['Diameter', 'Chord']
-                ax.plot(labels, data)
-        elif component == 'Pylon':
+                ax.clear()
+                ax.set_axis_off()
+                ax.set_facecolor('white')  # Set the background color to white
+                fig.patch.set_facecolor('white')
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Pylon'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Pylon'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Pylon'][2]:.6f}",
+                     f"{self.calculation_results['Pylon'][6]:.6f}"],
+                    [r'$C_{D0}$ [-]', f"{self.calculation_results['Pylon'][3]:.6f}",
+                     f"{self.calculation_results['Pylon'][10]:.6f}"],
+                    [r'$C_{Di}$ [-]', f"{self.calculation_results['Pylon'][4]:.6f}",
+                     f"{self.calculation_results['Pylon'][11]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Pylon'][5]:.6f}",
+                     f"{self.calculation_results['Pylon'][7]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Pylon'][8]:.6f}",
+                     f"{self.calculation_results['Pylon'][9]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][3]:.2f}", ' ']
+                ]
+
+                style_table(ax, cell_text, columns, title='Pylon')
+        elif component == 'Support':
             if plot_index == 0:
-                data = [self.parameters['pylon_chord'], self.parameters['pylon_length']]
-                labels = ['Chord', 'Length']
-                ax.bar(labels, data)
-        ax.set_title(f"{component} - Plot {plot_index}")
+                ax.clear()
+                file = 'support' + self.parameters['support_profile']
+                alpha_support = self.calculation_results['Support'][0]
+                polars_support = get_polar(file)
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(polars_support[0], polars_support[1], label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_support, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{support}$')
+                ax1.plot(alpha_support, self.calculation_results['Support'][2], marker='o', color='tab:blue')
+
+                ax1.set_ylabel(r'$C_l$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+
+                ax.secondary_ax.clear()
+                ax.secondary_ax.plot(polars_support[0], polars_support[2], label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_support, self.calculation_results['Support'][5], marker='o', color='tab:red')
+                ax.secondary_ax.plot(polars_support[0], polars_support[3], label=r'$C_m$', color='tab:green')
+                ax.secondary_ax.plot(alpha_support, self.calculation_results['Support'][8], marker='o', color='tab:green')
+                ax.secondary_ax.set_ylabel(r'$C_d$, $C_m$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.20, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                # Common x-axis
+
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('XFoil Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 = ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
+            elif plot_index == 1:
+                ax.clear()
+                ax.set_axis_off()
+                ax.set_facecolor('white')  # Set the background color to white
+                fig.patch.set_facecolor('white')
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Support'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Support'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Support'][2]:.6f}",
+                     f"{self.calculation_results['Support'][6]:.6f}"],
+                    [r'$C_{D0}$ [-]', f"{self.calculation_results['Support'][3]:.6f}",
+                     f"{self.calculation_results['Support'][10]:.6f}"],
+                    [r'$C_{Di}$ [-]', f"{self.calculation_results['Support'][4]:.6f}",
+                     f"{self.calculation_results['Support'][11]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Support'][5]:.6f}",
+                     f"{self.calculation_results['Support'][7]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Support'][8]:.6f}",
+                     f"{self.calculation_results['Support'][9]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][4]:.2f}", ' ']
+                ]
+
+                style_table(ax, cell_text, columns, title='Support')
+        elif component == 'Duct':
+            aspect_duct = self.parameters['duct_diameter'] / self.parameters['duct_chord']
+            if plot_index == 0:
+                ax.clear()
+                alpha_duct = self.calculation_results['Duct'][0]
+                a_vect = np.linspace(-5, 15, 21)
+                cl_vect = self.calculation_results['Duct'][2]
+                cd_vect = self.calculation_results['Duct'][3]
+                cm_vect = self.calculation_results['Duct'][4]
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(a_vect, cl_vect, label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_duct, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{duct}$')
+                ax1.plot(alpha_duct, self.calculation_results['Duct'][5], marker='o', color='tab:blue')
+
+                ax1.set_ylabel(r'$C_l$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+                ax.secondary_ax.clear()
+                ax.secondary_ax.plot(a_vect, cd_vect, label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_duct, self.calculation_results['Duct'][6], marker='o', color='tab:red')
+                ax.secondary_ax.plot(a_vect, cm_vect, label=r'$C_m$', color='tab:green')
+                ax.secondary_ax.plot(alpha_duct, self.calculation_results['Duct'][7], marker='o', color='tab:green')
+                ax.secondary_ax.set_ylabel(r'$C_d$, $C_m$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.15, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                # Common x-axi
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 = ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
+            elif plot_index == 1:
+                ax.clear()
+                cl_vect = self.calculation_results['Duct'][2]
+                cd_vect = self.calculation_results['Duct'][3]
+                cd0_duct = self.calculation_results["CD0"]['cd0_duuc'][0]/2
+                cl_the = []
+                cd_the = []
+                a_vect = np.linspace(0, 15, 31)
+
+                for i in range(len(a_vect)):
+                    al = np.radians(a_vect[i])
+                    kp = 6.25 * np.sin(aspect_duct / 2)
+                    kv = np.pi / 3
+                    cl_theory = kp * np.sin(al) * np.cos(al) ** 2 + kv * np.cos(al) * np.sin(al) ** 2
+                    cl_the.append(cl_theory)
+                    cd_the.append(cd0_duct + 0.06 * cl_theory ** 2)
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(cd_vect, cl_vect, label=r'$Duct$', color='tab:blue')
+                ax1.plot(cd_the, cl_the, label='Leading Edge Suction analogy', color="tab:orange", linestyle="--")
+                ax1.plot([cd0_duct + cla ** 2 / (2 * np.pi * aspect_duct) for cla in ref5r.cla_cl_ar_1_52],
+                         [cl * 0.95 for cl in ref5r.cla_cl_ar_1_52], label=r'Experimental (AR1.5)', color='tab:purple',
+                         linestyle='dashed')
+                ax1.plot(self.calculation_results['Duct'][6], self.calculation_results['Duct'][5], marker='o',
+                         color='tab:blue')
+                ax1.set_ylabel(r'$C_l$ [-]')
+                ax1.set_xlabel(r'$C_d$ [-]')
+                ax1.set_title(r'$C_l$ vs. $C_d$')
+                ax1.grid(True)
+                ax1.legend()
+                ax1.get_figure().tight_layout()
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Duct'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Duct'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Duct'][5]:.6f}",
+                     f"{self.calculation_results['Duct'][8]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Duct'][6]:.6f}",
+                     f"{self.calculation_results['Duct'][9]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Duct'][7]:.6f}",
+                     f"{self.calculation_results['Duct'][10]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][2]:.2f}", ' '],
+                    [r'Aspect Ratio [-]', aspect_duct, '']
+                ]
+                style_table(ax, cell_text, columns, title='Duct')
+
+                reference_text = (r"$\bf{Reference\ Data\ Source:}$" "\n"
+                                  r"Leading Edge Suction Analogy - Maqsood 2013" "\n\n"
+                                  r"Experimental Investigation of Lift, Drag, and Pitching Moment" 
+                                  "\nof Five Annular Airfoils - Fletcher 1957")
+
+                ax.text(0, .12, reference_text, horizontalalignment='left',
+                        verticalalignment='center', transform=ax.transAxes, fontsize=12,
+                        bbox=dict(facecolor='lightblue', edgecolor='black', alpha=0.7))
+
+        elif component == 'Rudder':
+            if plot_index == 0:
+                ax.clear()
+                file = 'control' + self.parameters['cv_airfoil']
+                alpha_rudder = self.calculation_results['Rudder'][0]
+                polars_rudder = get_polar(file)
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(polars_rudder[0], polars_rudder[1], label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_rudder, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{rudder}$')
+                ax1.plot(alpha_rudder, self.calculation_results['Rudder'][2], marker='o', color='tab:blue')
+
+                ax1.set_ylabel(r'$C_l$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+                ax.secondary_ax.clear()
+                ax.secondary_ax.plot(polars_rudder[0], polars_rudder[2], label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_rudder, self.calculation_results['Rudder'][5], marker='o', color='tab:red')
+                ax.secondary_ax.plot(polars_rudder[0], polars_rudder[3], label=r'$C_m$', color='tab:green')
+                ax.secondary_ax.plot(alpha_rudder, self.calculation_results['Rudder'][8], marker='o', color='tab:green')
+                ax.secondary_ax.set_ylabel(r'$C_d$, $C_m$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.20, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('XFoil Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 = ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
+            elif plot_index == 1:
+                ax.clear()
+                ax.set_axis_off()
+                ax.set_facecolor('white')  # Set the background color to white
+                fig.patch.set_facecolor('white')
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Rudder'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Rudder'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Rudder'][2]:.6f}",
+                     f"{self.calculation_results['Rudder'][6]:.6f}"],
+                    [r'$C_{D0}$ [-]', f"{self.calculation_results['Rudder'][3]:.6f}",
+                     f"{self.calculation_results['Rudder'][10]:.6f}"],
+                    [r'$C_{Di}$ [-]', f"{self.calculation_results['Rudder'][4]:.6f}",
+                     f"{self.calculation_results['Rudder'][11]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Rudder'][5]:.6f}",
+                     f"{self.calculation_results['Rudder'][7]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Rudder'][8]:.6f}",
+                     f"{self.calculation_results['Rudder'][9]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][5]:.2f}", ' ']
+                ]
+
+                style_table(ax, cell_text, columns, title='Rudder')
+        elif component == 'Elevator':
+            if plot_index == 0:
+                ax.clear()
+                file = 'control' + self.parameters['cv_airfoil']
+                alpha_elev = self.calculation_results['Elevator'][0]
+                polars_elev = get_polar(file)
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(polars_elev[0], polars_elev[1], label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_elev, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{elevator}$')
+                ax1.plot(alpha_elev, self.calculation_results['Elevator'][2], marker='o', color='tab:blue')
+
+                ax1.set_ylabel(r'$C_l$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+                ax.secondary_ax.clear()
+                ax.secondary_ax.plot(polars_elev[0], polars_elev[2], label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_elev, self.calculation_results['Elevator'][5], marker='o', color='tab:red')
+                ax.secondary_ax.plot(polars_elev[0], polars_elev[3], label=r'$C_m$', color='tab:green')
+                ax.secondary_ax.plot(alpha_elev, self.calculation_results['Elevator'][8], marker='o', color='tab:green')
+                ax.secondary_ax.set_ylabel(r'$C_d$, $C_m$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.20, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                # Common x-axis
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('XFoil Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 = ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
+            elif plot_index == 1:
+                ax.clear()
+                ax.set_axis_off()
+                ax.set_facecolor('white')  # Set the background color to white
+                fig.patch.set_facecolor('white')
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Elevator'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Elevator'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Elevator'][2]:.6f}",
+                     f"{self.calculation_results['Elevator'][6]:.6f}"],
+                    [r'$C_{D0}$ [-]', f"{self.calculation_results['Elevator'][3]:.6f}",
+                     f"{self.calculation_results['Elevator'][10]:.6f}"],
+                    [r'$C_{Di}$ [-]', f"{self.calculation_results['Elevator'][4]:.6f}",
+                     f"{self.calculation_results['Elevator'][11]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Elevator'][5]:.6f}",
+                     f"{self.calculation_results['Elevator'][7]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Elevator'][8]:.6f}",
+                     f"{self.calculation_results['Elevator'][9]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][5]:.2f}", ' ']
+                ]
+
+                style_table(ax, cell_text, columns, title='Rudder')
+        elif component == 'Nacelle':
+            if plot_index == 0:
+                ax.clear()
+                alpha_nacelle = self.calculation_results['Nacelle'][0]
+                a_vector = np.linspace(-5, 15, 21)
+
+                # Left y-axis
+                ax1 = ax
+                ax1.plot(a_vector, self.calculation_results['Nacelle'][10], label=r'$C_l$', color='tab:blue')
+                ax1.axvline(alpha_nacelle, color='black', alpha=0.5, linestyle='dashed', label=r'$\alpha_{nacelle}$')
+                ax1.plot(alpha_nacelle, self.calculation_results['Nacelle'][2], marker='o', color='tab:blue')
+                ax1.plot(a_vector, self.calculation_results['Nacelle'][12], label=r'$C_m$', color='tab:green')
+                ax1.plot(alpha_nacelle, self.calculation_results['Nacelle'][8], marker='o', color='tab:green')
+
+                ax1.set_ylabel(r'$C_l$, $C_m$ [-]', color='tab:blue')
+                ax1.tick_params(axis='y', labelcolor='tab:blue')
+
+                # Right y-axis (secondary axis)
+                if not hasattr(ax, 'secondary_ax'):
+                    ax.secondary_ax = ax.twinx()
+
+                # Clear the secondary axis explicitly
+                ax.secondary_ax.clear()
+
+                ax.secondary_ax.plot(a_vector, self.calculation_results['Nacelle'][11], label=r'$C_d$', color='tab:red')
+                ax.secondary_ax.plot(alpha_nacelle, self.calculation_results['Nacelle'][5], marker='o', color='tab:red')
+
+                ax.secondary_ax.set_ylabel(r'$C_d$ [-]', color='tab:red')
+                ax.secondary_ax.yaxis.set_label_coords(1.20, 0.5)
+                ax.secondary_ax.tick_params(axis='y', labelcolor='tab:red')
+
+                # Common x-axis
+                ax1.set_xlabel(r'$\alpha$ [deg]')
+                ax1.set_title('Coefficients')
+                ax1.grid(True)
+                ax1.get_figure().tight_layout()
+
+                # Combine legends from both axes
+                lines_1, labels_1 = ax1.get_legend_handles_labels()
+                lines_2, labels_2 = ax.secondary_ax.get_legend_handles_labels()
+                ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
+            elif plot_index == 1:
+                ax.clear()
+                ax.set_axis_off()
+                ax.set_facecolor('white')  # Set the background color to white
+                fig.patch.set_facecolor('white')
+            elif plot_index == 2:
+                columns = ['Parameter', 'Local value', 'Normalized value']
+                cell_text = [
+                    [r'$\alpha_{in}$ [deg]', f"{self.calculation_results['Nacelle'][0]:.3f}", ' '],
+                    [r'$V_{in}$ [m/s]', f"{self.calculation_results['Nacelle'][1]:.3f}", ' '],
+                    [r'$C_L$ [-]', f"{self.calculation_results['Nacelle'][2]:.6f}",
+                     f"{self.calculation_results['Nacelle'][6]:.6f}"],
+                    [r'$C_D$ [-]', f"{self.calculation_results['Nacelle'][5]:.6f}",
+                     f"{self.calculation_results['Nacelle'][7]:.6f}"],
+                    [r'$C_M$ [-]', f"{self.calculation_results['Nacelle'][8]:.6f}",
+                     f"{self.calculation_results['Nacelle'][9]:.6f}"],
+                    [r'Weight [kg]', f"{self.calculation_results['Weight']['w_vector_duuc'][7]:.2f}", ' ']
+                ]
+
+                style_table(ax, cell_text, columns, title='Nacelle')
         canvas.draw()
 
     def update_plots(self, component):
@@ -117,7 +511,7 @@ class PlotManager(QWidget):
 
         for i, (fig, ax, canvas) in enumerate(self.plots[component]):
             ax.clear()
-            if component in ["Duct", "Pylon", "PE", "Support"]:
+            if component in ["Duct", "Pylon", "PE", "Support", "Nacelle", "Rudder", "Elevator"]:
                 self.update_aerodynamics_plot(component, i, fig, ax, canvas)
             elif component == "Inflow":
                 self.update_inflow_plot(i, fig, ax, canvas)
@@ -127,8 +521,8 @@ class PlotManager(QWidget):
                 self.update_cd0_empennage(i, fig, ax, canvas)
             elif component in ["X_cog", "Vtail", "Htail"]:
                 self.update_flight_mechanics_plot(component, i, fig, ax, canvas)
-            elif component in [ "Geometry"]:
-                self.update_area_plot( i, fig, ax, canvas)
+            elif component in ["Geometry"]:
+                self.update_area_plot(i, fig, ax, canvas)
 
             canvas.draw()
 
@@ -242,15 +636,25 @@ class PlotManager(QWidget):
         v_input = self.calculation_results['Inflow']['v_inflow']
         a_input = self.calculation_results['Inflow']['a_inflow']
         station = self.calculation_results['Inflow']['station']
+        pylon = self.calculation_results['Inflow']['pylon_in']
         alpha = self.parameters['alpha']
         v_inf = self.parameters['velocity']
+        d_duct = self.parameters['duct_diameter']
+        naca = self.parameters['duct_profile']
+        chord = self.parameters['duct_chord']
+        d_prop = self.parameters['propeller_diameter']
+        x_cv = self.parameters['x_control_vanes']
+        x_sup = self.parameters['x_support']
+        va_inlet = v_inf * 0.25 * np.pi * d_duct ** 2
+        d_sup = area_ratio(naca, chord, d_duct/2, x_sup)[0]
+        d_cv = area_ratio(naca, chord, d_duct/2, x_cv)[0]
 
-        v_prop = 0.94 * v_inf
-        v_sup = 0.93 * v_inf
-        v_cv = 0.97 * v_inf
+        v_prop = va_inlet / (0.25 * np.pi * d_prop ** 2)
+        v_sup = va_inlet / (0.25 * np.pi * d_sup ** 2)
+        v_cv = va_inlet / (0.25 * np.pi * d_cv ** 2)
 
-        v_input2 = [v_inf, v_inf, v_prop, v_prop, v_sup, v_cv, (v_cv + v_inf) / 2, v_inf]
-        a_input2 = [alpha, alpha/2, 0, 0, 0, 0, alpha/2, alpha]
+        v_input2 = [v_inf, v_inf, v_prop, v_prop, v_sup, v_cv, (v_cv + v_inf) / 2]
+        a_input2 = [alpha, alpha, alpha / 2, 0, 0, 0, alpha/2]
 
         # Load background image
         img = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\propulsive_empennage.png")
@@ -258,14 +662,18 @@ class PlotManager(QWidget):
         if plot_index == 0:
             # Plot for inflow velocity
             ax.clear()
-            ax.imshow(img, extent=[0.35, 6.00, 0.00, 200.00], aspect='auto')
+            v_in = np.array(v_input)
+            up_lim = v_in.max()
+            low_lim = v_in.min()
+            ax.imshow(img, extent=[0.35, 6.00, low_lim * 0.75, up_lim * 1.25], aspect='auto')
             ax.plot(station, v_input, label=r"$V_{inflow}$ - power on", color="tab:blue", marker='o')
             ax.plot(station, v_input2, label=r"$V_{inflow}$ - power off", color="tab:blue", linestyle="dotted",
                     marker='o')
+            ax.plot([0, 2.55], [v_inf, pylon[0]], label=r'$V_{inflow} - pylon$', color='tab:blue', linestyle='dashed', marker='x')
             ax.set_xlim(0, 6)
-            ax.set_ylim(0, 200)
+            ax.set_ylim(low_lim * 0.75, up_lim * 1.25)
             ax.xaxis.set_major_locator(ticker.NullLocator())
-            ax.set_ylabel(r'$V_{\infty}$ [m/s]')
+            ax.set_ylabel(r'$V_{inflow}$ [m/s]')
             ax.set_title(r'Inflow Velocity per Component')
             ax.tick_params(axis='y')
             ax.grid(True)
@@ -274,14 +682,19 @@ class PlotManager(QWidget):
         elif plot_index == 1:
             # Plot for inflow angle
             ax.clear()
-            ax.imshow(img, extent=[0.35, 6.00, -100, 100], aspect='auto')
+            a_in = np.array(a_input)
+            up_lim = a_in.max()
+            low_lim = a_in.min()
+            ax.imshow(img, extent=[0.35, 6.00, -low_lim * 0.75, up_lim * 1.25], aspect='auto')
             ax.plot(station, a_input, label=r"$\alpha$ - power on", color="tab:orange", marker='o')
             ax.plot(station, a_input2, label=r"$\alpha$ - power off", color="tab:orange", linestyle="dotted",
                     marker='o')
+            ax.plot([0, 2.55], [alpha, pylon[1]], label=r'$\alpha - pylon$', color='tab:orange', linestyle='dashed',
+                    marker='x')
             ax.set_xlim(0, 6)
-            ax.set_ylim(-100, 100)
+            ax.set_ylim(low_lim * 1.25, up_lim * 1.25)
             ax.xaxis.set_major_locator(ticker.NullLocator())
-            ax.set_ylabel(r"$\alpha$ [deg]")
+            ax.set_ylabel(r"$\alpha_{inflow}$ [deg]")
             ax.set_title(r'Inflow Angle per Component')
             ax.tick_params(axis='y')
             ax.grid(True)
@@ -322,7 +735,7 @@ class PlotManager(QWidget):
             # Add labels and title
             ax.set_xlabel(r'x/c [-]')
             ax.set_ylabel(r'Cross sectional area [$m^2$]')
-            ax.set_title(r'Area vs. chord (NACA0012)')
+            ax.set_title(r'Area vs. chord')
 
             # Add legend and grid
             ax.legend()
@@ -350,7 +763,7 @@ class PlotManager(QWidget):
             ax.plot(x_c, r_r2, label=r'Duct minus Nacelle radius', color="tab:orange")
 
             # Add horizontal and vertical lines
-            ax.axvline(x=self.parameters["x_prop"], linestyle='--', color='black', alpha=0.5)
+            ax.axvline(x=self.parameters["x_prop"], linestyle='--', color='black', alpha=0.5, label='Propeller location')
             ax.axhline(y=1.0, linestyle='--', color='tab:blue', alpha=0.5)
 
             # Add labels and title
@@ -508,7 +921,6 @@ class PlotManager(QWidget):
         ax.set_xticklabels(labels)
 
         ax.set_ylabel('Component mass [kg]')
-
 
     def update_cd0_empennage(self, plot_index, fig, ax, canvas):
         """Update CD0 empennage plots."""

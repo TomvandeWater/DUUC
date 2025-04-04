@@ -4,6 +4,7 @@ from analysis_modules.vtail_sizing import *
 
 
 def calculation_manager(parameters):
+    # -----                 PARAMETER UNPACKING                 ----- #
     duct_diameter = parameters.get('duct_diameter')
     duct_chord = parameters.get('duct_chord')
     duct_profile = parameters.get('duct_profile')
@@ -36,8 +37,9 @@ def calculation_manager(parameters):
     BEM6 = parameters.get('BEM6')
     BEM7 = parameters.get('BEM7')
     BEM8 = parameters.get('BEM8')
+    BEM9 = parameters.get('BEM9')
 
-    bem_input = [BEM1, BEM2, BEM3, BEM4, BEM5, BEM6, BEM7, BEM8]
+    bem_input = [BEM1, BEM2, BEM3, BEM4, BEM5, BEM6, BEM7, BEM8, BEM9]
     RPM = parameters.get('RPM')
     propeller_diameter = parameters.get('propeller_diameter')
     hub_diameter = parameters.get('hub_diameter')
@@ -70,6 +72,8 @@ def calculation_manager(parameters):
 
     cv_airfoil = parameters.get('cv_airfoil')
 
+    # -----                     CREATE DUUC INSTANCE                    ------ #
+
     duuc: Aircraft = Aircraft(aircraft_type="DUUC", alpha=alpha, v_inf=velocity, mach=mach,
                               power=power_condition, bem_input=bem_input, delta_e=delta_e,
                               delta_r=delta_r, altitude=altitude,
@@ -85,6 +89,7 @@ def calculation_manager(parameters):
                               d_hub=hub_diameter, rpm=RPM, prop_c_root=propeller_c_root, prop_c_tip=propeller_c_tip,
                               prop_diameter=propeller_diameter)
 
+    # -----                     CREATE ATR INSTANCE                    ------ #
     atr: Aircraft = Aircraft(aircraft_type="conventional", alpha=alpha, v_inf=velocity, mach=mach,
                              power=power_condition, bem_input=bem_input, delta_e=delta_e,
                              delta_r=delta_r, altitude=altitude,
@@ -100,7 +105,7 @@ def calculation_manager(parameters):
                              d_hub=hub_diameter, rpm=RPM, prop_c_root=propeller_c_root, prop_c_tip=propeller_c_tip,
                              prop_diameter=propeller_diameter)
 
-    # ------                  Vertical Tail sizing coupled                        ----- #
+    # ------                  VERTICAL TAIL SIZING COUPLED                        ----- #
     array = np.linspace(0.1, 3.0, 301)
 
     s_array = []
@@ -139,23 +144,56 @@ def calculation_manager(parameters):
 
     v_inflow = [velocity, duuc.empennage.duct.inflow_velocity(), duuc.empennage.propeller.inflow_velocity(),
                 duuc.empennage.support.inflow_velocity(), duuc.empennage.support.inflow_velocity(),
-                duuc.empennage.elevator.inflow_velocity(), duuc.empennage.propeller.u1(), velocity]
+                duuc.empennage.elevator.inflow_velocity(), duuc.empennage.propeller.u_wake()]
 
     a_inflow = [alpha, duuc.empennage.duct.inflow_angle(), duuc.empennage.propeller.inflow_angle(),
                 duuc.empennage.support.inflow_angle(), duuc.empennage.support.inflow_angle(),
-                duuc.empennage.elevator.inflow_angle(), delta_e / 2, alpha]
+                duuc.empennage.elevator.inflow_angle(), delta_e / 2]
 
-    station = [0, 1, 1.8, 2.2, 2.55, 4.5, 5.5, 6]
+    pylon_in = [duuc.empennage.pylon.inflow_velocity(), duuc.empennage.pylon.inflow_angle()]
+
+    station = [0, 1, 1.8, 2.2, 2.55, 4.5, 6]
                  # fus              wing            cg              lemac
     x_cog_duuc = [duuc.x_cog()[2], duuc.x_cog()[3], duuc.x_cog()[0], duuc.x_cog()[1]]
     x_cog_atr = [atr.x_cog()[2], atr.x_cog()[3], atr.x_cog()[0], atr.x_cog()[1]]
 
     results = {"Weight": {'w_vector_duuc': w_duuc, 'w_vector_atr': w_atr},
-               "Inflow": {'v_inflow': v_inflow, 'a_inflow': a_inflow, 'station': station},
+               "Inflow": {'v_inflow': v_inflow, 'a_inflow': a_inflow, 'station': station, 'pylon_in': pylon_in},
                "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr},
                "CD0": {'cd0_duuc': duuc.cd0_empennage(), 'cd0_atr': atr.cd0_empennage()},
                "Vtail": [s_array, s_array_atr, s_stab_duuc, s_stab_atr, a, b, cyd],
-               "requirements": [s_req], "Geometry": [0]}
+               "requirements": [s_req], "Geometry": [0],
+               "Pylon": [duuc.empennage.pylon.inflow_angle(), duuc.empennage.pylon.inflow_velocity(),
+                         duuc.empennage.pylon.cl(), duuc.empennage.pylon.cd0(),
+                         duuc.empennage.pylon.cdi(), duuc.empennage.pylon.cd(),
+                         duuc.empennage.pylon.coefficient_norm()[0], duuc.empennage.pylon.coefficient_norm()[1],
+                         duuc.empennage.pylon.cm()[0], duuc.empennage.pylon.cm()[1],
+                         duuc.empennage.pylon.coefficient_norm()[2], duuc.empennage.pylon.coefficient_norm()[3]],
+               "Support": [duuc.empennage.support.inflow_angle(), duuc.empennage.support.inflow_velocity(),
+                         duuc.empennage.support.cl(), duuc.empennage.support.cd0(),
+                         duuc.empennage.support.cdi(), duuc.empennage.support.cd(),
+                         duuc.empennage.support.coefficient_norm()[0], duuc.empennage.support.coefficient_norm()[1],
+                         duuc.empennage.support.cm()[0], duuc.empennage.support.cm()[1],
+                         duuc.empennage.support.coefficient_norm()[2], duuc.empennage.support.coefficient_norm()[3]],
+               "Duct": [duuc.empennage.duct.inflow_angle(), duuc.empennage.duct.inflow_velocity(),
+                        duuc.empennage.duct.cl()[2], duuc.empennage.duct.cd()[1],
+                        duuc.empennage.duct.cm()[2], duuc.empennage.duct.cl()[0],
+                        duuc.empennage.duct.cd()[0], duuc.empennage.duct.cm()[0],
+                        duuc.empennage.duct.cl()[1], duuc.empennage.duct.coefficient_norm()[1],
+                        duuc.empennage.duct.cm()[1], 0],
+               "Nacelle": [duuc.empennage.nacelle.inflow_angle(), duuc.empennage.nacelle.inflow_velocity(),
+                           duuc.empennage.nacelle.cl()[1], 0,
+                           0, duuc.empennage.nacelle.cd()[1],
+                           duuc.empennage.nacelle.coefficient_norm()[0], duuc.empennage.nacelle.coefficient_norm()[1],
+                           duuc.empennage.nacelle.cm()[0], duuc.empennage.nacelle.cm()[1], duuc.empennage.nacelle.cl()[2],
+                           duuc.empennage.nacelle.cd()[2], duuc.empennage.nacelle.cm()[2]],
+               "Elevator": [duuc.empennage.elevator.inflow_angle(), duuc.empennage.nacelle.inflow_velocity(),
+                           0, 0,
+                           0, 0,
+                           0, 0,
+                           0, 0,
+                           0, 0],
+               }
     return results
 
 
