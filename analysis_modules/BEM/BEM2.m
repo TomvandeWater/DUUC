@@ -28,7 +28,7 @@
 % wortel wordt dan negatief. Vervolgens krijgt onder andere de invalshoek
 % een complexe waarde en doen de interpolaties van Cl en Cd het niet meer.
 %-------------------------------------------------------------------------
-function [T_out, Q_out, N_out, Tc, Cp, CT, Va_avg, Vt_avg] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature, prop_id)
+function [T_out, Q_out, N_out, Tc, Cp, CT, Va_avg, Vt_avg, CNp] = BEM2(n_blades, dp, beta75, ducted_opt, v_inf, a_inf, advance, density, temperature, prop_id)
 % clc;clf;close all;tic;
 
 disp('----- MATLAB BEM calculator -----');
