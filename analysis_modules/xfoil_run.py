@@ -75,7 +75,7 @@ def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file
         file.close()
 
     with open(input_file_path, "r") as f:
-        process = subprocess.Popen([xfoil_path], stdin=subprocess.PIPE,
+        process = subprocess.Popen([xfoil_path], stdin=subprocess.DEVNULL,
                                    stdout=subprocess.DEVNULL,
                                    text=True)
         process.communicate(input=f.read())
@@ -87,6 +87,25 @@ def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file
                  f"and saved in {file_name}.txt")
 
 
+def create_new_polars(profile_pylon, profile_support, profile_duct, profile_control, re_pylon, re_support, re_duct,
+                      re_control, mach):
+    airfoil_pylon = "Naca" + profile_pylon
+    file_pylon = "pylon" + profile_pylon
+    airfoil_support = "Naca" + profile_support
+    file_support = "support" + profile_support
+    airfoil_duct = "Naca" + profile_duct
+    file_duct = "duct" + profile_duct
+    airfoil_control = "Naca" + profile_control
+    file_control = "control" + profile_control
+
+    airfoils = [airfoil_pylon, airfoil_support, airfoil_duct, airfoil_control]
+    filenames = [file_pylon, file_support, file_duct, file_control]
+    re_comp = [re_pylon, re_support, re_duct, re_control]
+
+    for i in range(len(airfoils)):
+        xfoil_polar(airfoils[i], -5, 15, 1, re_comp[i], filenames[i], mach)
+
+
 """ Test test if wanted"""
 
-xfoil_polar("Naca0012", -5, 15, 1, 4.698e6, "support0012", 0.44)
+# xfoil_polar("Naca0012", -5, 15, 1, 4.698e6, "support0012", 0.44)

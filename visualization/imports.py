@@ -15,3 +15,4 @@ import ctypes
 from calculation_manager import calculation_manager
 import copy
 from console_output import *
+from analysis_modules.xfoil_run import create_new_polars
