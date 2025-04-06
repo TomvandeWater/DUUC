@@ -6,7 +6,7 @@ class CenterOfGravity:
     """ determine center of gravity based on method of Scholz 2008, note: input of weight in [kg] and distance in [m]"""
     def __init__(self, w_lg_nose: float, w_lg_main: float, w_eng_wing: float, w_wing: float, w_fuse: float,
                  w_nac_wing: float, w_vt: float, w_ht: float, w_duct: float, w_sys: float, l_fuselage: float,
-                 aircraft_type: str, c_mac_wing: float):
+                 aircraft_type: str, c_mac_wing: float, x_duct: float, x_wing: float):
         self.w_lg_nose = w_lg_nose
         self.w_lg_main = w_lg_main
         self.w_eng_wing = w_eng_wing
@@ -20,6 +20,8 @@ class CenterOfGravity:
         self.w_sys = w_sys
         self.l_fuselage = l_fuselage
         self.c_mac_wing = c_mac_wing
+        self.x_duct = x_duct
+        self.x_wing = x_wing
 
     """ ---------------------------- determine center of gravity of each component -------------------------------- """
     def cg_loc_wing(self):
@@ -31,25 +33,25 @@ class CenterOfGravity:
             cg_nac_wing = 10.12
             return [cg_wing, cg_main, cg_eng_wing, cg_nac_wing]
         if self.aircraft_type == "DUUC":
-            cg_wing = 12.24
-            cg_main = 12.429
+            cg_wing = self.x_wing + self.c_mac_wing / 2
+            cg_main = cg_wing + 0.25
             return [cg_wing, cg_main]
         else:
             return None
 
     def cg_loc_fus(self):
         if self.aircraft_type == "conventional":
-            cg_fus = 0.39 * self.l_fuselage
+            cg_fus = 0.45 * self.l_fuselage
             cg_vt = 23.99
             cg_ht = 23.99
             cg_nose = 1.75
             cg_sys = 11.5
             return [cg_fus, cg_vt, cg_ht, cg_nose, cg_sys]
         if self.aircraft_type == "DUUC":
-            cg_fus = 0.5 * self.l_fuselage
+            cg_fus = 0.45 * self.l_fuselage
             cg_nose = 1.75
             cg_sys = 11.5
-            cg_duct = 23.99  # will be variable later
+            cg_duct = self.x_duct  # will be variable later
             return [cg_fus, cg_nose, cg_sys, cg_duct]
 
     def cg_wing_group(self):

@@ -17,7 +17,8 @@ class Aircraft:
                  d_duct: float, c_duct: float, duct_airfoil: str, b_pylon: float, c_pylon: float, pylon_airfoil: str,
                  cant_angle: float, b_support: float, c_support: float, support_airfoil: str, cv_airfoil: str,
                  n_blades: float, l_nacelle: float, d_nacelle: float, l_cv: float, c_cv: float, propulsor_type: str,
-                 prop_airfoil: str, d_hub: float, rpm: float, prop_c_root: float, prop_c_tip: float, prop_diameter: float):
+                 prop_airfoil: str, d_hub: float, rpm: float, prop_c_root: float, prop_c_tip: float,
+                 prop_diameter: float, x_wing: float, x_duct: float):
         self.aircraft_type = aircraft_type
         self.alpha = alpha
         self.v_inf = v_inf
@@ -61,6 +62,8 @@ class Aircraft:
         self.c_root = prop_c_root
         self.c_tip = prop_c_tip
         self.prop_diameter = prop_diameter
+        self.x_wing = x_wing
+        self.x_duct = x_duct
 
         self.wing = Wing(b_wing=self.wing_span, sweep_wing=self.wing_sweep, wing_airfoil=self.wing_airfoil,
                          taper_ratio_wing=self.wing_tr, c_root_wing=self.wing_cr, alpha=self.alpha, velocity=self.v_inf,
@@ -181,7 +184,9 @@ class Aircraft:
                                   w_sys=self.operation.weight_sys(),
                                   l_fuselage=(self.l_tail + self.l_coc + self.l_cab),
                                   aircraft_type=self.aircraft_type,
-                                  c_mac_wing=ref.c_mac_w)
+                                  c_mac_wing=ref.c_mac_w,
+                                  x_wing=0,
+                                  x_duct=0)
             return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0]
         if self.aircraft_type == "DUUC":
             cog = CenterOfGravity(w_lg_nose=self.lg.weight()[0],
@@ -194,7 +199,9 @@ class Aircraft:
                                   w_sys=self.operation.weight_sys(),
                                   l_fuselage=(ref.l_tail + ref.l_cockpit + ref.l_cabin),
                                   aircraft_type=self.aircraft_type,
-                                  c_mac_wing=ref.c_mac_w)
+                                  c_mac_wing=ref.c_mac_w,
+                                  x_wing=self.x_wing,
+                                  x_duct=self.x_pe)
             return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0]
         else:
             return 0, 0
