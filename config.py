@@ -35,7 +35,7 @@ pylon_airfoil = "0012"
 duct_airfoil = "0012"
 control_vanes_airfoil = "0016"
 support_airfoil = "0012"
-prop_airfoil = "Hamilton568F"
+prop_airfoil = "HM568F"
 
 d_exit = 1.05 * duct_diameter
 z_e = 3.08  # installation height of the Propulsive empennage
