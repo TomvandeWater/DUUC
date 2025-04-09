@@ -14,10 +14,16 @@ class ConsoleOutput:
         cursor = self.text_widget.textCursor()
         format = QTextCharFormat()
 
-        if message.startswith("Error:"):
-            format.setForeground(QColor("red"))
-        else:
-            format.setForeground(QColor("black"))
+        if "Matlab" in message:
+            format.setForeground(QColor(Qt.blue))  # Red for "Matlab"
+        elif "Error" in message:
+            format.setForeground(QColor(Qt.red))  # Red for error messages
+        elif "Success" in message:
+            format.setForeground(QColor(Qt.darkGreen))  # Green for success messages
+        elif "XFoil" in message:
+            format.setForeground(QColor(Qt.magenta))
+        elif "plots" in message:
+            format.setForeground(QColor(Qt.darkGray))
 
         cursor.insertText(message, format)
         self.text_widget.setTextCursor(cursor)
