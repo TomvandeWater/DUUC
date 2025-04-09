@@ -38,12 +38,13 @@ def xfoil_polar(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach)
                                    stdout=subprocess.DEVNULL,
                                    text=True)
         process.communicate(input=f.read())
-
-    return print(f"\n----- Xfoil output for {file_name}\n"
-                 f"Airfoil polar has been created for {airfoil_name}, from "
-                 f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
-                 f"number {np.round(Re)} with Mach {np.round(mach, 2)} "
-                 f"and saved in {file_name}.txt")
+    # old print
+    """ print(f"\n----- Xfoil output for {file_name}\n"
+          f"Airfoil polar has been created for {airfoil_name}, from "
+          f"{alpha_i} to {alpha_f} in {alpha_step} steps for Reynolds "
+          f"number {np.round(Re)} with Mach {np.round(mach, 2)} "
+          f"and saved in {file_name}.txt")"""
+    return print(f"Success: New polar created for: {file_name}")
 
 
 def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file_name, mach):
@@ -89,6 +90,7 @@ def xfoil_polar_5seriesload(airfoil_name, alpha_i, alpha_f, alpha_step, Re, file
 
 def create_new_polars(profile_pylon, profile_support, profile_duct, profile_control, re_pylon, re_support, re_duct,
                       re_control, mach):
+    print("XFoil starts......")
     airfoil_pylon = "Naca" + profile_pylon
     file_pylon = "pylon" + profile_pylon
     airfoil_support = "Naca" + profile_support
@@ -104,7 +106,7 @@ def create_new_polars(profile_pylon, profile_support, profile_duct, profile_cont
 
     for i in range(len(airfoils)):
         xfoil_polar(airfoils[i], -5, 15, 1, re_comp[i], filenames[i], mach)
-
+    print("XFoil closes......")
 
 """ Test test if wanted"""
 
