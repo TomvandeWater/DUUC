@@ -1,6 +1,6 @@
 import sys
-from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget,
-                             QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit,
+from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget, QPushButton, QFileDialog,
+                             QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QInputDialog,
                              QLineEdit, QGroupBox, QFormLayout, QComboBox, QMessageBox, QMenu, QSystemTrayIcon)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QAction, QColor, QTextCharFormat
@@ -16,3 +16,5 @@ from calculation_manager import calculation_manager
 import copy
 from console_output import *
 from analysis_modules.xfoil_run import create_new_polars
+import json
+from termcolor import colored
