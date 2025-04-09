@@ -2,37 +2,33 @@ import numpy as np
 from analysis_modules.aerodynamic import drag_interference, reynolds
 from analysis_modules.ISA import air_density_isa
 from data.read_data import airfoil_polar
-import config
 from analysis_modules.factors import skin_friction, mach_correction
-import matplotlib.pyplot as plt
-import data.atr_reference as ref
 
 
 class SupportStrut:
-    def __init__(self, support_length: float, support_chord: float, support_profile: str,
-                 cant_angle: float, power_condition: str, v_after_prop: float,
-                 alpha: float, tc_prop: float, cn_prop: float, ref_area: float, v_inf: float,
-                 va_inlet: float, prop_diameter: float, a_after_prop: float, m_supported: float,
-                 ref_chord: float, altitude: float):
+    def __init__(self, geometry, conditions, reference, power_condition: str, v_after_prop: float, va_inlet: float,
+                 prop_diameter: float, a_after_prop: float):
         super().__init__()
-        self.support_length = support_length
-        self.support_chord = support_chord
-        self.support_profile = support_profile
-        self.cant_angle = cant_angle
+        self.support_length = geometry[0]
+        self.support_chord = geometry[1]
+        self.support_profile = geometry[2]
+        self.cant_angle = geometry[3]
+
         self.pc = power_condition
-        self.v_after_prop = v_after_prop
-        self.alpha = alpha
-        self.tc_prop = tc_prop
-        self.cn_prop = cn_prop
-        self.ref_area = ref_area
-        self.v_inf = v_inf
+
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.ref_area = reference[0]
+        self.ref_chord = reference[1]
+
         self.va_inlet = va_inlet
         self.prop_diameter = prop_diameter
         self.a_after_prop = a_after_prop
-        self.m_supported = m_supported
-        self.ref_chord = ref_chord
-        self.altitude = altitude
-        self.density = air_density_isa(self.altitude)[0]
+        self.v_after_prop = v_after_prop
 
     """ ------------------ inflow properties ----------------------------------------------------------  """
     def inflow_velocity(self):
@@ -45,19 +41,17 @@ class SupportStrut:
             return u_support
 
     def inflow_angle(self):
-        thrust_c = self.tc_prop
-        c_norm = self.cn_prop
-        de_da_prop = ((thrust_c / (4 + 8/7 * thrust_c)) + (c_norm * (1 + 1.3 * thrust_c) ** 0.5)
-                      / (4 + 2 * thrust_c))
-
         if self.pc == "off":
-            inflow_support = 0
-            return inflow_support
+            cant = np.radians(self.cant_angle)
+            inflow_support = - cant * np.cos(0)
+            angle_rad = np.radians(inflow_support)
+            return inflow_support, angle_rad
         else:
             cant = np.radians(self.cant_angle)
 
-            inflow_support = self.a_after_prop * np.cos(cant)
-            return inflow_support
+            inflow_support = self.a_after_prop + - cant * np.cos(0)
+            angle_rad = np.radians(inflow_support)
+            return inflow_support, angle_rad
 
     def reynolds_number(self):
         re_sup = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.support_chord)
@@ -65,16 +59,17 @@ class SupportStrut:
 
     """  ------------------------------------- geometric properties -------------------------------------------- """
     def area(self):
-        """The area is based on a rectangle, note that the support goes through the nacelle in this
-        model. The area is hence overestimated."""
+        """ flat surface area of the support """
         s_support = self.support_chord * self.support_length
         return s_support
 
     def area_wetted(self):
-        s_wet_support = 2 * (1 + 0.5 * self.t_c()) * self.support_length * self.support_chord
+        """ untapered, unswept wing definition by Torenbeek """
+        s_wet_support = 2 * (1 + 0.25 * self.t_c()) * self.support_length * self.support_chord
         return s_wet_support
 
     def t_c(self):
+        """ assume NACA 4-series airfoil """
         num_list = [int(digit) for digit in self.support_profile]
         thickness = num_list[2] * 10 + num_list[3]  # naca thickness of profile
         thickness = thickness / 100  # returns value in percentage of normalized chord
@@ -84,107 +79,105 @@ class SupportStrut:
         ar_support = self.support_length ** 2 / self.area()
         return ar_support
 
-    """ -------------------------------------- coefficients for support forces ------------------------------------ """
-    def cl_da(self):
-        cl0 = airfoil_polar(f"support{self.support_profile}.txt", float(0.0))
-        cl0_val = float(cl0[0])
-        cl5 = airfoil_polar(f"support{self.support_profile}.txt", float(10.0))
-        cl5_val = float(cl5[0])
-        cl_da_support = (cl5_val - cl0_val) / 10
-        return cl_da_support
+    """ ------------------------------ Ratios used for normalization --------------------------------------------- """
+    def area_ratio(self):
+        ar_support = self.area() / self.ref_area
+        return ar_support
 
+    def area_ratio_wet(self):
+        """ Area ratio used in zero lift drag """
+        ar_w_support = self.area_wetted() / self.ref_area
+        return ar_w_support
+
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
+
+    def chord_ratio(self):
+        c_ratio = self.support_chord / self.ref_chord
+        return c_ratio
+
+    """ -------------------------------------- coefficients for support forces ------------------------------------ """
     def cl(self):
-        cl_support = self.cl_da() * self.inflow_angle()
-        return cl_support
+        """ coefficient taken from Xfoil"""
+        cl_polar = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()[0]))
+        cl_support = float(cl_polar[0])
+
+        cl_support_norm = cl_support * self.velocity_ratio() * self.area_ratio()
+        return cl_support, cl_support_norm
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
-        fm = mach_correction(0.44)
+        fm = mach_correction(self.mach)
 
         ftc = (1 + 1.2 * self.t_c() + 60 * self.t_c() ** 4)
 
-        cd0_support = cf * fm * ftc * (self.area_wetted() / self.ref_area)
-
-        return cd0_support
+        cd0_support = cf * fm * ftc
+        cd0_support_ratio = cf * fm * ftc * self.area_ratio_wet()
+        return cd0_support, cd0_support_ratio
 
     def cdi(self):
         cdi_support = self.cl()[0] ** 2 / (0.95 * np.pi * self.aspect_ratio())
-        return cdi_support
+
+        cdi_norm = self.cl()[0] ** 2 / (0.95 * np.pi * self.aspect_ratio()) * self.area_ratio() * self.velocity_ratio()
+        return cdi_support, cdi_norm
 
     def cd(self):
-        cd_polar = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()))
-        cd_val = float(cd_polar[1]) + self.cd0()
+        """ coefficient taken from Xfoil"""
+        cd_polar = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()[0]))
+        cd_val = float(cd_polar[1])
 
-        return cd_val
+        cd_norm = cd_val * self.area_ratio() * self.velocity_ratio()
+        return cd_val, cd_norm
 
+    def cm(self):
+        """ coefficient taken from Xfoil"""
+        cm_strut = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()[0]))
+        cm_strut = float(cm_strut[2])
+        cm_norm = cm_strut * self.area_ratio() * self.velocity_ratio() * self.chord_ratio()
+        return cm_strut, cm_norm
+
+    def cn(self):
+        alpha = self.inflow_angle()[1]
+
+        cn_support = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
+
+        cn_norm = cn_support * self.area_ratio() * self.velocity_ratio()
+        return cn_support, cn_norm
+
+    def ct(self):
+        alpha =  self.inflow_angle()[1]
+
+        ct_support = self.cl()[0] * np.sin(alpha) - self.cd()[0] * np.cos(alpha)
+
+        ct_norm = ct_support * self.area_ratio() * self.velocity_ratio()
+
+        return ct_support, ct_norm
+
+    """ ---------------------------------- Interference effects----------------------------------------------------- """
     def cd_interference(self):
-        norm_area = (self.t_c() * self.support_chord ** 2) / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
         cd_support_nacelle = (2 * drag_interference(self.t_c(), "plane")
-                              * norm_area * norm_speed)  # multiplied by 2 for 2 nac-supp inter
+                              * self.area_ratio() * self.velocity_ratio())  # multiplied by 2 for 2 nac-supp inter
 
         cd_support_duct = (2 * drag_interference(self.t_c(), "t-junction")
-                           * norm_area * norm_speed)  # multiplied by 2 for 2 supp-duct inter
+                           * self.area_ratio() * self.velocity_ratio())  # multiplied by 2 for 2 supp-duct inter
 
         cd_int_support = cd_support_nacelle + cd_support_duct
         return cd_int_support
 
-    def coefficient_norm(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+    """ ------------------------------- Forces ------------------------------------------------- """
+    def lift_force(self):
+        lift_support = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return lift_support
 
-        cd_norm = self.cd() * norm_speed * norm_area
-        cl_norm = self.cl() * norm_speed * norm_area
-        return cl_norm, cd_norm
+    def drag_force(self):
+        drag_support = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_support
 
-    """ ------------------------------- determine output primes ------------------------------------------------- """
-    def cl_prime(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cl_support = self.cl() * norm_area * norm_speed
-        return cl_support
-
-    def cd_prime(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_support = self.cd() * norm_area * norm_speed
-        return cd_support
-
-    def cm(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_chord = self.support_chord / self.ref_chord
-
-        cm_strut = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()))
-        cm_strut = float(cm_strut[2])
-        cm_norm = cm_strut * norm_chord * norm_speed * norm_area
-        return cm_strut, cm_norm
-
-    def cn(self):
-        n_area = self.area() / self.ref_area
-        n_velocity = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        alpha = np.radians(self.inflow_angle())
-
-        cn_support = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
-
-        cn_norm = cn_support * n_area * n_velocity
-        return cn_support, cn_norm
-
-    def ct(self):
-        n_area = self.area() / self.ref_area
-        n_velocity = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        alpha = np.radians(self.inflow_angle())
-
-        ct_support = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
-
-        ct_norm = ct_support * n_velocity * n_area
-
-        return ct_support, ct_norm
+    def moment_force(self):
+        moment_support = (self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+                          * self.support_chord)
+        return moment_support
 
     """ ----------------------------------- Weight estimation ------------------------------------------------- """
     @staticmethod
@@ -195,7 +188,7 @@ class SupportStrut:
 
 
 """ Test section """
-
+"""
 if __name__ == "__main__":
 
     a = np.linspace(1, 2, 3)
@@ -224,7 +217,7 @@ if __name__ == "__main__":
                                prop_diameter=3.6,
                                va_inlet=250,
                                ref_chord=2.2345)
-        """
+
         polar = airfoil_polar(f"support0012.txt", float(a[i]))
         cd_val = float(polar[1])
         cl_val = float(polar[0])
@@ -269,7 +262,7 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.show()
-    """
+
     print(f"inflow vel: {support.inflow_velocity()}")
     print(f"inflow ang: {support.inflow_angle()}")
     print(f"cd0: {support.cd0()}")
@@ -277,4 +270,5 @@ if __name__ == "__main__":
     print(f"cd prime: {support.cd_prime():.5f}")
     print(f"cl: {support.cl():.5f}")
     print(f"cl prime: {support.cl_prime():.5f}")
-    print(f"wet area: {support.area_wetted()}")
+    print(f"wet area: {support.area_wetted()}") 
+    """

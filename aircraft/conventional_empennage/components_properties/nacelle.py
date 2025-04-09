@@ -6,19 +6,22 @@ from analysis_modules.ISA import air_density_isa
 
 class Nacelle:
     """ Nacelle class for conventional configuration"""
-    def __init__(self, nacelle_length: float, nacelle_diameter: float, v_inf: float, alpha: float,
-                 area_ref: float, prop_airfoil: str, n_blades: float, mach: float, altitude: float):
+    def __init__(self, geometry, conditions, reference, prop_airfoil: str, n_blades: float):
         super().__init__()
-        self.nacelle_length = nacelle_length
-        self.nacelle_diameter = nacelle_diameter
-        self.v_inf = v_inf
-        self.alpha = alpha
-        self.area_ref = area_ref
+        self.nacelle_length = geometry[0]
+        self.nacelle_diameter = geometry[1]
+
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.ref_area = reference[0]
+        self.ref_chord = reference[1]
+
         self.prop_airfoil = prop_airfoil
         self.n_blades = n_blades
-        self.mach = mach
-        self.altitude = altitude
-
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
         inflow_nac = self.v_inf
@@ -26,14 +29,15 @@ class Nacelle:
 
     def inflow_angle(self):
         alfa = self.alpha
-        return alfa
+
+        angle_rad = np.radians(alfa)
+        return alfa, angle_rad
 
     def reynolds_number(self):
         re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.nacelle_length)
         return re_nac
 
-    """" --------------------------- Calculate geometric properties ----------------------------------------------- """
-
+    """ -------------------------------------- geometric properties ---------------------------------------------- """
     def area_wetted(self):
         """ only the side area is assumed no closing sides"""
         area_cylinder = np.pi * self.nacelle_diameter * self.nacelle_length
@@ -41,80 +45,143 @@ class Nacelle:
         """ half a sphere is used to close of the rear end"""
         area_rear = 0.5 * np.pi * self.nacelle_diameter ** 2
 
-        area_wet_nac = area_rear + area_cylinder
-        return area_wet_nac
+        area_nacelle = area_rear + area_cylinder
+        return area_nacelle
 
     def area(self):
-        area_nac = self.nacelle_length * self.nacelle_diameter
-        return area_nac
+        """ projected area on the bottom """
+        area_nacelle = self.nacelle_length * self.nacelle_diameter
+        return area_nacelle
 
-    def t_c(self):
-        """ defined on comparable propeller blade"""
-        t_c_prop_root = 0.10
-        t_c_prop_tip = 0.08
-        t_c_av = (t_c_prop_tip + t_c_prop_root) / 2
-        return t_c_av
+    """ ------------------------------ Ratios used for normalization --------------------------------------------- """
+    def area_ratio(self):
+        ar_nacelle = self.area() / self.ref_area
+        return ar_nacelle
 
-    """" ----------------------- Calculate geometric properties of the horizontal tail ---------------------------- """
-    def cd_interference(self):
-        norm_area = self.area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+    def area_ratio_wet(self):
+        ar_w_nacelle = self.area_wetted() / self.ref_area
+        return ar_w_nacelle
 
-        cd_int_nac = (drag_interference(self.t_c(), 'plane') * norm_speed * norm_area
-                      * self.n_blades)
-        return cd_int_nac
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
 
+    """ ---------------------------------------- determine coefficients ------------------------------------------ """
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         l_d = self.nacelle_length / self.nacelle_diameter
-        # f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
-        f_nac = 1 + 0.35 / (self.nacelle_length / self.nacelle_diameter)
+        f_nac = 1 + 60 / l_d ** 3 + 0.0025 * l_d
 
-        cd0_nacelle = cf * fm * f_nac * 1.5 * (self.area() / self.area_ref)
-        return cd0_nacelle
+        cd0_nacelle = cf * fm * f_nac
+        cd0_nacelle_ar = cf * fm * f_nac * self.area_ratio_wet()
+        return cd0_nacelle, cd0_nacelle_ar
 
     def cd(self):
-        cd_nac = self.cd0() * (self.area_ref / self.area())
-        return cd_nac
+        """ drag model based on flow over slender inclined bodies of revolution """
+        alpha = self.inflow_angle()[1]
+        area = self.ref_area
+        area_p = self.area()
+        surface_b = self.area()
+        cd_90 = 0.19
 
-    def cd_prime(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+        cd_nac = (self.cd0()[1] * np.cos(alpha) ** 3 + surface_b / area * np.sin(2 * alpha) * np.sin(alpha / 2)
+                  + cd_90 * area_p / area * np.sin(alpha) ** 3)
+        cd_norm = cd_nac * self.area_ratio() * self.velocity_ratio()
 
-        cd_nac = self.cd0() * norm_speed * norm_area
-        return cd_nac
+        # create vector for plots in GUI
+        a_vector = np.linspace(-5, 15, 21)
+        cd_vector = []
+        for i in range(len(a_vector)):
+            a_rad = np.radians(a_vector[i])
+            cd_vector.append(self.cd0()[1] * np.cos(a_rad) ** 3 + surface_b / area * np.sin(2 * a_rad)
+                             * np.sin(a_rad / 2) + cd_90 * area_p / area * np.sin(a_rad) ** 3)
 
-    @staticmethod
-    def cl():
-        """assume the nacelle does not produce lift"""
-        cl_prime_nac = 0
-        return cl_prime_nac
+        return cd_nac, cd_norm, cd_vector
 
-    """ ------------------------ Output primes ----------------------------------------------------------------- """
-    def ct(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+    def cl(self):
+        """ lift model based on flow over slender inclined bodies of revolution """
+        alpha = self.inflow_angle()[1]
+        area = self.ref_area
+        area_p = self.area()
+        surface_b = self.area()
+        cd_90 = 0.19
 
-        alpha = np.radians(self.inflow_angle())
+        cl_nac = (surface_b / area * np.sin(2 * alpha) * np.cos(alpha / 2) + cd_90 * area_p / area * np.sin(alpha) ** 2
+                  * np.cos(alpha))
+        cl_norm = cl_nac * self.area_ratio() * self.area_ratio_wet()
 
-        ct = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
-        ct_norm = ct * norm_area * norm_speed
+        # vectors for plots in GUI
+        a_vector = np.linspace(-5, 15, 21)
+        cl_vector = []
+        for i in range(len(a_vector)):
+            a_rad = np.radians(a_vector[i])
+            cl_vector.append(surface_b / area * np.sin(2 * a_rad) * np.cos(a_rad / 2) + cd_90 * area_p / area
+                             * np.sin(a_rad) ** 2 * np.cos(a_rad))
 
-        return ct, ct_norm
+        return cl_nac, cl_norm, cl_vector
+
+    def cm(self):
+        """ pitching moment based on flow over slender inclined bodies of revolution """
+        alpha = self.inflow_angle()[1]
+        area = self.ref_area
+        area_p = self.area()
+        surface_b = self.area()
+        chord = self.ref_chord
+        cd_90 = 0.19
+        length = self.nacelle_length
+        xm = 0
+        q = np.pi * (self.nacelle_diameter / 2) ** 2 * self.nacelle_length
+        xa90 = self.nacelle_length / 2
+
+        cm_nac = ((q - surface_b * (length - xm) / (area * chord)) * np.sin(2 * alpha) * np.cos(alpha / 2) + cd_90
+                  * (area_p / area) * ((xm - xa90) / chord) * np.sin(alpha) ** 2)
+        cm_norm = cm_nac * self.velocity_ratio()
+
+        cm_vector = []
+        a_vect = np.linspace(-5, 15, 21)
+        for i in range(len(a_vect)):
+            cm_vector.append(((q - surface_b * (length - xm) / (area * chord)) * np.sin(2 * alpha) * np.cos(alpha / 2)
+                              + cd_90 * (area_p / area) * ((xm - xa90) / chord) * np.sin(alpha) ** 2))
+
+        return cm_nac, cm_norm, cm_vector
 
     def cn(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+        alpha = self.inflow_angle()[1]
 
-        alpha = np.radians(self.inflow_angle())
+        cn_nacelle = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
 
-        cn = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
-        cn_norm = cn * norm_area * norm_speed
+        cn_norm = cn_nacelle * self.area_ratio() * self.velocity_ratio()
+        return cn_nacelle, cn_norm
 
-        return cn, cn_norm
+    def ct(self):
+        alpha = self.inflow_angle()[1]
 
-    """" ----------------------------------- Calculate weight --------------------------------------------------- """
+        ct_nacelle = self.cl()[0] * np.sin(alpha) - self.cd()[0] * np.cos(alpha)
+
+        ct_norm = ct_nacelle * self.area_ratio() * self.velocity_ratio()
+
+        return ct_nacelle, ct_norm
+    """ ------------------------------------------ INTERFERENCE EFFECTS -------------------------------------------- """
+    def cd_interference(self):
+        """ interference effects of the nacelle on the wing"""
+        cd_int_nac = 2
+        return cd_int_nac
+
+    """ ------------------------------------------- FORCES --------------------------------------------------------- """
+    def lift_force(self):
+        lift_nacelle = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return lift_nacelle
+
+    def drag_force(self):
+        drag_nacelle = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_nacelle
+
+    def moment_force(self):
+        moment_nacelle = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return moment_nacelle
+
+    """ -------------------------------------- The weight is depending on the propulsion type ---------------------- """
     @staticmethod
     def weight():
         """ based on Torenbeek Class II weight estimation"""
@@ -124,6 +191,7 @@ class Nacelle:
         v = 54.12
 
         m_nacelle = 0.0458 * (p * eta) / (v * 9.81)
+
         return m_nacelle
 
 

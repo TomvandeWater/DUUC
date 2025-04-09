@@ -8,22 +8,25 @@ from analysis_modules.ISA import air_density_isa
 
 class VerticalTail:
     """ Vertical Tail class for conventional empennage"""
-    def __init__(self, vt_span: float, vt_chord: float, vt_profile: str,
-                 vt_taper: float, vt_sweep: float, vt_croot: float, tail_type: str,
-                 alpha: float, v_inf: float, area_ref: float, mach: float, altitude: float):
+    def __init__(self, geometry, conditions, reference, tail_type: str):
         super().__init__()
-        self.vt_span = vt_span
-        self.vt_chord = vt_chord
-        self.vt_profile = vt_profile
+        self.vt_span = geometry[0]
+        self.vt_chord = geometry[1]
+        self.vt_profile = geometry[2]
+        self.vt_sweep = geometry[3]
+        self.vt_taper = geometry[4]
+        self.vt_croot = geometry[5]
+
         self.tail_type = tail_type
-        self.vt_taper = vt_taper
-        self.vt_sweep = vt_sweep
-        self.vt_croot = vt_croot
-        self.v_inf = v_inf
-        self.alpha = alpha
-        self.area_ref = area_ref
-        self.mach = mach
-        self.altitude = altitude
+
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.ref_area = reference[0]
+        self.ref_chord = reference[1]
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -33,7 +36,8 @@ class VerticalTail:
     @staticmethod
     def inflow_angle():
         inflow_angle = 0
-        return inflow_angle
+        angle_rad = np.radians(inflow_angle)
+        return inflow_angle, angle_rad
 
     def reynolds_number(self):
         re_vtail = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.vt_chord)
@@ -57,7 +61,7 @@ class VerticalTail:
         thickness = thickness / 100  # returns value in percentage of normalized chord
         return thickness
 
-    def wet_area(self):
+    def area_wetted(self):
         wet_vt = 2 * self.area() * (1 + 0.25 * self.t_c() * (1 + 0.7 * ref.tr_v) / (1 + ref.tr_v))
         return wet_vt
 
@@ -81,73 +85,96 @@ class VerticalTail:
             z_tail = 0
             return z_tail
 
+    """ ------------------------------ Ratios used for normalization --------------------------------------------- """
+    def area_ratio(self):
+        ar_pylon = self.area() / self.ref_area
+        return ar_pylon
+
+    def area_ratio_wet(self):
+        ar_w_pylon = self.area_wetted() / self.ref_area
+        return ar_w_pylon
+
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
+
+    def chord_ratio(self):
+        c_ratio = self.vt_chord / self.ref_chord
+        return c_ratio
+
     """ -------------------------------- Coefficient calculation -------------------------------------------------- """
-    def cd_interference(self):
-        norm_area = (self.t_c() * self.vt_chord ** 2) / self.area()
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_int_vt = (drag_interference(self.t_c(), 'plane') * norm_speed
-                     * norm_area)
-        return cd_int_vt
-
     def cl(self):
         cl_polar = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle())
         cl_vt = cl_polar[0]
-        return cl_vt
+
+        cl_norm = cl_vt * self.area_ratio() * self.velocity_ratio()
+        return cl_vt, cl_norm
 
     def cdi(self):
         e = oswald(self.aspect_ratio(), self.vt_sweep)
-        cdi_vt = self.cl() ** 2 / (np.pi * self.aspect_ratio() * e)
-        return cdi_vt
+        cdi_vt = self.cl()[0] ** 2 / (np.pi * self.aspect_ratio() * e)
+
+        cdi_norm = cdi_vt * self.area_ratio() * self.velocity_ratio()
+        return cdi_vt, cdi_norm
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
-        norm_area = self.wet_area() / self.area_ref
         sweep_corr = 1.34 * self.mach ** 0.18 * (np.cos(np.radians(self.vt_sweep)) ** 0.28)
         ftc = (1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4) * sweep_corr
 
-        cd0_vt = cf * fm * ftc * norm_area * 1.04
-        return cd0_vt
+        cd0_vt_ar = cf * fm * ftc * self.area_ratio_wet() * 1.04
+        cd0_vt = cf * fm * ftc * 1.04
+        return cd0_vt, cd0_vt_ar
 
     def cd(self):
-        norm_area = self.wet_area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        cd_vt_norm = self.cd0() * self.area_ratio() + self.cdi() * self.area_ratio() * self.velocity_ratio()
+        cd_vt = self.cd0()[1] + self.cdi()[0]
+        return cd_vt, cd_vt_norm
 
-        cd_vt = self.cd0() * norm_speed + self.cdi() * norm_speed * norm_area
-        return cd_vt
+    def c_beta(self):
+        alpha = self.inflow_angle()[1]
 
-    """ ------------------------------ calculate output primes ---------------------------------------------------- """
-    def cd_prime(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        cbeta_vt = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
 
-        alpha = np.radians(self.inflow_angle())
+        cbeta_norm = cbeta_vt * self.area_ratio() * self.velocity_ratio()
+        return cbeta_vt, cbeta_norm
 
-        cd_cd = self.cd() * np.cos(alpha) * norm_speed
-        cd_cl = self.cl() * np.sin(alpha) * norm_speed
+    def ct(self):
+        alpha = self.inflow_angle()[1]
 
-        cd_prime_vt = cd_cl + cd_cd
-        return cd_prime_vt
+        ct_vt = self.cl()[0] * np.sin(alpha) - self.cd()[0] * np.cos(alpha)
 
-    @staticmethod
-    def cl_prime():
-        """ vertical tail does not produce lift"""
-        cl_prime_vt = 0
-        return cl_prime_vt
+        ct_norm = ct_vt * self.area_ratio() * self.velocity_ratio()
+        return ct_vt, ct_norm
 
-    def c_beta_prime(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+    def cm(self):
+        """ coefficient taken from Xfoil """
+        cm_polar = airfoil_polar(f"vt{self.vt_profile}.txt", float(self.inflow_angle()[0]))
+        cm_pylon_norm = float(cm_polar[2]) * self.velocity_ratio() * self.area_ratio() * self.chord_ratio()
+        cm_pylon = float(cm_polar[2])
+        return cm_pylon, cm_pylon_norm
 
-        alpha = np.radians(self.inflow_angle())
+    """ -------------------------------- INTERFERENCE EFFECTS ------------------------------------------------------ """
+    def cd_interference(self):
+        cd_int_vt = (drag_interference(self.t_c(), 'plane')
+                     * self.area_ratio() * self.velocity_ratio())
+        return cd_int_vt
 
-        cl_cl = self.cl() * np.cos(alpha) * norm_speed * norm_area
-        cl_cd = self.cd() * np.sin(alpha) * norm_speed * norm_area
+    """ ---------------------------------------- FORCES ------------------------------------------------------------ """
+    def side_force(self):
+        side_force_vt = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return side_force_vt
 
-        cl_prime_vt = cl_cl + cl_cd
-        return cl_prime_vt
+    def drag_force(self):
+        drag_vt = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_vt
 
-    """ ---------------------------------------- determine weight ------------------------------------------------- """
+    def moment_force(self):
+        moment_vt = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.pylon_chord
+        return moment_vt
+
+    """ ---------------------------------------------- WEIGHT ------------------------------------------------------ """
     def weight(self):
         kv = 1
         sv = self.area()
@@ -160,7 +187,7 @@ class VerticalTail:
 
 
 """ Test section"""
-
+"""
 if __name__ == "__main__":
     hor = VerticalTail(vt_span=ref.b_v,
                        vt_chord=ref.c_root_v,
@@ -184,3 +211,4 @@ if __name__ == "__main__":
     print(f"area: {hor.area()}")
     print(f"span: {hor.vt_span}")
     print(f"area: {hor.area()}, wet_area: {hor.wet_area()}")
+    """

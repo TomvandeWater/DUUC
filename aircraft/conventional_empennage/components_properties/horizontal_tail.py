@@ -9,25 +9,28 @@ import matplotlib.pyplot as plt
 
 class HorizontalTail:
     """ Horizontal tail class for the conventional empennage """
-    def __init__(self, ht_span: float, ht_chord: float, ht_profile: str,
-                 ht_taper: float, ht_sweep: float, ht_croot: float, alpha: float, v_inf: float,
-                 area_ref: float, mach: float, ar_wing: float, cl_wing: float, cla_wing: float,
-                 altitude: float):
+    def __init__(self, geometry, conditions, reference, ar_wing: float, cl_wing: float, cla_wing: float):
         super().__init__()
-        self.ht_span = ht_span
-        self.ht_chord = ht_chord
-        self.ht_profile = ht_profile
-        self.ht_taper = ht_taper
-        self.ht_sweep = ht_sweep
-        self.ht_croot = ht_croot
-        self.alpha = alpha
-        self.v_inf = v_inf
-        self.area_ref = area_ref
-        self.mach = mach
+        self.ht_span = geometry[0]
+        self.ht_chord = geometry[1]
+        self.ht_profile = geometry[2]
+
+        self.ht_sweep = geometry[3]
+        self.ht_taper = geometry[4]
+        self.ht_croot = geometry[5]
+
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.ref_area = reference[0]
+        self.ref_chord = reference[1]
+
         self.ar_wing = ar_wing
         self.cl_wing = cl_wing
         self.cla_wing = cla_wing
-        self.altitude = altitude
 
     """ ---------------------------- Calculate inflow properties ------------------------------------------------- """
     def inflow_velocity(self):
@@ -42,8 +45,8 @@ class HorizontalTail:
         eta = e0 + de_da * self.alpha
 
         inflow_angle = self.alpha - ref.alpha_install_wing - eta + ref.installation_angle
-        # inflow_angle = self.alpha -> for plotting validation
-        return inflow_angle
+        angle_rad = np.radians(inflow_angle)
+        return inflow_angle, angle_rad
 
     def reynolds_number(self):
         re_htail = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.ht_chord)
@@ -65,7 +68,7 @@ class HorizontalTail:
         thickness = thickness / 100  # returns value in percentage of normalized chord
         return thickness
 
-    def wet_area(self):
+    def area_wetted(self):
         wet_ht = 2 * (1 + 0.5 * self.t_c()) * self.ht_span * self.ht_chord
         return wet_ht
 
@@ -81,30 +84,29 @@ class HorizontalTail:
         return x_tip_tail
 
     def oswald(self):
-        f = 0.005 * (1 + 1.5 * (ref.tr_h - 0.6) ** 2)
-        mc = 1 + 0.12 * self.mach ** 6
-        c1 = (0.142 + f * self.aspect_ratio() * (10 * self.t_c()) ** 0.33) / (np.cos(np.radians(ref.phi_qc_h)) ** 2)
-        c2 = (0.1 * (3 * 0 + 1)) / (4 + self.aspect_ratio()) ** 0.8
-
-        e_ht = 1 / (mc * (1 + c1 + c2))
-
-        e_ht = oswald(self.aspect_ratio(), 0)  # used improved oswald factor calculation
+        e_ht = oswald(self.aspect_ratio(), 0)
         return e_ht
 
-    """ ------------------------------------ determine coefficients -------------------------------------------  """
-    def cd_interference(self):
-        norm_area = (self.t_c() * self.ht_chord ** 2) / self.area()
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+    """ ------------------------------ RATIONS USED FOR NORMALALIZATION ------------------------------------------ """
+    def area_ratio(self):
+        ar_pylon = self.area() / self.ref_area
+        return ar_pylon
 
-        cd_int_ht = (drag_interference(self.t_c(), 't-junction') * norm_speed * norm_area)
+    def area_ratio_wet(self):
+        ar_w_pylon = self.area_wetted() / self.ref_area
+        return ar_w_pylon
 
-        return cd_int_ht
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
 
+    def chord_ratio(self):
+        c_ratio = self.ht_chord / self.ref_chord
+        return c_ratio
+
+    """ ------------------------------------ COEFFICIENTS --------------------------------------------------------  """
     def cl_al(self):
         tan2 = np.tan(np.radians(self.ht_sweep)) ** 2
-        an = 2 * np.pi * self.aspect_ratio()
-        bn = 2 + np.sqrt(4 + self.aspect_ratio() ** 2 * (1 + tan2))
-        cl_al_tail = an / bn
 
         cl_al_tail = (2 * np.pi * self.aspect_ratio()) / (2 + np.sqrt(4 + self.aspect_ratio() ** 2))
         return cl_al_tail
@@ -113,32 +115,30 @@ class HorizontalTail:
         cl_polar = airfoil_polar(f"ht{self.ht_profile}.txt", 0)
         cl_ht0 = cl_polar[0]
 
-        cl_ht = cl_ht0 + self.cl_al() * np.radians(self.inflow_angle())
-        return cl_ht
+        cl_ht = cl_ht0 + self.cl_al() * self.inflow_angle()[1]
+        cl_norm = cl_ht * self.area_ratio() * self.velocity_ratio()
+        return cl_ht, cl_norm
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
         fm = mach_correction(self.mach)
         sweep_corr = 1.34 * self.mach ** 0.18 * (np.cos(np.radians(self.ht_sweep)) ** 0.28)
         ftc = (1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4) * sweep_corr
-        norm_area = self.area() / self.area_ref
 
-        cd0_ht = cf * fm * ftc * 1.04 * norm_area   # 1.04 for conventional empennage talking about interference
-        # cd0_ht = cf * fm * ftc * 1.04
-        return cd0_ht
+        cd0_ht_ar = cf * fm * ftc * 1.04 * self.area_ratio_wet()
+        cd0_ht = cf * fm * ftc * 1.04
+        return cd0_ht, cd0_ht_ar
 
     def cdi(self):
         e = self.oswald()
-        cdi_ht = (self.cl() ** 2) / (np.pi * self.aspect_ratio() * e)
-        return cdi_ht
+        cdi_ht = (self.cl()[0] ** 2) / (np.pi * self.aspect_ratio() * e)
+        cdi_norm = cdi_ht * self.area_ratio() * self.velocity_ratio()
+        return cdi_ht, cdi_norm
 
     def cd(self):
-        norm_area = self.area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_ht = self.cd0() * norm_speed + self.cdi() * norm_speed * norm_area
-        cd_ht = self.cd0() + self.cdi()
-        return cd_ht
+        cd_ht_norm = self.cd0()[1] * self.velocity_ratio() + self.cdi()[1]
+        cd_ht = self.cd0()[1] + self.cdi()[0]
+        return cd_ht, cd_ht_norm
 
     @staticmethod
     def cm():
@@ -146,44 +146,44 @@ class HorizontalTail:
         cm_ht = 0
         return cm_ht
 
-    """ ------------------------ Output primes ----------------------------------------------------------------- """
-    def cd_prime(self):
-        norm_area = self.area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_prime_ht = self.cd() * norm_speed * norm_area
-        return cd_prime_ht
-
-    def cl_prime(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
-
-        cl_prime_vt = self.cl() * norm_speed * norm_area
-        return cl_prime_vt
-
     def ct(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+        alpha = self.inflow_angle()[1]
 
-        alpha = np.radians(self.inflow_angle())
-
-        ct = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
-        ct_norm = ct * norm_area * norm_speed
-
+        ct = self.cl()[0] * np.sin(alpha) - self.cd()[0] * np.cos(alpha)
+        ct_norm = ct * self.velocity_ratio() * self.area_ratio()
         return ct, ct_norm
 
     def cn(self):
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_area = self.area() / self.area_ref
+        alpha = self.inflow_angle()[1]
 
-        alpha = np.radians(self.inflow_angle())
-
-        cn = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
-        cn_norm = cn * norm_area * norm_speed
+        cn = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
+        cn_norm = cn * self.velocity_ratio() * self.area_ratio()
 
         return cn, cn_norm
 
-    """" ----------------------------------- Calculate weight --------------------------------------------------- """
+    """ ------------------------------------ INTERFERENCE EFFECTS -------------------------------------------------  """
+    def cd_interference(self):
+        norm_area = (self.t_c() * self.ht_chord ** 2) / self.area()
+        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+
+        cd_int_ht = (drag_interference(self.t_c(), 't-junction') * norm_speed * norm_area)
+
+        return cd_int_ht
+
+    """ ------------------------------------- FORCES --------------------------------------------------------------- """
+    def lift_force(self):
+        lift_pylon = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return lift_pylon
+
+    def drag_force(self):
+        drag_pylon = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_pylon
+
+    def moment_force(self):
+        moment_pylon = self.cm() * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.ht_chord
+        return moment_pylon
+
+    """" ------------------------------------- WEIGHT -------------------------------------------------------------- """
     def weight(self):
         kh = 1.1
         sh = self.area()
@@ -195,7 +195,7 @@ class HorizontalTail:
 
 
 """ Test section"""
-
+"""
 if __name__ == "__main__":
 
     a = np.linspace(0, 15, 31)
@@ -297,3 +297,4 @@ if __name__ == "__main__":
     print(f"sweep: {hor.ht_sweep}")
     print(f"ar: {hor.aspect_ratio()}")
     print(f"area: {hor.area()}, wet_area: {hor.wet_area()}")
+    """

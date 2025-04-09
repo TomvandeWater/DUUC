@@ -11,25 +11,26 @@ from analysis_modules.factors import skin_friction, mach_correction
 class Pylon:
     """ The reference point for connecting the pylon to the fuselage is on y=0 and in at half of the chord length of
     the airfoil. The pylon is completely outside the duct. """
-    def __init__(self, pylon_length: float, pylon_chord: float, pylon_profile: str,
-                 power_condition: str, cant_angle: float, alpha: float, ref_area: float,
-                 v_inf: float, m_supported: float, ref_chord, altitude: float):
+    def __init__(self, geometry, conditions, reference, power_condition: str):
         super().__init__()
-        self.pylon_length = pylon_length
-        self.pylon_chord = pylon_chord
-        self.pylon_airfoil = pylon_profile
-        self.cant_angle = cant_angle
-        self.alpha = alpha
-        self.pc = power_condition
-        self.ref_area = ref_area
-        self.v_inf = v_inf
-        self.m_supported = m_supported
-        self.ref_chord = ref_chord
-        self.altitude = altitude
+        self.pylon_length = geometry[0]
+        self.pylon_chord = geometry[1]
+        self.pylon_airfoil = geometry[2]
+        self.cant_angle = geometry[3]
 
-    """ The inflow speed for the pylon is affected by the outside of the duct
-    and also affected by the downwash of the wing. The downwash of the wing and the duct affect
-    the inlfow angle of on the pylon"""
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.ref_area = reference[0]
+        self.ref_chord = reference[1]
+
+        self.pc = power_condition
+
+    """ The inflow speed for the pylon is affected by the outside of the duct and also affected by the downwash of the 
+    wing. The downwash of the wing and the duct affect the inlfow angle of on the pylon"""
     def inflow_velocity(self):
         """ Inflow velocity of the pylon """
         e = (2 * ref.cl_wing) / (np.pi * ref.ar_w)
@@ -42,142 +43,140 @@ class Pylon:
             return u_pylon
 
     def inflow_angle(self):
-        """ inflow angle already determined in general propulsive empennage class"""
+        """ inflow angle already determined in general propulsive empennage class is only corrected here for the
+        cant angle of the pylon -> asuming sweep = 0 """
         cant = np.radians(self.cant_angle)
 
-        inflow_angle = self.alpha * np.cos(cant)
-        return inflow_angle
+        inflow_angle = self.alpha + - cant * np.cos(0)
+        angle_rad = np.radians(inflow_angle)
+        return inflow_angle, angle_rad
 
     def reynolds_number(self):
+        """ local reynolds number of the pylon"""
         re_pylon = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.pylon_chord)
         return re_pylon
 
     """ ------------------------- geometric properties ----------------------------------------------------------- """
-
     def area(self):
+        """ flat surface area of the pylon"""
         area_pylon = self.pylon_length * self.pylon_chord
         return area_pylon
 
     def t_c(self):
+        """ assume NACA 4-series airfoil """
         num_list = [int(digit) for digit in self.pylon_airfoil]
         thickness = num_list[2] * 10 + num_list[3]  # naca thickness of profile
         thickness = thickness / 100  # returns value in percentage of normalized chord
         return thickness
 
     def area_wetted(self):
-        s_wet_pylon = 2 * (1 + 0.5 * self.t_c()) * self.pylon_length * self.pylon_chord
+        """ untapered, unswept wing definition by Torenbeek """
+        s_wet_pylon = 2 * (1 + 0.25 * self.t_c()) * self.pylon_length * self.pylon_chord
         return s_wet_pylon
 
     def aspect_ratio(self):
         ar_pylon = self.pylon_length ** 2 / self.area()
         return ar_pylon
 
+    """ ------------------------------ Ratios used for normalization --------------------------------------------- """
+    def area_ratio(self):
+        ar_pylon = self.area() / self.ref_area
+        return ar_pylon
+
+    def area_ratio_wet(self):
+        ar_w_pylon = self.area_wetted() / self.ref_area
+        return ar_w_pylon
+
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
+
+    def chord_ratio(self):
+        c_ratio = self.pylon_chord / self.ref_chord
+        return c_ratio
+
     """ ------------------------------ Coefficients for force calculations --------------------------------------- """
-
-    def cl_da(self):
-        cl0 = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(0.0))
-        cl0_val = float(cl0[0])
-        cl5 = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(10.0))
-        cl5_val = float(cl5[0])
-        cl_da_pylon = (cl5_val - cl0_val) / 10
-        return cl_da_pylon
-
     def cl(self):
-        """ linear section modelled based on Xfoil"""
-        cl_pylon = self.cl_da() * self.inflow_angle()
-        return cl_pylon
+        """ coefficient taken from Xfoil"""
+        cl_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()[0]))
+        cl_pylon = float(cl_polar[0])
+
+        cl_pylon_norm = cl_pylon * self.area_ratio() * self.velocity_ratio()
+        return cl_pylon, cl_pylon_norm
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
-        fm = mach_correction(0.44)
-        area_ratio = self.area_wetted() / self.ref_area
+        fm = mach_correction(self.mach)
 
         ftc = (1 + 1.2 * self.t_c() + 60 * self.t_c() ** 4)
 
-        cd0_val = cf * fm * ftc * area_ratio
+        cd0_val = cf * fm * ftc * self.area_ratio_wet()
         return cd0_val
 
     def cdi(self):
-        cdi_pylon = self.cl() ** 2 / (0.95 * np.pi * self.aspect_ratio())
-        return cdi_pylon
+        cdi_pylon = self.cl()[0] ** 2 / (0.95 * np.pi * self.aspect_ratio())
+
+        cdi_pylon_norm = self.cl()[0] ** 2 / (0.95 * np.pi * self.aspect_ratio())
+        return cdi_pylon, cdi_pylon_norm
 
     def cd(self):
-        cd_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()))
-        cd_value = float(cd_polar[1]) #+ self.cd0()
+        """ coefficient taken from Xfoil """
+        cd_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()[0]))
+        cd_value = float(cd_polar[1])
 
-        #cd_value = self.cd0() + self.cdi()
-        return cd_value
-
-    def cd_interference(self):
-        norm_area = (self.t_c() * self.pylon_chord ** 2) / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_pylon_duct = (drag_interference(self.t_c(), "t-junction")
-                         * norm_area * norm_speed)  # interference pylon duct
-
-        cd_pylon_fuse = (drag_interference(self.t_c(), "plane")
-                         * norm_area * norm_speed)  # interference pylon fuselage
-
-        cd_int_pylon = cd_pylon_duct + cd_pylon_fuse
-        return cd_int_pylon
-
-    def coefficient_norm(self):
-        norm_area = (self.t_c() * self.pylon_chord ** 2) / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_norm = self.cd() * norm_speed * norm_area
-        cl_norm = self.cl() * norm_speed * norm_area
-        return cl_norm, cd_norm
-
-    """ ---------------------------------- output primes --------------------------------------------------------- """
-    def cl_prime(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cl_pylon = self.cl() * norm_area * norm_speed
-        return cl_pylon
-
-    def cd_prime(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
-        cd_pylon = self.cdi() * norm_area * norm_speed + self.cd0()
-        return cd_pylon
+        cd_value_norm = cd_value * self.area_ratio() * self.velocity_ratio()
+        return cd_value, cd_value_norm
 
     def cm(self):
-        norm_area = self.area() / self.ref_area
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-        norm_chord = self.pylon_chord / self.ref_chord
-
-        cm_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()))
-        cm_pylon_norm = float(cm_polar[2]) * norm_speed * norm_area * norm_chord
+        """ coefficient taken from Xfoil """
+        cm_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()[0]))
+        cm_pylon_norm = float(cm_polar[2]) * self.velocity_ratio() * self.area_ratio() * self.chord_ratio()
         cm_pylon = float(cm_polar[2])
         return cm_pylon, cm_pylon_norm
 
     def cn(self):
-        n_area = self.area() / self.ref_area
-        n_velocity = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        alpha = self.inflow_angle()[1]
 
-        alpha = np.radians(self.inflow_angle())
+        cn_pylon = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
 
-        cn_pylon = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
-
-        cn_norm = cn_pylon * n_area * n_velocity
+        cn_norm = cn_pylon * self.area_ratio() * self.velocity_ratio()
         return cn_pylon, cn_norm
 
     def ct(self):
-        n_area = self.area() / self.ref_area
-        n_velocity = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        alpha = self.inflow_angle()[1]
 
-        alpha = np.radians(self.inflow_angle())
+        ct_pylon = self.cl()[0] * np.sin(alpha) - self.cd()[0] * np.cos(alpha)
 
-        ct_pylon = self.cl() * np.sin(alpha) - self.cd() * np.cos(alpha)
-
-        ct_norm = ct_pylon * n_area * n_velocity
+        ct_norm = ct_pylon * self.area_ratio() * self.velocity_ratio()
         return ct_pylon, ct_norm
 
+    """ ---------------------------------- Interference effects----------------------------------------------------- """
+    def cd_interference(self):
+        cd_pylon_duct = (drag_interference(self.t_c(), "t-junction")
+                         * self.area_ratio() * self.velocity_ratio())  # interference pylon duct
+
+        cd_pylon_fuse = (drag_interference(self.t_c(), "plane")
+                         * self.area_ratio() * self.velocity_ratio())  # interference pylon fuselage
+
+        cd_int_pylon = cd_pylon_duct + cd_pylon_fuse
+        return cd_int_pylon
+
+    """ ---------------------------------- Forces --------------------------------------------------------- """
+    def lift_force(self):
+        lift_pylon = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return lift_pylon
+
+    def drag_force(self):
+        drag_pylon = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_pylon
+
+    def moment_force(self):
+        moment_pylon = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.pylon_chord
+        return moment_pylon
+
     """ ------------------------------- Weight definition of the pylon ------------------------------------------- """
-    def weight(self):
+    @staticmethod
+    def weight():
         """ Pylon weight is calculated in empennage_assembly_PE.py """
         m_pylon = None
         return m_pylon
