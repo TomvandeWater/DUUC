@@ -265,12 +265,16 @@ def screen_param():
     from screeninfo import get_monitors
 
     monitors = get_monitors()
-    second_monitor = monitors[2]  # Second screen (index 1)
+    try:
+        monitor = monitors[1]
+    except IndexError:
+        monitor = monitors[0]
 
     # Get the position of the second monitor
-    x_position = second_monitor.x
-    y_position = second_monitor.y
+    x_position = monitor.x
+    y_position = monitor.y
     return x_position, y_position
+
 
 """
 PE_input = [config.pylon_chord, config.pylon_length, config.duct_chord, config.duct_diameter,
