@@ -25,6 +25,7 @@ class Fuselage:
         self.cl_wing = cl_wing
         self.c_wing = cmac_wing
         self.altitude = altitude
+        self.density = air_density_isa(altitude)[0]
 
     """ ------------------------- Determine inflow properties ----------------------------------------------------- """
     def inflow_velocity(self):
@@ -92,7 +93,7 @@ class Fuselage:
     """ --------------------------------- Determine coefficients ------------------------------------------------- """
     def cd0(self):
         """ Based on Sadraey fuselage model"""
-        cf = skin_friction(self.re, "t")
+        cf = skin_friction(self.rey_fuselage(), "t")
         fm = mach_correction(self.mach)
         f_fus = (1 + 60 / (self.fuselage_length / self.fuselage_diameter) ** 3 + 0.0025
                  * self.fuselage_length / self.fuselage_diameter)
@@ -178,11 +179,11 @@ class Fuselage:
 
     """  --------------------------------------- Determine the forces of the fuselage ---------------------------- """
     def lift(self):
-        lift_fuselage = self.cl_prime() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * flow_conditions.rho
+        lift_fuselage = self.cl() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * self.density
         return lift_fuselage
 
     def drag(self):
-        drag_fuselage = self.cd_prime() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * flow_conditions.rho
+        drag_fuselage = self.cd() * self.inflow_velocity() ** 2 * self.area_proj() * 0.5 * self.density
         return drag_fuselage
 
     """  --------------------------------------- Determine the weight of the fuselage ---------------------------- """
