@@ -101,10 +101,19 @@ class SupportStrut:
     def cl(self):
         """ coefficient taken from Xfoil"""
         cl_polar = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()[0]))
-        cl_support = float(cl_polar[0])
+        cl_support = float(cl_polar[0]) * np.cos(np.radians(self.cant_angle))
 
         cl_support_norm = cl_support * self.velocity_ratio() * self.area_ratio()
         return cl_support, cl_support_norm
+
+    def cy(self):
+        """ coefficient taken from Xfoil"""
+        cy_polar = airfoil_polar(f"support{self.support_profile}.txt", float(self.inflow_angle()[0]))
+        cy_support = float(cy_polar[0]) * np.sin(np.radians(self.cant_angle))
+
+        cy_support_norm = cy_support * self.velocity_ratio() * self.area_ratio()
+        return cy_support, cy_support_norm
+
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
@@ -178,6 +187,10 @@ class SupportStrut:
         moment_support = (self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
                           * self.support_chord)
         return moment_support
+
+    def side_force(self):
+        side_support = self.cy()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return side_support
 
     """ ----------------------------------- Weight estimation ------------------------------------------------- """
     @staticmethod
