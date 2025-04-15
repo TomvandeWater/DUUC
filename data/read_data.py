@@ -81,6 +81,11 @@ def read_avl_output(filename):
     return alpha, cl_polar, clff_polar, cd_polar, cdin_polar, cdff_polar
 
 
+def read_text_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
+
 """ Test case for this function """
 # a = airfoil_polar("pylon0012.txt", 0)
 # print(a)
