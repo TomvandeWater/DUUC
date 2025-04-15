@@ -22,12 +22,12 @@ class MainWindow(QMainWindow):
             'hub_diameter': config.hub_diameter, 'propeller_airfoil': config.prop_airfoil,
             'propeller_c_root': config.c_root, 'propeller_c_tip': config.c_tip,
 
-            'BEM1': 41420, 'BEM2': 26482, 'BEM4': -1.44, 'BEM5': 0.889,
+            'BEM1': 4142, 'BEM2': 2648, 'BEM4': -1.44, 'BEM5': 0.889,
             'BEM6': 0.329, 'BEM7': 5, 'BEM8': 10, 'BEM3': 1820,
 
             'altitude': 7000,  'velocity': 128, 'alpha': 0.0, 'delta_e': 0, 'delta_r': 0,
             'power_condition': 'on', 'propulsion_type': 'conventional', 'RPM': config.rpm,
-            "aircraft_n_pax": config.n_pax,
+            "aircraft_n_pax": config.n_pax, "static_margin": 5, "beta": 0,
 
             'wing_span': ref.b_w, 'wing_phi_qc': ref.phi_qc_w, 'wing_airfoil': ref.wing_airfoil, 'wing_tr': ref.tr_w,
             'wing_c_root': np.round(ref.c_root_w, 3),
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
 
             "l_v": 9.13, "x_prop": 0.3, "y_engine": ref.y_engine, "x_support": 0.5 * config.duct_chord,
             "x_control_vanes": 0.95 * config.duct_chord, "x_wing": 11.5, "x_pylon": 0.5 * config.duct_chord,
-            "a_i_wing": 0, "a_i_duct": 0, "x_PE": 12, "y_PE": 0, "z_PE": ref.diameter_fuselage,
+            "a_i_wing": 0, "a_i_duct": 0, "x_PE": 30, "y_PE": 0, "z_PE": ref.diameter_fuselage,
         }
 
         print("----- INITIALIZING XFOIL POLARS -----")
@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
         self.requirements_group = QGroupBox("Requirements")
         self.requirements_layout = QVBoxLayout()
         self.requirements_group.setLayout(self.requirements_layout)
-        self.requirements_group.setFixedHeight(75)
+        self.requirements_group.setFixedHeight(100)
 
         self.refresh_requirements_display()
 
@@ -279,12 +279,12 @@ class MainWindow(QMainWindow):
             self.parameters['support_chord'],
             self.parameters['support_length'],
             self.parameters['cant_angle'],
-            config.control_vane_chord,
-            config.control_vane_length,
-            0.25 * self.parameters['duct_chord'],
-            0.95 * self.parameters['duct_chord'],
-            0.40 * self.parameters['duct_chord'],
-            0.30 * self.parameters['duct_chord']
+            self.parameters['hcv_chord'],
+            self.parameters['hcv_span'],
+            self.parameters['x_pylon'],
+            self.parameters['x_control_vanes'],
+            self.parameters['x_support'],
+            self.parameters['x_prop']
         )
         plotter.reset_camera()
 
@@ -301,12 +301,12 @@ class MainWindow(QMainWindow):
             self.parameters['support_chord'],
             self.parameters['support_length'],
             self.parameters['cant_angle'],
-            config.control_vane_chord,
-            config.control_vane_length,
-            0.25 * self.parameters['duct_chord'],
-            0.95 * self.parameters['duct_chord'],
-            0.40 * self.parameters['duct_chord'],
-            0.30 * self.parameters['duct_chord']
+            self.parameters['hcv_chord'],
+            self.parameters['hcv_span'],
+            self.parameters['x_pylon'],
+            self.parameters['x_control_vanes'],
+            self.parameters['x_support'],
+            self.parameters['x_prop']
         )
         plotter.reset_camera()
 
@@ -316,14 +316,14 @@ class MainWindow(QMainWindow):
 
         visualize_aircraft(
             plotter,
-            ref.diameter_fuselage,
-            ref.b_w / 2,
-            ref.c_root_w,
+            self.parameters["fuselage_diameter"],
+            self.parameters["wing_span"] / 2,
+            self.parameters["wing_c_root"],
             self.calculation_results["X_cog"]["x_cog_duuc"][3],
             self.calculation_results["X_cog"]["x_cog_duuc"][1],
             self.calculation_results["X_cog"]["x_cog_duuc"][0],
             self.calculation_results["X_cog"]["x_cog_duuc"][2],
-            self.parameters['x_PE'] + self.calculation_results["X_cog"]["x_cog_duuc"][3],
+            self.parameters['x_PE'],
             self.parameters['y_PE'],
             self.parameters['z_PE'],
             "DUUC",
@@ -331,9 +331,9 @@ class MainWindow(QMainWindow):
             0,
             [self.parameters['pylon_chord'], self.parameters['pylon_length'], self.parameters['duct_chord'],
              self.parameters['duct_diameter'], self.parameters['support_chord'], self.parameters['support_length'],
-             config.cant_angle, config.control_vane_chord, config.control_vane_length,
-             0.25 * self.parameters['duct_chord'], 0.95 * self.parameters['duct_chord'],
-             0.40 * self.parameters['duct_chord'], 0.30 * self.parameters['duct_chord']]
+             self.parameters["cant_angle"], self.parameters['hcv_chord'], self.parameters["hcv_span"],
+             self.parameters['x_pylon'], self.parameters['x_control_vanes'],
+             self.parameters['x_support'], self.parameters['x_prop']]
         )
         plotter.reset_camera()
 
@@ -342,9 +342,9 @@ class MainWindow(QMainWindow):
         plotter.enable_lightkit()
         visualize_aircraft(
             plotter,
-            ref.diameter_fuselage,
-            ref.b_w / 2,
-            ref.c_root_w,
+            self.parameters["fuselage_diameter"],
+            self.parameters["wing_span"] / 2,
+            self.parameters["wing_c_root"],
             self.calculation_results["X_cog"]["x_cog_atr"][3],
             self.calculation_results["X_cog"]["x_cog_atr"][1],
             self.calculation_results["X_cog"]["x_cog_atr"][0],
@@ -369,24 +369,38 @@ class MainWindow(QMainWindow):
         layout.addWidget(input_field, row, col * 2 + 1)
 
     def refresh_requirements_display(self):
-        # Clear all existing widgets from the layout
         for i in reversed(range(self.requirements_layout.count())):
             item = self.requirements_layout.itemAt(i)
             if item.widget():
                 item.widget().deleteLater()
             elif item.layout():
-                # If it's a layout, we need to clear and remove it
                 self.clear_layout(item.layout())
                 self.requirements_layout.removeItem(item)
 
-        requirements = self.calculation_results.get('requirements', [])
+        requirements = self.calculation_results["requirements"]["surfaces"]
         s_vert_requirement = requirements[0] if requirements else 0
+        s_hor_requirement = requirements[1] if requirements else 0
+
+        s_vertical = np.round((2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord") +
+                               self.parameters["pylon_chord"] * np.sin(np.radians(self.parameters["cant_angle"]))
+                               * self.parameters["pylon_length"]), 2)
+        s_horizontal = np.round((2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord") +
+                                 self.parameters["pylon_chord"] * np.cos(np.radians(self.parameters["cant_angle"]))
+                                 * self.parameters["pylon_length"]), 2)
+
+        l_w = (self.calculation_results["requirements"]["forces_duuc"][0] /
+               self.calculation_results["requirements"]["w_total"][0])
+
+        t_d = (self.calculation_results["requirements"]["forces_duuc"][2] /
+               self.calculation_results["requirements"]["forces_duuc"][1])
 
         para = [
             (r"S-vert", np.round(s_vert_requirement, 2),
-             2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord")),
-            (r"S-hor", 20, 2 * self.parameters.get("duct_diameter") * self.parameters.get("duct_chord")),
-            ("Parameter 3", 30, 31),
+             s_vertical),
+            (r"S-hor", np.round(s_hor_requirement, 2),
+             s_horizontal),
+            ("L/W", 1, np.round(l_w, 2)),
+            ("T/D", 1, np.round(t_d, 2)),
             # Add more parameters as needed
         ]
 
@@ -488,7 +502,11 @@ class MainWindow(QMainWindow):
         self.alpha_input.editingFinished.connect(
             lambda: self.update_flight_condition('alpha', self.alpha_input))
 
-        # New dummy inputs
+        beta_label = QLabel("Side Slip Angle [deg]:")
+        self.beta_input = QLineEdit(str(self.parameters['beta']))
+        self.beta_input.editingFinished.connect(
+            lambda: self.update_flight_condition('beta', self.alpha_input))
+
         ellev_deflect_label = QLabel("Elevator defl. [deg]:")
         self.ellev_deflect_input = QLineEdit(str(self.parameters['delta_e']))  # Dummy value
         self.ellev_deflect_input.editingFinished.connect(
@@ -506,10 +524,12 @@ class MainWindow(QMainWindow):
         grid_layout.addWidget(self.velocity_input, 0, 3)
         grid_layout.addWidget(alpha_label, 1, 0)
         grid_layout.addWidget(self.alpha_input, 1, 1)
-        grid_layout.addWidget(ellev_deflect_label, 1, 2)
-        grid_layout.addWidget(self.ellev_deflect_input, 1, 3)
-        grid_layout.addWidget(rudder_deflect_label, 2, 0)
-        grid_layout.addWidget(self.rudder_deflect_input, 2, 1)
+        grid_layout.addWidget(beta_label, 1, 2)
+        grid_layout.addWidget(self.beta_input, 1, 3)
+        grid_layout.addWidget(ellev_deflect_label, 2, 0)
+        grid_layout.addWidget(self.ellev_deflect_input, 2, 1)
+        grid_layout.addWidget(rudder_deflect_label, 2, 2)
+        grid_layout.addWidget(self.rudder_deflect_input, 2, 3)
 
         # Add power condition selector
         self.add_power_condition_selector(grid_layout)
@@ -527,7 +547,7 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(button_layout)  # Add buttons underneath everything
 
-        return self.altitude_input, self.velocity_input, self.alpha_input
+        return self.altitude_input, self.velocity_input, self.alpha_input, self.beta_input
 
     def create_taskbar(self):
         taskbar = QWidget()
@@ -544,8 +564,12 @@ class MainWindow(QMainWindow):
         load_button = QPushButton("📂 Load Configuration")
         load_button.clicked.connect(self.load_configuration_from_json)
 
+        save_results = QPushButton("💾 Save Results")
+        save_results.clicked.connect(self.save_results_to_json)
+
         layout.addWidget(save_button)
         layout.addWidget(load_button)
+        layout.addWidget(save_results)
         layout.addStretch(1)  # Push buttons to the left
 
         taskbar.setLayout(layout)
@@ -558,8 +582,8 @@ class MainWindow(QMainWindow):
         self.power_condition_selector.setCurrentText(self.parameters['power_condition'])
         self.power_condition_selector.currentTextChanged.connect(self.update_power_condition)
 
-        layout.addWidget(power_condition_label, 2, 2)
-        layout.addWidget(self.power_condition_selector, 2, 3)
+        layout.addWidget(power_condition_label, 3, 0)
+        layout.addWidget(self.power_condition_selector, 3, 1)
 
     def update_power_condition(self, value):
         self.parameters['power_condition'] = value
@@ -680,23 +704,152 @@ class MainWindow(QMainWindow):
 
     def create_kpi_display(self):
         kpi_group = QGroupBox("Key Performance Indicators")
-        kpi_layout = QFormLayout()
-        kpi_group.setFixedWidth(300)  # Set to desired width
+        kpi_group.setFixedWidth(500)  # Adjusted width to fit more columns
 
-        self.lift_label = QLabel("Lift [N]: ")
-        self.drag_label = QLabel("Drag [N]: ")
-        self.l_d_ratio_label = QLabel("L/D Ratio: ")
-        self.thrust_label = QLabel("Thrust [N]: ")
-        self.power_label = QLabel("Power [kW]: ")
+        # Create layout
+        kpi_layout = QGridLayout()
+        kpi_layout.setContentsMargins(10, 10, 10, 10)  # Add some margins
+        header_color = '#00A6D6'  # TU Delft Blue
+        alt_row_color = '#f0f0f0'  # Approx gray!25
+        text_color_header = 'white'
 
-        kpi_layout.addRow(self.lift_label)
-        kpi_layout.addRow(self.drag_label)
-        kpi_layout.addRow(self.l_d_ratio_label)
-        kpi_layout.addRow(self.thrust_label)
-        kpi_layout.addRow(self.power_label)
+        # Create labels
+        self.lift_wf_atr_label = QLabel("Lift WF ATR:")
+        self.lift_wf_duuc_label = QLabel("Lift WF DUUC:")
+        self.lift_wf_coeff_atr_label = QLabel("Lift WF Coeff ATR:")
+        self.lift_wf_coeff_duuc_label = QLabel("Lift WF Coeff DUUC:")
+
+        self.drag_wf_atr_label = QLabel("Drag WF ATR:")
+        self.drag_wf_duuc_label = QLabel("Drag WF DUUC:")
+        self.drag_wf_coeff_atr_label = QLabel("Drag WF Coeff ATR:")
+        self.drag_wf_coeff_duuc_label = QLabel("Drag WF Coeff DUUC:")
+
+        self.lift_emp_atr_label = QLabel("Lift EMP ATR:")
+        self.lift_emp_duuc_label = QLabel("Lift EMP DUUC:")
+        self.lift_emp_coeff_atr_label = QLabel("Lift EMP Coeff ATR:")
+        self.lift_emp_coeff_duuc_label = QLabel("Lift EMP Coeff DUUC:")
+
+        self.drag_emp_atr_label = QLabel("Drag EMP ATR:")
+        self.drag_emp_duuc_label = QLabel("Drag EMP DUUC:")
+        self.drag_emp_coeff_atr_label = QLabel("Drag EMP Coeff ATR:")
+        self.drag_emp_coeff_duuc_label = QLabel("Drag EMP Coeff DUUC:")
+
+        self.thrust_atr_label = QLabel("Thrust ATR:")
+        self.thrust_duuc_label = QLabel("Thrust DUUC:")
+        self.thrust_coeff_atr_label = QLabel("Thrust Coeff ATR:")
+        self.thrust_coeff_duuc_label = QLabel("Thrust Coeff DUUC:")
+
+        self.weight_atr_label = QLabel("Weight ATR:")
+        self.weight_duuc_label = QLabel("Weight DUUC:")
+        self.weight_coeff_atr_label = QLabel("Weight Coeff ATR:")
+        self.weight_coeff_duuc_label = QLabel("Weight Coeff DUUC:")
+
+        # Add labels to layout
+        header_font = QFont()
+        header_font.setBold(True)
+        header_font.setPointSize(10)
+
+        body_font = QFont()
+        body_font.setPointSize(10)
+
+        headers = ["<b>Parameter</b>", "<b>ATR Value</b>", "<b>DUUC Data</b>", "<b>Coeff ATR</b>", "<b>Coeff DUUC</b>"]
+
+        for col, header_text in enumerate(headers):
+            header_label = QLabel(header_text)
+            header_label.setStyleSheet(
+                f"background-color: {header_color}; color: {text_color_header}; border: 1px solid black;")
+            header_label.setFont(header_font)
+            header_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            kpi_layout.addWidget(header_label, 0, col)
+
+        # Add rows
+        row_data = [
+            ("Lift wing-fus", self.lift_wf_atr_label, self.lift_wf_duuc_label,
+             self.lift_wf_coeff_atr_label, self.lift_wf_coeff_duuc_label),
+            ("Drag wing-fus", self.drag_wf_atr_label, self.drag_wf_duuc_label,
+             self.drag_wf_coeff_atr_label, self.drag_wf_coeff_duuc_label),
+            ("Lift empennage", self.lift_emp_atr_label, self.lift_emp_duuc_label,
+             self.lift_emp_coeff_atr_label, self.lift_emp_coeff_duuc_label),
+            ("Drag empennage", self.drag_emp_atr_label, self.drag_emp_duuc_label,
+             self.drag_emp_coeff_atr_label, self.drag_emp_coeff_duuc_label),
+            ("Thrust", self.thrust_atr_label, self.thrust_duuc_label,
+             self.thrust_coeff_atr_label, self.thrust_coeff_duuc_label),
+            ("Weight", self.weight_atr_label, self.weight_duuc_label,
+             "-", "-"),
+        ]
+
+        for row_idx, (param_name, atr_lbl, duuc_lbl, coeff_atr_lbl, coeff_duuc_lbl) in enumerate(row_data, start=1):
+            # Create QLabel for parameter name
+            param_lbl_widget = QLabel(param_name)
+            param_lbl_widget.setFont(body_font)
+            param_lbl_widget.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            if row_idx % 2 == 0:
+                param_lbl_widget.setStyleSheet(f"background-color: {alt_row_color}; border: 1px solid black;")
+            else:
+                param_lbl_widget.setStyleSheet(f"border: 1px solid black;")
+            kpi_layout.addWidget(param_lbl_widget, row_idx, 0)
+
+            # Ensure all labels are QLabel instances
+            for col_idx, lbl in enumerate([atr_lbl, duuc_lbl, coeff_atr_lbl, coeff_duuc_lbl], start=1):
+                if isinstance(lbl, str):  # Check if lbl is incorrectly a string
+                    lbl = QLabel(lbl)  # Convert to QLabel
+                lbl.setFont(body_font)
+                lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+                if row_idx % 2 == 0:
+                    lbl.setStyleSheet(f"background-color: {alt_row_color}; border: 1px solid black;")
+                else:
+                    lbl.setStyleSheet(f"border: 1px solid black;")
+                kpi_layout.addWidget(lbl, row_idx, col_idx)
+
+        kpi_group.setLayout(kpi_layout)
+
+        # Create and plot the CG image
+        self.cg_image_label = QLabel()  # QLabel to display the image
+        kpi_layout.addWidget(self.cg_image_label, 7, 0, 1, 5)  # Span across columns
+
+        # Create and display the CG plot
+        self.plot_cg_figure(self.calculation_results['X_cog']["x_cog_duuc"][3],
+                            self.calculation_results['X_cog']["x_cog_duuc"][1],
+                            self.calculation_results['X_cog']["x_cog_duuc"][0], self.parameters["fuselage_length"])
 
         kpi_group.setLayout(kpi_layout)
         return kpi_group
+
+    def plot_cg_figure(self, x_cg, x_w, x_fus, length):
+        # Create a plot for CG figure and save it to a buffer
+        fig, ax = plt.subplots(figsize=(3, 1.5), facecolor='none')
+        image = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\ATR_side.png")
+
+        # Plot background image (aircraft side view)
+        ax.imshow(image, extent=[0, length, 0, 1], aspect='auto')
+
+        # CG line and label
+        ax.plot([x_cg, x_cg], [0, 0.80], color='red', linestyle='--', label=f'cg = {x_cg}')
+        ax.plot([x_w, x_w], [0, 0.80], color='black', linestyle='--', label=r'$x_w$')
+        ax.plot([x_fus, x_fus], [0, 0.80], color='black', linestyle='--', label=r'$x_f$')
+
+        # Add text annotations for CG positions
+        ax.text(x_cg, 0.90, f'{np.round(x_cg, 1)}', ha='center', va='bottom', fontsize=8, color='red')
+        ax.text(x_w, 0.80, r'$x_w$', ha='center', va='bottom', fontsize=8, color='black')
+        ax.text(x_fus, 0.80, r'$x_f$', ha='center', va='bottom', fontsize=8, color='black')
+
+        # Set axis limits and hide axes
+        ax.set_xlim(0, length)
+        ax.get_yaxis().set_visible(False)
+        ax.get_xaxis().set_visible(False)
+
+        # Render figure into QPixmap for QLabel
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        width, height = canvas.get_width_height()
+        img = QImage(canvas.buffer_rgba(), width, height, QImage.Format_RGBA8888)
+        pixmap = QPixmap.fromImage(img)
+
+        # Update QLabel with new pixmap
+        self.cg_image_label.setPixmap(pixmap)
+
+        # Free up memory used by Matplotlib figure
+        plt.close(fig)
 
     def add_propulsion_type_selector(self, layout):
         propulsion_type_label = QLabel("Propulsion Type:")
@@ -926,6 +1079,30 @@ class MainWindow(QMainWindow):
 
         self.update_status_color_labels()
 
+    def save_results_to_json(self):
+        # Prompt user for result file name
+        result_name, ok = QInputDialog.getText(self, "Save Results", "Enter result file name:")
+
+        if ok and result_name:
+            results_folder = r"C:\Users\tomva\pythonProject\DUUC\data\results"
+            os.makedirs(results_folder, exist_ok=True)
+            file_path = os.path.join(results_folder, f"{result_name}.json")
+
+            try:
+                # Convert numpy arrays to lists
+                data_to_save = {
+                    "parameters": convert_for_json(self.parameters),
+                    "calculation_results": convert_for_json(self.calculation_results)
+                }
+
+                # Save as json
+                with open(file_path, "w", encoding="utf-8") as json_file:
+                    json.dump(data_to_save, json_file, indent=4)
+
+                QMessageBox.information(self, "Success", f"Results saved to:\n{file_path}")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to save results:\n{e}")
+
     def update_calculated_values(self):
         altitude = self.parameters['altitude']
         velocity = self.parameters['velocity']
@@ -944,6 +1121,7 @@ class MainWindow(QMainWindow):
         mach = velocity / speed_of_sound(altitude)
         advance_ratio = velocity / ((self.parameters["RPM"] / 60) * self.parameters["duct_diameter"])
 
+        # Update labels
         self.mach_label.setText(f"Mach [-]: {mach:>20.3f}")
         self.density_label.setText(f"Density [kg/m^3]: {density:>5.3f}")
         self.temperature_label.setText(f"Temperature [K]: {temperature:>8.1f}")
@@ -957,18 +1135,71 @@ class MainWindow(QMainWindow):
         self.bem7_label.setText(f"Bem7 [-]: {bem7:>6.1f}")
         self.bem8_label.setText(f"Bem8 [-]: {bem8:>6.1f}")
 
-        # Dummy KPI calculations (not physically accurate)
-        lift = density * velocity ** 2 * alpha * 10
-        drag = density * velocity ** 2 * 0.05
-        l_d_ratio = lift / drag if drag != 0 else 0
-        thrust = drag * 1.2
-        power = thrust * velocity / 1000  # Convert to kW
+        # Update KPI labels
+        lift_wf_atr = self.calculation_results["requirements"]["forces_atr"][0]
+        lift_wf_duuc = self.calculation_results["requirements"]["forces_duuc"][0]
+        lift_wf_coeff_atr = self.calculation_results["requirements"]["vectors_atr"][0]
+        lift_wf_coeff_duuc = self.calculation_results["requirements"]["vectors_duuc"][0]
 
-        self.lift_label.setText(f"Lift [N]: {lift:.2f}")
-        self.drag_label.setText(f"Drag [N]: {drag:.2f}")
-        self.l_d_ratio_label.setText(f"L/D Ratio: {l_d_ratio:.2f}")
-        self.thrust_label.setText(f"Thrust [N]: {thrust:.2f}")
-        self.power_label.setText(f"Power [kW]: {power:.2f}")
+        drag_wf_atr = self.calculation_results["requirements"]["forces_atr"][2]
+        drag_wf_duuc = self.calculation_results["requirements"]["forces_duuc"][2]
+        drag_wf_coeff_atr = self.calculation_results["requirements"]["vectors_atr"][2]
+        drag_wf_coeff_duuc = self.calculation_results["requirements"]["vectors_duuc"][2]
+
+        lift_emp_atr = self.calculation_results["requirements"]["forces_atr"][1]
+        lift_emp_duuc = self.calculation_results["requirements"]["forces_duuc"][1]
+        lift_emp_coeff_atr = self.calculation_results["requirements"]["vectors_atr"][1]
+        lift_emp_coeff_duuc = self.calculation_results["requirements"]["vectors_duuc"][1]
+
+        drag_emp_atr = self.calculation_results["requirements"]["forces_atr"][3]
+        drag_emp_duuc = self.calculation_results["requirements"]["forces_duuc"][3]
+        drag_emp_coeff_atr = self.calculation_results["requirements"]["vectors_atr"][3]
+        drag_emp_coeff_duuc = self.calculation_results["requirements"]["vectors_duuc"][3]
+
+        thrust_atr = self.calculation_results["requirements"]["forces_atr"][4]
+        thrust_duuc = self.calculation_results["requirements"]["forces_duuc"][4]
+        thrust_coeff_atr = self.calculation_results["requirements"]["vectors_atr"][4]
+        thrust_coeff_duuc = self.calculation_results["requirements"]["vectors_duuc"][4]
+
+        weight_atr = self.calculation_results["requirements"]["w_total"][1]
+        weight_duuc = self.calculation_results["requirements"]["w_total"][0]
+
+        # Update KPI labels
+        self.lift_wf_atr_label.setText(f"{lift_wf_atr:.0f}")
+        self.lift_wf_duuc_label.setText(f"{lift_wf_duuc:.0f}")
+        self.lift_wf_coeff_atr_label.setText(f"{lift_wf_coeff_atr:.4f}")
+        self.lift_wf_coeff_duuc_label.setText(f"{lift_wf_coeff_duuc:.4f}")
+
+        self.drag_wf_atr_label.setText(f"{drag_wf_atr:.0f}")
+        self.drag_wf_duuc_label.setText(f"{drag_wf_duuc:.0f}")
+        self.drag_wf_coeff_atr_label.setText(f"{drag_wf_coeff_atr:.4f}")
+        self.drag_wf_coeff_duuc_label.setText(f"{drag_wf_coeff_duuc:.4f}")
+
+        self.lift_emp_atr_label.setText(f"{lift_emp_atr:.0f}")
+        self.lift_emp_duuc_label.setText(f"{lift_emp_duuc:.0f}")
+        self.lift_emp_coeff_atr_label.setText(f"{lift_emp_coeff_atr:.4f}")
+        self.lift_emp_coeff_duuc_label.setText(f"{lift_emp_coeff_duuc:.4f}")
+
+        self.drag_emp_atr_label.setText(f"{drag_emp_atr:.0f}")
+        self.drag_emp_duuc_label.setText(f"{drag_emp_duuc:.0f}")
+        self.drag_emp_coeff_atr_label.setText(f"{drag_emp_coeff_atr:.4f}")
+        self.drag_emp_coeff_duuc_label.setText(f"{drag_emp_coeff_duuc:.4f}")
+
+        self.thrust_atr_label.setText(f"{thrust_atr:.0f}")
+        self.thrust_duuc_label.setText(f"{thrust_duuc:.0f}")
+        self.thrust_coeff_atr_label.setText(f"{thrust_coeff_atr:.4f}")
+        self.thrust_coeff_duuc_label.setText(f"{thrust_coeff_duuc:.4f}")
+
+        self.weight_atr_label.setText(f"{weight_atr:.0f}")
+        self.weight_duuc_label.setText(f"{weight_duuc:.0f}")
+
+        # Update CG Figure
+        x_cg = self.calculation_results['X_cog']["x_cog_duuc"][3]
+        x_w = self.calculation_results['X_cog']["x_cog_duuc"][1]
+        x_fus = self.calculation_results['X_cog']["x_cog_duuc"][0]
+
+        fuselage_length = self.parameters["fuselage_length"]  # Call plot_cg_figure with updated values
+        self.plot_cg_figure(x_cg, x_w, x_fus, fuselage_length)
 
     def perform_calculation(self):
         try:

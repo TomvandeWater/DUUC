@@ -1,9 +1,7 @@
 import matplotlib.ticker as ticker
 import os
-
-import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt6.QtWidgets import QWidget, QGridLayout, QTabWidget
+from PyQt6.QtWidgets import QWidget, QGridLayout, QTabWidget, QVBoxLayout
 from analysis_modules.factors import *
 from PyQt6.QtGui import QIcon
 from data.read_data import get_polar
@@ -33,6 +31,7 @@ class PlotManager(QWidget):
         # Create a tab widget
         self.tab_widget = QTabWidget()
         self.layout.addWidget(self.tab_widget, 0, 0)
+        self.output_filepath = r'C:\Users\tomva\pythonProject\DUUC\data\plot_outputs'
 
         # Initialize tabs
         self.init_tabs()
@@ -63,30 +62,44 @@ class PlotManager(QWidget):
             tab = QWidget()
             tab_layout = QGridLayout(tab)
 
-            # Initialize three plots for each tab
-            plots = []
-            for j in range(3):
-                if component == "X_cog" and j == 0:
-                    fig, ax = plt.subplots(figsize=(12, 6))  # Wider figure for X_cog
+            if component == "X_cog":
+                # Create a nested QTabWidget for X_cog
+                nested_tab_widget = QTabWidget(tab)
+                tab_layout.addWidget(nested_tab_widget, 0, 0)
+
+                # Create three sub-tabs for X_cog
+                x_cog_tabs = []
+                tab_names = ["Center of Gravity", "Wing group", "Fuselage group"]
+                for j in range(3):
+                    sub_tab = QWidget()
+                    sub_tab_layout = QVBoxLayout(sub_tab)
+
+                    fig, ax = plt.subplots(figsize=(12, 6) if j == 0 else (4, 3))  # Wider figure for first plot
                     canvas = FigureCanvas(fig)
-                    tab_layout.addWidget(canvas, 0, 0, 1, 3)  # Span all three columns
-                elif component == "X_cog" and j > 0:
-                    # Skip creating additional plots for X_cog
-                    continue
-                else:
-                    fig, ax = plt.subplots(figsize=(4, 3))  # Normal figure size for other plots
+                    sub_tab_layout.addWidget(canvas)
+                    x_cog_tabs.append((fig, ax, canvas))
+
+                    nested_tab_widget.addTab(sub_tab, f"{tab_names[j]}")
+
+                # Store the plots specifically for X_cog
+                self.plots[component] = x_cog_tabs
+
+            else:
+                # Initialize three plots for other components
+                plots = []
+                for j in range(3):
+                    fig, ax = plt.subplots(figsize=(4, 3))  # Normal figure size
                     canvas = FigureCanvas(fig)
                     tab_layout.addWidget(canvas, 0, j)
+                    plots.append((fig, ax, canvas))
 
-                plots.append((fig, ax, canvas))
-
-            # Store the plots
-            self.plots[component] = plots
+                # Store the plots
+                self.plots[component] = plots
 
             # Update plots based on the component
             self.update_plots(component)
 
-            # Add the tab to the tab widget
+            # Add the tab to the main tab widget
             self.tab_widget.addTab(tab, component)
             self.add_placeholder_icons(component)
 
@@ -115,6 +128,7 @@ class PlotManager(QWidget):
                 self.update_cd0_empennage(i, fig, ax, canvas)
             elif component in ["X_cog", "Vtail", "Htail"]:
                 self.update_flight_mechanics_plot(component, i, fig, ax, canvas)
+
             elif component in ["Geometry"]:
                 self.update_area_plot(i, fig, ax, canvas)
 
@@ -255,10 +269,10 @@ class PlotManager(QWidget):
             if plot_index == 0:
                 ax.clear()
                 alpha_duct = self.calculation_results['Duct']['Inflow'][0]
-                a_vect = np.linspace(-5, 15, 21)
-                cl_vect = self.calculation_results['Duct']['Vector'][0]
-                cd_vect = self.calculation_results['Duct']['Vector'][1]
-                cm_vect = self.calculation_results['Duct']['Vector'][2]
+                a_vect = np.linspace(0, 15, 31)
+                cl_vect = self.calculation_results["Empennage"]["Vectors"][5][:, 0]
+                cd_vect = self.calculation_results["Empennage"]["Vectors"][5][:, 1]
+                cm_vect = self.calculation_results["Empennage"]["Vectors"][5][:, 2]
 
                 # Left y-axis
                 ax1 = ax
@@ -292,8 +306,8 @@ class PlotManager(QWidget):
                 ax1.legend(lines_1 + lines_2, labels_1 + labels_2, loc='best')
             elif plot_index == 1:
                 ax.clear()
-                cl_vect = self.calculation_results['Duct']['Vector'][0]
-                cd_vect = self.calculation_results['Duct']['Vector'][1]
+                cl_vect = self.calculation_results["Empennage"]["Vectors"][5][:, 0]
+                cd_vect = self.calculation_results["Empennage"]["Vectors"][5][:, 1]
                 cd0_duct = self.calculation_results["CD0"]['cd0_duuc'][0]/2
                 cl_the = []
                 cd_the = []
@@ -511,17 +525,17 @@ class PlotManager(QWidget):
 
                 # Common x-axis
                 ax1.set_xlabel(r'$\alpha$ [deg]')
-                ax1.set_title('Coefficient Empennage')
+                ax1.set_title('Coefficients 1 Empennage')
                 ax1.grid(True)
                 ax1.get_figure().tight_layout()
 
                 ax1.legend(loc='best')
             elif plot_index == 1:
-                cl_duct = self.calculation_results["Empennage"]["Vectors"][5][:, 0]
-                cl_pylon = self.calculation_results["Empennage"]["Vectors"][6][:, 0]
-                cl_support = self.calculation_results["Empennage"]["Vectors"][7][:, 0]
-                cl_control = self.calculation_results["Empennage"]["Vectors"][8][:, 0]
-                cl_nacelle = self.calculation_results["Empennage"]["Vectors"][9][:, 0]
+                cl_duct = self.calculation_results["Empennage"]["Vectors"][5][:, 3]
+                cl_pylon = self.calculation_results["Empennage"]["Vectors"][6][:, 3]
+                cl_support = self.calculation_results["Empennage"]["Vectors"][7][:, 3]
+                cl_control = self.calculation_results["Empennage"]["Vectors"][8][:, 3]
+                cl_nacelle = self.calculation_results["Empennage"]["Vectors"][9][:, 3]
 
                 ax.clear()
                 ax.plot(a_vector, cl_duct, label=r"Duct")
@@ -531,17 +545,17 @@ class PlotManager(QWidget):
                 ax.plot(a_vector, cl_nacelle, label="Nacelle")
                 ax.axvline(self.calculation_results["Empennage"]["Inflow"][0], color='black', alpha=0.5,
                            linestyle='dashed')
-                ax.set_title("Lift breakdown")
+                ax.set_title("Lift Breakdown Propulsive Empennage")
                 ax.set_ylabel(r"$C_L$ [-]")
                 ax.set_xlabel(r"$\alpha$ [deg]")
                 ax.grid(True)
                 ax.legend()
             elif plot_index == 2:
-                cd_duct = self.calculation_results["Empennage"]["Vectors"][5][:, 1]
-                cd_pylon = self.calculation_results["Empennage"]["Vectors"][6][:, 1]
-                cd_support = self.calculation_results["Empennage"]["Vectors"][7][:, 1]
-                cd_control = self.calculation_results["Empennage"]["Vectors"][8][:, 1]
-                cd_nacelle = self.calculation_results["Empennage"]["Vectors"][9][:, 1]
+                cd_duct = self.calculation_results["Empennage"]["Vectors"][5][:, 4]
+                cd_pylon = self.calculation_results["Empennage"]["Vectors"][6][:, 4]
+                cd_support = self.calculation_results["Empennage"]["Vectors"][7][:, 4]
+                cd_control = self.calculation_results["Empennage"]["Vectors"][8][:, 4]
+                cd_nacelle = self.calculation_results["Empennage"]["Vectors"][9][:, 4]
 
                 ax.clear()
                 ax.plot(a_vector, cd_duct, label=r"Duct")
@@ -551,7 +565,7 @@ class PlotManager(QWidget):
                 ax.plot(a_vector, cd_nacelle, label="Nacelle")
                 ax.axvline(self.calculation_results["Empennage"]["Inflow"][0], color='black', alpha=0.5,
                            linestyle='dashed')
-                ax.set_title("Drag breakdown")
+                ax.set_title("Drag Breakdown Propulsive Empennage")
                 ax.set_ylabel(r"$C_D$ [-]")
                 ax.set_xlabel(r"$\alpha$ [deg]")
                 ax.grid(True)
@@ -574,7 +588,7 @@ class PlotManager(QWidget):
             self.update_x_cog_plot(plot_index, fig, ax, canvas)
             ax.set_title("Center of Gravity Positions")
 
-        if component == "Vtail":
+        elif component == "Vtail":
             current_data = self.calculation_results['Vtail']
             prev_data = self.previous_calculation_results['Vtail'] if self.previous_calculation_results else None
 
@@ -588,7 +602,62 @@ class PlotManager(QWidget):
                 ax.set_facecolor('white')
                 fig.patch.set_facecolor('white')
 
+        elif component == "Htail":
+            self.plot_xplot(ax, plot_index)
+
         canvas.draw()
+
+    def plot_xplot(self, ax, plot_index):
+        a1_atr, b1_atr, a2_atr = self.calculation_results["Htail"]["ATR"]
+        a1_duuc, b1_duuc, a2_duuc, stm = self.calculation_results["Htail"]["DUUC"]
+        x_cg_duuc = (self.calculation_results["X_cog"]["x_cog_duuc"][2]
+                     - self.calculation_results["X_cog"]["x_cog_duuc"][3] - 0.25)
+        x_cg_atr = (self.calculation_results["X_cog"]["x_cog_atr"][2]
+                    - self.calculation_results["X_cog"]["x_cog_atr"][3] - 0.25)
+
+        cmac = 2.2345  # Mean aerodynamic chord
+        s_w = 61  # Wing area (update this based on real reference if needed)
+        static_margin = stm / 100  # Convert to fraction
+
+        def compute_xplot_data(a1, b1, a2, xcg, color, label):
+            x1 = np.linspace(-1, 0, 101)
+            x2 = np.linspace(-1, 2, 101)
+            x_ac = 0.25 * cmac
+
+            x_cg_ac = x1 + x_ac
+            y1 = a1 * x_cg_ac * cmac + b1
+            y2 = a2 * x2
+            y3 = y2 + static_margin
+
+            y_intersection = a2 * xcg + static_margin
+            x_intersect = (y_intersection - b1) / (a1 * cmac) - x_ac
+
+            sh_sw = np.round(y_intersection, 4)
+            new_sh = y_intersection * s_w
+            cg_range = xcg - x_intersect
+
+            # Plotting
+            ax.plot(x1, y1, label=f'{label} Control', color=color)
+            ax.plot(x2, y2, color=color, linestyle='-', alpha=0.4)
+            ax.plot(x2, y3, label=f'{label} Static Margin', color=color, linestyle='--')
+            ax.vlines(xcg, 0, y_intersection, color=color, linestyle="dotted")
+            ax.scatter([xcg, x_intersect], [y_intersection, y_intersection], color=color, zorder=3)
+            ax.hlines(y_intersection, x_intersect, xcg, color=color, linestyle="dotted")
+            return new_sh
+
+        if plot_index == 0:
+            ax.clear()
+
+            compute_xplot_data(a1_atr, b1_atr, a2_atr, x_cg_atr, color="tab:orange", label="ATR")
+            compute_xplot_data(a1_duuc, b1_duuc, a2_duuc, x_cg_duuc, color="tab:blue", label="DUUC")
+
+            # Set plot labels and styling
+            ax.set_xlabel('Center of Gravity [m]')
+            ax.set_ylabel(r'$S_H/S_W$ [-]')
+            ax.set_title("X-Plot: ATR vs DUUC")
+            ax.set_ylim([-0.6, 0.8])
+            ax.grid(True)
+            ax.legend()
 
     def plot_cy_vs_sv(self, ax, current_data, prev_data):
         s_array, s_array_atr, s_stab_duuc, s_stab_atr, a, b, cyd = current_data
@@ -615,7 +684,7 @@ class PlotManager(QWidget):
             ax.plot([prev_cyd, prev_cyd], [0, prev_b], color="tab:blue", linestyle="dashed", alpha=0.3)
 
         ax.set_xlim(0, 2)
-        ax.set_ylim(0, 100)
+        ax.set_ylim(0, 50)
         ax.set_xlabel(r'$C_{Y}$ [-]')
         ax.set_ylabel(r'$S_{V}$ [$m2$]')
         ax.set_title(r'$S_{V}$ vs. $C_{Y}$')
@@ -641,7 +710,7 @@ class PlotManager(QWidget):
         ax.plot([2.228, 2.228], [0, 15.01], linestyle='dashed', color="tab:orange")
 
         ax.set_xlim(1, 3)
-        ax.set_ylim(0, 100)
+        ax.set_ylim(0, 50)
         ax.set_xlabel(r'$C_{Y_{\beta}}$ [-]')
         ax.set_ylabel(r'$S_{V}$ [$m2$]')
         ax.set_title(r'$S_{V}$ vs. $C_{Y_{\beta}}$')
@@ -674,13 +743,14 @@ class PlotManager(QWidget):
         d_prop = self.parameters['propeller_diameter']
         x_cv = self.parameters['x_control_vanes']
         x_sup = self.parameters['x_support']
-        va_inlet = v_inf * 0.25 * np.pi * d_duct ** 2
         d_sup = area_ratio(naca, chord, d_duct/2, x_sup)[0]
         d_cv = area_ratio(naca, chord, d_duct/2, x_cv)[0]
 
-        v_prop = va_inlet / (0.25 * np.pi * d_prop ** 2)
-        v_sup = va_inlet / (0.25 * np.pi * d_sup ** 2)
-        v_cv = va_inlet / (0.25 * np.pi * d_cv ** 2)
+        va_in = self.parameters["velocity"] * (0.25 * np.pi * self.parameters["duct_diameter"] ** 2)
+
+        v_prop = va_in / (0.25 * np.pi * d_prop ** 2)
+        v_sup = va_in / (0.25 * np.pi * d_sup ** 2)
+        v_cv = va_in / (0.25 * np.pi * d_cv ** 2)
 
         v_input2 = [v_inf, v_inf, v_prop, v_prop, v_sup, v_cv, (v_cv + v_inf) / 2]
         a_input2 = [alpha, alpha, alpha / 2, 0, 0, 0, alpha/2]
@@ -843,59 +913,81 @@ class PlotManager(QWidget):
 
     def update_x_cog_plot(self, plot_index, fig, ax, canvas):
         """Update X_cog plot with horizontal position lines for both DUUC and ATR."""
+        from data.read_data import read_text_file
+        current_duuc = self.calculation_results['X_cog']['x_cog_duuc']
+        current_atr = self.calculation_results['X_cog']['x_cog_atr']
+        prev_duuc = prev_atr = None
+
+        if self.previous_calculation_results and 'X_cog' in self.previous_calculation_results:
+            prev_duuc = self.previous_calculation_results['X_cog']['x_cog_duuc']
+            prev_atr = self.previous_calculation_results['X_cog']['x_cog_atr']
+
+        categories = ['Fuselage CG', 'Wing CG', 'Overall CG', 'LEMAC']
+        y_pos = np.arange(len(categories))
+        offset = 0.2  # Vertical offset between DUUC and ATR lines
+
+        ax.clear()
+
         if plot_index == 0:
-            # Get current and previous data
 
-            current_duuc = self.calculation_results['X_cog']['x_cog_duuc']
-            current_atr = self.calculation_results['X_cog']['x_cog_atr']
-            prev_duuc = prev_atr = None
-            if self.previous_calculation_results and 'X_cog' in self.previous_calculation_results:
-                prev_duuc = self.previous_calculation_results['X_cog']['x_cog_duuc']
-                prev_atr = self.previous_calculation_results['X_cog']['x_cog_atr']
-
-            # Categories and styling
-            categories = ['Fuselage CG', 'Wing CG', 'Overall CG', 'LEMAC']
-            y_pos = np.arange(len(categories))
-            offset = 0.2  # Vertical offset between DUUC and ATR lines
-
-            ax.clear()
-            ax.set_title('Center of Gravity Positions')
-            # Plot current and previous values
             for i, (duuc_val, atr_val) in enumerate(zip(current_duuc, current_atr)):
-                # DUUC current line
                 ax.plot([0, duuc_val], [y_pos[i] + offset, y_pos[i] + offset],
-                        color='tab:blue', linewidth=2, label='DUUC' if i == 0 else "")
+                        color='tab:blue', linewidth=2, label="DUUC")
                 ax.plot(duuc_val, y_pos[i] + offset, marker='o', markersize=8, color='tab:blue')
+                ax.text(duuc_val + 0.1, y_pos[i] + offset, f"{duuc_val:.2f}", va='center', ha='left', fontsize=10,
+                        color='tab:blue')
 
-                # ATR current line
                 ax.plot([0, atr_val], [y_pos[i] - offset, y_pos[i] - offset],
-                        color='tab:orange', linewidth=2, label='ATR' if i == 0 else "")
+                        color='tab:orange', linewidth=2, label="ATR")
                 ax.plot(atr_val, y_pos[i] - offset, marker='o', markersize=8, color='tab:orange')
+                ax.text(atr_val + 0.1, y_pos[i] - offset, f"{atr_val:.2f}", va='center', ha='left', fontsize=10,
+                        color='tab:orange')
 
-                # Plot previous values if available
                 if prev_duuc and prev_atr:
-                    # DUUC previous line
-                    ax.plot([0, prev_duuc[i]], [y_pos[i] + offset - 0.05, y_pos[i] + offset - 0.05],
+                    ax.plot([0, prev_duuc[i]], [y_pos[i] + offset - 0.05,
+                                                y_pos[i] + offset - 0.05],
                             color='tab:blue', alpha=0.3, linewidth=2)
 
-                    # ATR previous line
-                    ax.plot([0, prev_atr[i]], [y_pos[i] - offset + 0.05, y_pos[i] - offset + 0.05],
+                    ax.plot([0, prev_atr[i]], [y_pos[i] - offset + 0.05,
+                                               y_pos[i] - offset + 0.05],
                             color='tab:orange', alpha=0.3, linewidth=2)
 
-            # Configure plot appearance
             ax.set_yticks(y_pos)
             ax.set_yticklabels(categories)
             ax.set_xlabel('X Position [m]')
-
             ax.grid(True, axis='x')
-            ax.legend(loc='lower right')
+            ax.legend(loc='upper left')
+            ax.set_title('Center of Gravity Positions')
 
-        elif plot_index in [1, 2]:
-            # Empty plot for the second and third tabs
-            ax.clear()
-            ax.set_axis_off()  # Turn off the axis
-            ax.set_facecolor('white')  # Set the background color to white
-            fig.patch.set_facecolor('white')  # Set the figure background to white as well
+        elif plot_index == 1:
+            ATR = read_text_file(r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\ATR_wing_group_cg_breakdown.txt')
+            DUUC = read_text_file(
+                r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\DUUC_wing_group_cg_breakdown.txt')
+
+            # Display text in the first subplot (ATR)
+            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=12)
+            ax.axis('off')
+
+            # Display text in the second subplot (DUUC)
+            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=12)
+            ax.axis('off')
+            ax.set_title("Wing group breakdown")
+            canvas.draw()
+
+        elif plot_index == 2:
+            ATR = read_text_file(r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\ATR_fuselage_group_cg_breakdown.txt')
+            DUUC = read_text_file(
+                r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\DUUC_fuselage_group_cg_breakdown.txt')
+
+            # Display text in the first subplot (ATR)
+            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=12)
+            ax.axis('off')
+
+            # Display text in the second subplot (DUUC)
+            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=12)
+            ax.axis('off')
+            ax.set_title("Wing group breakdown")
+            canvas.draw()
 
         canvas.draw()
 
@@ -984,69 +1076,88 @@ class PlotManager(QWidget):
         cd0_vector1 = self.calculation_results['CD0']['cd0_atr']
         cd0_vector2 = self.calculation_results['CD0']['cd0_duuc']
 
-        # Store previous data if available
-        prev_cd0_vector1 = self.previous_calculation_results['CD0'][
-            'cd0_atr'] if self.previous_calculation_results else None
-        prev_cd0_vector2 = self.previous_calculation_results['CD0'][
-            'cd0_duuc'] if self.previous_calculation_results else None
-
-        cd0_ref1 = np.array([8.347e-4, 2.065e-3])
+        # Reference values
+        cd0_ref1 = np.array([1.702e-3, 2.065e-3])
         cd0_ref2 = np.array([49.2e-4, 2.8e-4, 0, 0])
         cd_totals = np.array([sum(cd0_vector1), sum(cd0_vector2)])
         cd_totals_ref = np.array([sum(cd0_ref1), sum(cd0_ref2)])
 
         label1 = ['Hor. Tail', 'Vert. Tail']
         label2 = ['Duct', 'Pylon', 'Support', 'Control']
-        label3 = ['ATR72-600', 'DUUC']
+        label3 = ['ATR72', 'DUUC']
 
         combined_labels = label1 + label2
         combined_cd0_vector = np.concatenate([cd0_vector1, cd0_vector2])
         combined_cd0_ref = np.concatenate([cd0_ref1, cd0_ref2])
 
-        width = 0.25  # Reduced width to accommodate previous iteration
+        # Check if previous data exists
+        has_previous_data = self.previous_calculation_results is not None
+
+        # Adjust bar width and positions based on whether previous data exists
+        if has_previous_data:
+            width = 0.25  # Width for three sets of bars
+        else:
+            width = 0.35  # Width for two sets of bars - wider when only two sets
 
         if plot_index == 0:
             # Plot combined components of ATR72-600 and DUUC
             x = np.arange(len(combined_labels))
 
-            # Plot current data
-            rects1 = ax.bar(x - width, combined_cd0_vector, width, label='Current', color="tab:blue")
+            if has_previous_data:
+                # Three bars: current, previous, reference
+                rects1 = ax.bar(x - width, combined_cd0_vector, width, label='Prediction model', color="tab:blue")
 
-            # Plot previous data with reduced opacity
-            if prev_cd0_vector1 is not None and prev_cd0_vector2 is not None:
+                prev_cd0_vector1 = self.previous_calculation_results['CD0']['cd0_atr']
+                prev_cd0_vector2 = self.previous_calculation_results['CD0']['cd0_duuc']
                 prev_combined_cd0_vector = np.concatenate([prev_cd0_vector1, prev_cd0_vector2])
-                rects2 = ax.bar(x, prev_combined_cd0_vector, width, color="tab:blue", alpha=0.3)
+                rects2 = ax.bar(x, prev_combined_cd0_vector, width, color="tab:blue", alpha=0.3,
+                                label='Previous iteration')
 
-            # Plot reference data
-            rects3 = ax.bar(x + width, combined_cd0_ref, width, label='Reference', color="tab:green")
+                rects3 = ax.bar(x + width, combined_cd0_ref, width, label='Reference', color="tab:green")
+            else:
+                # Only two bars: current and reference, positioned symmetrically
+                rects1 = ax.bar(x - width / 2, combined_cd0_vector, width, label='Prediction model', color="tab:blue")
+                rects3 = ax.bar(x + width / 2, combined_cd0_ref, width, label='Reference', color="tab:green")
 
-            ax.set_title('Comparison of Empennage components')
+            ax.set_title('Comparison of Empennage Components')
             ax.set_ylabel('$C_{D0}$ [-]')
             ax.set_ylim([0, 0.01])
             ax.set_xticks(x)
             ax.set_xticklabels(combined_labels, rotation=45, ha='right')
             ax.legend(loc='upper left')
 
+            # Set consistent padding around the plot
+            fig.subplots_adjust(left=0.12, right=0.95, bottom=0.2, top=0.9)
+
         elif plot_index == 1:
             # Plot empennage totals
             x = np.arange(len(label3))
 
-            # Plot current data
-            rects1 = ax.bar(x - width, cd_totals, width, label='Current', color='tab:blue')
+            if has_previous_data:
+                # Three bars: current, previous, reference
+                rects1 = ax.bar(x - width, cd_totals, width, label='Prediction model', color='tab:blue')
 
-            # Plot previous data with reduced opacity
-            if prev_cd0_vector1 is not None and prev_cd0_vector2 is not None:
+                prev_cd0_vector1 = self.previous_calculation_results['CD0']['cd0_atr']
+                prev_cd0_vector2 = self.previous_calculation_results['CD0']['cd0_duuc']
                 prev_cd_totals = np.array([sum(prev_cd0_vector1), sum(prev_cd0_vector2)])
-                rects2 = ax.bar(x, prev_cd_totals, width, color='tab:blue', alpha=0.3)
+                rects2 = ax.bar(x, prev_cd_totals, width, color='tab:blue', alpha=0.3,
+                                label='Previous iteration')
 
-            # Plot reference data
-            rects3 = ax.bar(x + width, cd_totals_ref, width, label='Reference', color="tab:green")
+                rects3 = ax.bar(x + width, cd_totals_ref, width, label='Reference', color="tab:green")
+            else:
+                # Only two bars: current and reference, positioned symmetrically
+                rects1 = ax.bar(x - width / 2, cd_totals, width, label='Prediction model', color='tab:blue')
+                rects3 = ax.bar(x + width / 2, cd_totals_ref, width, label='Reference', color="tab:green")
 
-            ax.set_title('Empennage totals')
+            ax.set_title('Empennage Totals')
             ax.set_ylabel('$C_{D0}$ [-]')
+            ax.set_ylim([0, 0.01])
             ax.set_xticks(x)
-            ax.set_xticklabels(label3)
+            ax.set_xticklabels(label3, rotation=45, ha='right')
             ax.legend(loc='upper left')
+
+            # Set consistent padding around the plot - matching the first plot
+            fig.subplots_adjust(left=0.12, right=0.95, bottom=0.2, top=0.9)
 
         elif plot_index == 2:
             ax.clear()
@@ -1056,7 +1167,22 @@ class PlotManager(QWidget):
             reference_text = (r"$\bf{Reference\ Data\ Source:}$" "\n\n"
                               r"$\it{ATR72-600:}$" "Aircraft Design Studies \n "
                               "Based on the ATR 72, 2008\n\n"
-                              r"$\it{DUUC:}$" 
+                              r"$\it{DUUC:}$"
+                              "Synthesis of an Aircraft Featuring a Ducted-Fan \n Propulsive Empennage, 2017\n")
+
+            ax.text(0, 0.5, reference_text, horizontalalignment='left',
+                    verticalalignment='center', transform=ax.transAxes, fontsize=12,
+                    bbox=dict(facecolor='lightblue', edgecolor='black', alpha=0.7))
+
+        elif plot_index == 2:
+            ax.clear()
+            ax.set_facecolor("white")
+            ax.set_axis_off()
+            fig.patch.set_facecolor('white')
+            reference_text = (r"$\bf{Reference\ Data\ Source:}$" "\n\n"
+                              r"$\it{ATR72-600:}$" "Aircraft Design Studies \n "
+                              "Based on the ATR 72, 2008\n\n"
+                              r"$\it{DUUC:}$"
                               "Synthesis of an Aircraft Featuring a Ducted-Fan \n Propulsive Empennage, 2017\n")
 
             ax.text(0, 0.5, reference_text, horizontalalignment='left',
@@ -1064,6 +1190,11 @@ class PlotManager(QWidget):
                     bbox=dict(facecolor='lightblue', edgecolor='black', alpha=0.7))
 
         canvas.draw()
+        if self.output_filepath:
+            import os  # Make sure to import this at the top if not already
+            filename = f"CD0_comparison_{plot_index}.png"
+            full_path = os.path.join(self.output_filepath, filename)
+            fig.savefig(full_path, dpi=300, bbox_inches='tight')
 
     def cleanup(self):
         """Clean up and disconnect all plots."""

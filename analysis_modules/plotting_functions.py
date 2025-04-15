@@ -545,23 +545,33 @@ def cl_comparison(cl_vector1, cl_vector2, alpha):
 
 
 def print_cg_mass(part, mass, cg, mcg, m_sum, mcg_cum, cg_tot, group, aircraft):
-    separator = "------------------------------------------------------------------------------------------------"
-    header = "| Mass {} group  | Mass [kg]              | CG [m]                | Mass * CG [kg*m]     |"
+    separator = "+{}+{}+{}+{}+".format("-" * 28, "-" * 26, "-" * 23, "-" * 30)
+    header = "| {:<20} | {:<22} | {:<21} | {:<20} |".format(
+        f"Mass {group} group", "Mass [kg]", "CG [m]", "Mass * CG [kg*m]")
 
-    print("\n")
-    print(f"---------------------------------------{aircraft}-----------------------------------------------")
-    print(separator)
-    print(header.format(group))
-    print(separator)
+    output = []
+    output.append("\n")
+    output.append("+" + "-" * 114 + "+")
+    output.append(f"|{aircraft:^121}|")
+    output.append(separator)
+    output.append(header)
+    output.append(separator)
+
+    # Loop through mass entries
     for i in range(len(mass)):
-        print("| {:<20} | {:<22} | {:<21} | {:<20} |".format(part[i], mass[i], np.round(cg[i], 2),
-                                                             np.round(mcg[i], 1)))
-    print(separator)
-    print("| sum mass             | {:<22} |                       | {:<20} |".format(m_sum, mcg_cum))
-    print(separator)
-    print("|                      |                        |     estimation cg     | {:<16} [m] |".format(np.round(
-        cg_tot, 2)))
-    print(separator)
+        output.append("| {:<28} | {:<26} | {:<23} | {:<22} |".format(
+            part[i], np.round(mass[i], 0), np.round(cg[i], 2), np.round(mcg[i], 1)))
+    output.append(separator)
+    # Add sum mass row
+    output.append("| {:<23} | {:<23} | {:<25} | {:<24} |".format(
+        "sum mass", np.round(m_sum, 2), "", np.round(mcg_cum, 2)))
+    output.append(separator)
+    # Add estimation cg row
+    output.append("| {:<31} | {:<29} | {:<17} | {:<27} |".format(
+        "", "", "estimation cg", f"{np.round(cg_tot, 2)} [m]"))
+    output.append(separator)
+    # Return the formatted output
+    return "\n".join(output)
 
 
 def xplot(a1, b1, a2, xcg, static_margin, cmac, x_ac, aircraft):
