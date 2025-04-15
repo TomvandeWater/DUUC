@@ -12,7 +12,7 @@ nacelle_length = 1.3  # nacelle length in [m]
 nacelle_diameter = 1.0  # nacelle diameter in [m]
 
 support_length = duct_diameter  # support length in [m]
-support_chord = 0.5  # support chord [m]
+support_chord = 0.75  # support chord [m]
 
 control_vane_length = 0.5 * duct_diameter  # one control vane length [m]
 control_vane_chord = 0.30  # control vane chord [m]
@@ -45,3 +45,6 @@ power_condition = "on"
 
 n_pax = 68  # number of passengers in the aircraft [-]
 w_pax = 80 + 22  # 80 kg weight of passenger and 22 kg of lugage [kg]
+
+v_crit = 141  # critical speed [m/s]
+v_approach = 60.4  # approach velocity [m/s]
