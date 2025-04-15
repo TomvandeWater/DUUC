@@ -78,6 +78,17 @@ class ConventionalEmpennage:
         cd_vtail = self.vt_tail.cd()[0]
         return cd_htail + cd_vtail
 
+    def cd_sum_norm(self):
+        """ normalized cd-values """
+        cd_htail = self.ht_tail.cd()[1]
+        cd_vtail = self.vt_tail.cd()[1]
+        return cd_htail + cd_vtail
+
+    def cl_sum(self):
+        """ regular cl-values """
+        cl_htail = self.ht_tail.cl()[1]
+        return cl_htail
+
     def ht_volume_coefficient(self):
         tv = tail_volume(self.ht_tail.area(), ref.lever_h, self.reference[0], ref.c_root_w)
         return tv
@@ -115,6 +126,10 @@ class ConventionalEmpennage:
     def weight_fan(self):
         w_fan = 2 * self.propeller.weight_fan()
         return w_fan
+
+    def weight(self):
+        w_tot_emp = self.weight_emp() + self.weight_fan() + self.weight_prop() + self.weight_nac()
+        return w_tot_emp
 
     @staticmethod
     def weight_cv():

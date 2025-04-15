@@ -121,7 +121,7 @@ class PropulsiveEmpennage:
         cd0_pylon = self.pylon.cd0()
         cd0_nacelle = self.nacelle.cd0()[1]
         cd0_support = self.support.cd0()[1]
-        cd0_control = self.elevator.cd0()[1] * 8
+        cd0_control = self.elevator.cd0()[1]
         return [cd0_duct, cd0_pylon, cd0_nacelle, cd0_control, cd0_control, cd0_support]
 
     def cd_interference_vector(self):
@@ -142,6 +142,10 @@ class PropulsiveEmpennage:
         cd_control = 2 * (self.elevator.cd()[1] + self.rudder.cd()[1])
         return [cd_duct, cd_pylon, cd_nacelle, cd_support, cd_propeller, cd_control]
 
+    def cl_a(self):
+        cl_a_pe = 5.406
+        return cl_a_pe
+
     def cl_sum(self):
         cl_sum_pe = (self.duct.cl()[1] + self.pylon.cl()[1] + self.support.cl()[1] + self.propeller.cl()[1]
                      + 2 * self.elevator.cl()[1])
@@ -151,6 +155,14 @@ class PropulsiveEmpennage:
         cd_sum_pe = (self.duct.cd()[1] + self.pylon.cd()[1] + self.support.cd()[1] + self.propeller.cd()[1]
                      + 2 * (self.elevator.cd()[1] + self.rudder.cd()[1]))
         return cd_sum_pe
+
+    def cy(self):
+        cy_duct = self.duct.cy()[1]
+        cy_pylon = self.pylon.cy()[1]
+        cy_support = self.support.cy()[1]
+        cy_rudder = self.rudder.cl()[1]
+        cy_pe = cy_duct + cy_pylon + cy_support + cy_rudder
+        return cy_pe
 
     def cm_emp(self):
         """ assume the moment to be at the center line of the duct at the c/4 location """
