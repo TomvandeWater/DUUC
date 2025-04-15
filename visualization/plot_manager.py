@@ -8,6 +8,7 @@ from data.read_data import get_polar
 from analysis_modules.factors import area_ratio
 from table_config import style_table
 import data.experiment_reference_5annular_airfoil as ref5r
+import matplotlib.gridspec as gridspec
 
 
 class PlotManager(QWidget):
@@ -63,14 +64,11 @@ class PlotManager(QWidget):
             tab_layout = QGridLayout(tab)
 
             if component == "X_cog":
-                # Create a nested QTabWidget for X_cog
                 nested_tab_widget = QTabWidget(tab)
                 tab_layout.addWidget(nested_tab_widget, 0, 0)
-
-                # Create three sub-tabs for X_cog
                 x_cog_tabs = []
-                tab_names = ["Center of Gravity", "Wing group", "Fuselage group"]
-                for j in range(3):
+                tab_names = ["Center of Gravity", "Wing group", "Fuselage group", "Xcg with Xpe"]
+                for j in range(4):
                     sub_tab = QWidget()
                     sub_tab_layout = QVBoxLayout(sub_tab)
 
@@ -960,35 +958,83 @@ class PlotManager(QWidget):
             ax.set_title('Center of Gravity Positions')
 
         elif plot_index == 1:
+            fig.clf()
+            ax = fig.add_subplot(111)
             ATR = read_text_file(r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\ATR_wing_group_cg_breakdown.txt')
             DUUC = read_text_file(
                 r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\DUUC_wing_group_cg_breakdown.txt')
-
-            # Display text in the first subplot (ATR)
-            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=12)
+            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=8)
             ax.axis('off')
-
-            # Display text in the second subplot (DUUC)
-            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=12)
+            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=8)
             ax.axis('off')
             ax.set_title("Wing group breakdown")
             canvas.draw()
 
         elif plot_index == 2:
+            fig.clf()
+            ax = fig.add_subplot(111)
             ATR = read_text_file(r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\ATR_fuselage_group_cg_breakdown.txt')
             DUUC = read_text_file(
                 r'C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown\DUUC_fuselage_group_cg_breakdown.txt')
-
-            # Display text in the first subplot (ATR)
-            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=12)
+            ax.text(-0.1, 0.5, ATR, ha='left', va='center', fontsize=8)
             ax.axis('off')
-
-            # Display text in the second subplot (DUUC)
-            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=12)
+            ax.text(0.60, 0.5, DUUC, ha='left', va='center', fontsize=8)
             ax.axis('off')
-            ax.set_title("Wing group breakdown")
+            ax.set_title("Fuselage group breakdown")
             canvas.draw()
+        elif plot_index == 3:
+            l_fuselage = self.parameters["fuselage_length"]
+            x_cg = self.calculation_results["requirements"]["x_cg"][0]
+            x_ac_wing = self.parameters["x_wing"] + 0.25 * self.parameters['wing_c_root']
+            x = np.linspace(0, l_fuselage, 100)
 
+            gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Left is 3x wider than right
+
+            # Left subplot
+            fig.clear()  # clear the full figure
+            gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])
+            ax0 = fig.add_subplot(gs[0])
+            ax1 = fig.add_subplot(gs[1])
+            image = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_side_view_tailless.png")
+
+            # Plot background image (aircraft side view)
+            ax0.imshow(image, extent=[0, l_fuselage, 0, l_fuselage], aspect='auto')
+
+            ax0.plot(x_cg, x, label=r"$x_{cg-DUUC}$", color="tab:blue")
+            ax0.axvline(min(x_cg), color="tab:blue", linestyle="dashed")
+            ax0.axvline(max(x_cg), color="tab:blue", linestyle="dashed")
+            ax0.axvspan(min(x_cg), max(x_cg), color="tab:blue", alpha=0.2)
+
+            ax0.axvline(11.5586, color="tab:orange", linestyle="dashed", label="$x_{cg-atr}$")
+            ax0.axvline(x_ac_wing, color="tab:red", label=r"$x_{ac-wing}$")
+
+            ax0.plot([min(x_cg), l_fuselage], [0, 0], color="black", linestyle="dashed")
+            ax0.plot(min(x_cg), 0, color="tab:blue", marker="o")
+            ax0.plot([np.mean(x_cg), l_fuselage], [0.5 * l_fuselage, 0.5 * l_fuselage], color="black",
+                     linestyle="dashed")
+            ax0.plot(np.mean(x_cg), 0.5 * l_fuselage, color="tab:blue", marker="o")
+            ax0.plot([max(x_cg), l_fuselage], [l_fuselage, l_fuselage], color="black", linestyle="dashed")
+            ax0.plot(max(x_cg), l_fuselage, color="tab:blue", marker="o")
+
+            ax0.set_title("Center of Gravity Shift with Position of PE")
+            ax0.set_xlabel(r"Fuselage Location [m]")
+            ax0.set_ylabel(f"x-location of the PE on the fuselage [m]")
+            ax0.grid(True)
+            ax0.set_xlim([0, l_fuselage])
+            ax0.set_ylim([-1, l_fuselage * 1.05])
+            ax0.legend()
+
+            image2 = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_diff_loc.png")
+
+            ax1.imshow(image2, aspect='auto')
+            ax1.set_axis_off()
+            ax1.set_frame_on(False)
+
+        if self.output_filepath:
+            import os  # Make sure to import this at the top if not already
+            filename = f"X_cg_plots_{plot_index}.png"
+            full_path = os.path.join(self.output_filepath, filename)
+            fig.savefig(full_path, dpi=300, bbox_inches='tight')
         canvas.draw()
 
     def plot_weight_distribution(self, w_vector1, w_vector2, prev_w_vector1, prev_w_vector2, plot_index, ax):

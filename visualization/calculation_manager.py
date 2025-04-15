@@ -62,6 +62,7 @@ def calculation_manager(parameters):
     fuselage_co_l = parameters.get('fuselage_co_l')
     fuselage_ca_l = parameters.get('fuselage_ca_l')
     fuselage_ta_l = parameters.get('fuselage_ta_l')
+    fuselage_length = fuselage_ca_l + fuselage_ta_l + fuselage_co_l
 
     aircraft_n_pax = parameters.get('aircraft_n_pax')
     x_PE = parameters.get('x_PE')
@@ -159,6 +160,23 @@ def calculation_manager(parameters):
     geometry_propeller_conv = [num_blades, propeller_diameter, hub_diameter, propeller_airfoil, 0, 0,
                                propeller_c_root, propeller_c_tip]
     geometry_nacelle_conv = [nacelle_length, nacelle_diameter]
+
+    x_vector = np.linspace(0, fuselage_length, 100)
+    x_cg_vector = []
+    for length in range(len(x_vector)):
+        duuc3: Aircraft = Aircraft(aircraft_type="DUUC", conditions=conditions,
+                                   power=power_condition, bem_input=bem_input, delta_e=delta_e,
+                                   delta_r=delta_r, reference=reference,
+                                   wing_span=wing_span, wing_sweep=wing_phi_qc, wing_airfoil=wing_airfoil,
+                                   wing_tr=wing_tr, wing_cr=wing_c_root, l_coc=fuselage_co_l, l_cab=fuselage_ca_l,
+                                   l_tail=fuselage_ta_l, fus_d=fuselage_diameter, pax=aircraft_n_pax,
+                                   geometry_duct=geometry_duct, geometry_pylon=geometry_pylon,
+                                   geometry_control=geometry_control, geometry_support=geometry_support,
+                                   geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
+                                   geometry_ht=[], geometry_vt=[], x_duct=x_vector[length], x_wing=x_wing, comp_pe=comp_pe,
+                                   propulsor_type=propulsion_type, rpm=RPM)
+        x_cg_vector.append(duuc3.x_cog()[0])
+
     # -----                     CREATE ATR INSTANCE                    ------ #
     atr: Aircraft = Aircraft(aircraft_type="conventional", conditions=conditions,
                              power=power_condition, bem_input=bem_input, delta_e=delta_e,
@@ -259,7 +277,10 @@ def calculation_manager(parameters):
     pylon_in = [duuc.empennage.pylon.inflow_velocity(), duuc.empennage.pylon.inflow_angle()[0]]
 
     station = [0, 1, 1.8, 2.2, 2.55, 4.5, 6]
-    results = {"Weight": {'w_vector_duuc': w_duuc, 'w_vector_atr': w_atr},
+    results = {"Weight": {'w_vector_duuc': w_duuc, 'w_vector_atr': w_atr,
+                          "fuselage": [duuc.fuselage.weight(), atr.fuselage.weight()], "wing": [duuc.wing.weight(),
+                                                                                                atr.wing.weight()],
+                          "empennage": [duuc.empennage.weight(), atr.empennage.weight()]},
                "Inflow": {'v_inflow': v_inflow, 'a_inflow': a_inflow, 'station': station, 'pylon_in': pylon_in},
                "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr},
                "CD0": {'cd0_duuc': duuc.cd0_empennage(), 'cd0_atr': atr.cd0_empennage()},
@@ -279,7 +300,8 @@ def calculation_manager(parameters):
                                 "vectors_atr": [atr.fuselage.cl() + atr.wing.cl(), atr.empennage.cl_sum(),
                                                 atr.fuselage.cd() + atr.fuselage.cd(), atr.empennage.cd_sum_norm(),
                                                 atr.ct()],
-                                "w_total": [duuc.weight(), atr.weight()]},
+                                "w_total": [duuc.weight(), atr.weight()],
+                                "x_cg": [x_cg_vector]},
                "Geometry": [duct_profile, pylon_profile, support_profile, cv_airfoil],
                "Pylon": {"Inflow": [duuc.empennage.pylon.inflow_angle()[0], duuc.empennage.pylon.inflow_velocity()],
                          "Cl": [duuc.empennage.pylon.cl()[0], duuc.empennage.pylon.cl()[1]],
