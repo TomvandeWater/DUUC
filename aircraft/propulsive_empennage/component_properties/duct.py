@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import data.experiment_reference_7foot as ref7f
 import data.experiment_reference_5annular_airfoil as ref5r
 import data.experiment_avl as refavl
+from scipy.interpolate import interp1d
 import data.experiment_reference_linear_regression as reflr
 
 
@@ -26,6 +27,7 @@ class Duct:
         self.density = air_density_isa(self.altitude)[0]
         self.a_install_wing = conditions[4]
         self.a_install_duct = conditions[5]
+        self.beta = conditions[6]
 
         self.pc = power_condition
 
@@ -48,8 +50,8 @@ class Duct:
 
     def inflow_angle(self):
         """ inflow angle for the duct is equal to the freestream velocity"""
-        inflow_duct = self.alpha - ref.alpha_install_wing - self.eta + config.ai_duct
-        angle_rad = np.radians(inflow_duct)
+        inflow_duct = self.alpha - self.a_install_wing - self.eta + self.a_install_duct
+        angle_rad = np.deg2rad(inflow_duct)
         return inflow_duct, angle_rad
 
     def reynolds_number(self):
@@ -114,12 +116,11 @@ class Duct:
         return cl_a_naca
 
     def cl_da(self):
-        cl_da_duct = np.pi / (2 * self.zeta() * self.cl_a())
+        cl_da_duct = np.pi / 2 * self.zeta() * self.cl_a()
         return cl_da_duct
 
     def cl(self):
         k_prop = 0.2 * np.sqrt(np.abs(self.tc_prop))
-        a_vect = np.linspace(-5, 15, 21)
         norm_area = self.area_ratio()
         norm_speed = self.velocity_ratio()
 
@@ -127,18 +128,33 @@ class Duct:
             cl_duct = self.cl_da() * self.inflow_angle()[1]
 
             cl_duct_norm = cl_duct * norm_area * norm_speed
-            cl_vect = []
-            for i in range(len(a_vect)):
-                cl_vect.append(self.cl_da() * np.radians(a_vect[i]))
-            return cl_duct, cl_duct_norm, cl_vect
-        else:
+
+        elif self.pc == "on":
             cl_duct = (1 + k_prop) * self.cl_da() * self.inflow_angle()[1]
 
             cl_duct_norm = cl_duct * norm_area * norm_speed
-            cl_vect = []
-            for i in range(len(a_vect)):
-                cl_vect.append((1 + k_prop) * self.cl_da() * np.radians(a_vect[i]))
-            return cl_duct, cl_duct_norm, cl_vect
+        else:
+            raise ValueError("Power conditions not specified properly")
+
+        return cl_duct, cl_duct_norm
+
+    def cy(self):
+        k_prop = 0.2 * np.sqrt(np.abs(self.tc_prop))
+        norm_area = self.area_ratio()
+        norm_speed = self.velocity_ratio()
+
+        if self.pc == "off":
+            cy_duct = self.cl_da() * self.beta
+            cy_duct_norm = cy_duct * norm_area * norm_speed
+
+        elif self.pc == "on":
+            cy_duct = (1 + k_prop) * self.cl_da() * self.beta
+            cy_duct_norm = cy_duct * norm_area * norm_speed
+        else:
+            raise ValueError("Power conditions not specified properly")
+
+        return cy_duct, cy_duct_norm
+
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), 't')
@@ -148,7 +164,7 @@ class Duct:
         coeff = airfoil_polar(f"duct{self.duct_profile}.txt", float(0.0))
         cdmin = float(coeff[1])
 
-        cd0_norm = fm * ftc * cf * self.area_ratio_wet() * (cdmin / 0.004) ** 4
+        cd0_norm = fm * ftc * cf * self.area_ratio_wet() #* (cdmin / 0.004) ** 4
         cd0_duct = fm * ftc * cf * (cdmin / 0.004) ** 4
         return cd0_duct, cd0_norm
 
@@ -162,15 +178,9 @@ class Duct:
         return cdi_duct, cdi_norm
 
     def cd(self):
-        cd_duct = self.cdi()[0] + self.cd0()[1]
-        cd_duct_norm = self.cdi()[1] + self.cd0()[1] * self.velocity_ratio()
-
-        cd_vect = []
-        a_vect = np.linspace(-5, 15, 21)
-        for i in range(len(a_vect)):
-            cd_vect.append(self.cd0()[1] + (self.cl()[2][i] ** 2 / (2 * np.pi * self.aspect_ratio())))
-
-        return cd_duct, cd_duct_norm, cd_vect
+        cd_duct = self.cdi()[0] + self.cd0()[0]
+        cd_duct_norm = self.cdi()[0] + self.cd0()[1] * self.velocity_ratio()
+        return cd_duct, cd_duct_norm
 
     def cm(self):
         """ Aerodynamic moment of an annular wing based on Masqood"""
@@ -191,13 +201,7 @@ class Duct:
         cm_duct = xp * kpcm * np.sin(alfa) * np.cos(alfa) + xe * kvcm * np.sin(alfa) ** 2
         cm_duct_norm = cm_duct * self.area_ratio() * self.velocity_ratio() * self.chord_ratio()
 
-        cm_vect = []
-        a_vect = np.linspace(-5, 15, 21)
-        for i in range(len(a_vect)):
-            alfa = np.radians(a_vect[i])
-            cm_vect.append(xp * kpcm * np.sin(alfa) * np.cos(alfa) + xe * kvcm * np.sin(alfa) ** 2)
-
-        return cm_duct, cm_duct_norm, cm_vect
+        return cm_duct, cm_duct_norm
 
     def cn(self):
         alpha = self.inflow_angle()[1]
@@ -312,23 +316,18 @@ if __name__ == "__main__":
     a = np.linspace(0, 20, 41)
     cl = []
     cd = []
-    cm =[]
-    cl_the =[]
+    cm = []
+    cl_the = []
     cd_the = []
     for i in range(len(a)):
-        wing = Duct(duct_diameter=config.duct_diameter,
-                    duct_chord=config.duct_chord,
-                    duct_profile=config.duct_airfoil,
-                    alpha=a[i],
+        conditions = [128, a[i], 7000, 0.41, 0, 0]
+        geometry = [config.duct_diameter, config.duct_chord, "0012"]
+        reference = [62, 2.5]
+        wing = Duct(conditions=conditions, geometry=geometry,
                     power_condition="off",
                     tc_prop=0.48,
-                    v_inf=128,
-                    mach=0.44,
-                    ref_area=ref.s_w,
-                    ref_chord=2.2345,
-                    bem_input=[5000, 26482.06279555917, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
-                    va=723,
-                    altitude=7000)
+                    bem_input=[5000, 26482.06279555917, 1800, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
+                    eta=0, reference=reference)
         al = np.radians(a[i])
         kp = 6.25 * np.sin(wing.aspect_ratio()/2)
         kv = np.pi / 3
@@ -337,7 +336,7 @@ if __name__ == "__main__":
         cd_the.append(0.0125 + 0.06 * cl_theory ** 2)
 
         cl.append(wing.cl()[0])
-        cd.append(wing.cd())
+        cd.append(wing.cd()[0])
         cm.append(wing.cm()[0])
 
     alpha_avl, cl_avl, clff_avl, cd_avl, cdin_avl, cdff_avl = read_avl_output("AVL_RW_aeroproperties.txt")
@@ -582,11 +581,4 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.show()
-
-    print(f"inflow vel: {wing.inflow_velocity()}")
-    print(f"inflow ang: {wing.inflow_angle()}")
-    print(f"area: {wing.proj_area()}, wetted area: {wing.wetted_area()}")
-    print(f"aspect ratio: {wing.aspect_ratio()}, t_c: {wing.t_c()}")
-    print(f"cd0: {wing.cd0()}, cdi: {wing.cdi()}, cdprime: {wing.cd_prime()}")
-    print(f"cl: {wing.cl()}, cl_prime: {wing.cl_prime()}")
-    print(f"weight: {wing.weight()}") """
+    """
