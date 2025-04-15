@@ -1,6 +1,9 @@
+import numpy as np
+import matplotlib.pyplot as plt
 from analysis_modules.plotting_functions import print_cg_mass
 import data.atr_reference as ref
 import os
+import matplotlib.gridspec as gridspec
 
 
 class CenterOfGravity:
@@ -200,19 +203,84 @@ class CenterOfGravity:
 """ Test section"""
 
 if __name__ == "__main__":
-    cg = CenterOfGravity(w_lg_nose=171,
-                         w_lg_main=700,
-                         w_eng_wing=250,
-                         w_wing=3500,
-                         w_fuse=3000,
-                         w_nac_wing=200,
-                         w_vt=1002,
-                         w_ht=1001,
-                         w_duct=2000,
-                         w_sys=1000,
-                         l_fuselage=ref.l_cab + ref.l_tail + ref.l_cockpit,
-                         aircraft_type="DUUC",
-                         c_mac_wing=ref.c_mac_w)
-    print(cg.cg_wing_group())
-    print(cg.cg_fuselage_group())
-    print(f"xcg xlmc {cg.x_cg()}")
+    l_fuselage = ref.l_cab + ref.l_tail + ref.l_cockpit
+    x = np.linspace(0, l_fuselage, 100)
+    x_wing_group = []
+    x_fuselage_group = []
+    x_cg = []
+
+    x_cg_atr = 11.5586
+    x_wg_atr = 11.625
+    x_fg_atr = 11.392
+    x_wing = 11.2
+    x_ac_wing = x_wing + 0.25 * ref.c_mac_w
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=1750,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i])
+
+        x_wing_group.append(cg.cg_wing_group()[0])
+        x_fuselage_group.append(cg.cg_fuselage_group()[0])
+        x_cg.append(cg.x_cg()[0])
+
+    fig = plt.figure(figsize=(18, 8))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Left is 3x wider than right
+
+    # Left subplot
+    ax0 = plt.subplot(gs[0])
+    image = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_side_view_tailless.png")
+
+    # Plot background image (aircraft side view)
+    ax0.imshow(image, extent=[0, l_fuselage, 0, l_fuselage], aspect='auto')
+    #ax0.plot(x_wing_group, x, label=r"$x_{wing group}$", color="tab:blue")
+    #ax0.plot(x_fuselage_group, x, label=r"$x_{fuselage group}$", color="tab:orange")
+    ax0.plot(x_cg, x, label=r"$x_{cg-DUUC}$", color="tab:blue")
+    ax0.axvline(min(x_cg), color="tab:blue", linestyle="dashed")
+    ax0.axvline(max(x_cg), color="tab:blue", linestyle="dashed")
+    ax0.axvspan(min(x_cg), max(x_cg), color="tab:blue", alpha=0.2)
+
+    ax0.axvline(x_cg_atr, color="tab:green", linestyle="dashed", label="$x_{cg-atr}$")
+    ax0.axvline(x_ac_wing, color="tab:red", label=r"$x_{ac-wing}$")
+    #ax0.axvline(x_wg_atr, color="tab:blue", linestyle="dashed", alpha=0.5, label="$x_{fg-atr}$")
+    #ax0.axvline(x_fg_atr, color="tab:orange", linestyle="dashed", alpha=0.5, label="$x_{wg-atr}$")
+
+    ax0.plot([min(x_cg), l_fuselage], [0, 0], color="black", linestyle="dashed")
+    ax0.plot(min(x_cg), 0, color="tab:blue", marker="o")
+    ax0.plot([np.mean(x_cg), l_fuselage], [0.5 * l_fuselage, 0.5 * l_fuselage], color="black", linestyle="dashed")
+    ax0.plot(np.mean(x_cg), 0.5 * l_fuselage, color="tab:blue", marker="o")
+    ax0.plot([max(x_cg), l_fuselage], [l_fuselage, l_fuselage], color="black", linestyle="dashed")
+    ax0.plot(max(x_cg), l_fuselage, color="tab:blue", marker="o")
+
+    ax0.set_title("Center of Gravity Shift with Position of PE")
+    ax0.set_xlabel(r"Fuselage Location [m]")
+    ax0.set_ylabel(f"x-location of the PE on the fuselage [m]")
+    ax0.grid(True)
+    ax0.set_xlim([0, l_fuselage])
+    ax0.set_ylim([-1, l_fuselage*1.05])
+    ax0.legend()
+
+    image2 = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_diff_loc.png")
+    # Right subplot - put whatever figure or image you want here
+    ax1 = plt.subplot(gs[1])
+    # Example: draw a placeholder box or text
+    ax1.imshow(image2, aspect='auto')
+    ax1.axis('off')  # Hide axes for a cleaner look
+
+    plt.tight_layout()
+    plt.show()
+
+
+
