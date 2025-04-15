@@ -1,5 +1,6 @@
 from analysis_modules.plotting_functions import print_cg_mass
 import data.atr_reference as ref
+import os
 
 
 class CenterOfGravity:
@@ -72,8 +73,16 @@ class CenterOfGravity:
             cg_wing_group = sum_mcg / sum_w
 
             components = ["Wing", "Main", "Engine", "Nacelle"]
-            # print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          # "wing    ", self.aircraft_type)
+            file_path = r"C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown"
+            os.makedirs(file_path, exist_ok=True)
+            input_file_path = os.path.join(file_path, f"ATR_wing_group_cg_breakdown.txt")
+            if os.path.exists(input_file_path):
+                os.remove(input_file_path)
+            with open(input_file_path, "w") as file:
+                file.write(print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
+                           "wing    ", "Conventional"))
+                file.close()
+
 
             return cg_wing_group, sum_w
 
@@ -92,8 +101,16 @@ class CenterOfGravity:
             cg_wing_group = sum_mcg / sum_w
 
             components = ["Wing", "Main"]
-            # print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
-                          # "wing     ", self.aircraft_type)
+            file_path = r"C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown"
+            os.makedirs(file_path, exist_ok=True)
+            input_file_path = os.path.join(file_path, f"DUUC_wing_group_cg_breakdown.txt")
+            if os.path.exists(input_file_path):
+                os.remove(input_file_path)
+            with open(input_file_path, "w") as file:
+                file.write(print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
+                           "wing     ", "DUUC   "))
+                file.close() 
+
 
             return cg_wing_group, sum_w
         else:
@@ -118,8 +135,17 @@ class CenterOfGravity:
             cg_fuse_group = sum_mcg / sum_w
 
             components = ["Fuselage", "Vertical Tail", "Horizontal Tail", "Nose", "Systems"]
-            # print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                         # "fuselage", self.aircraft_type)
+
+            file_path = r"C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown"
+            os.makedirs(file_path, exist_ok=True)
+            input_file_path = os.path.join(file_path, f"ATR_fuselage_group_cg_breakdown.txt")
+            if os.path.exists(input_file_path):
+                os.remove(input_file_path)
+            with open(input_file_path, "w") as file:
+                file.write(print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
+                           "fuselage", "Conventional"))
+                file.close()
+
 
             return cg_fuse_group, sum_w
 
@@ -138,8 +164,15 @@ class CenterOfGravity:
             cg_fuse_group = sum_mcg / sum_w
 
             components = ["Fuselage", "Nose", "Systems", "Duct"]
-            # print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
-                          # "fuselage", self.aircraft_type)
+            file_path = r"C:\Users\tomva\pythonProject\DUUC\data\CG_breakdown"
+            os.makedirs(file_path, exist_ok=True)
+            input_file_path = os.path.join(file_path, f"DUUC_fuselage_group_cg_breakdown.txt")
+            if os.path.exists(input_file_path):
+                os.remove(input_file_path)
+            with open(input_file_path, "w") as file:
+                file.write(print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
+                           "fuselage", "DUUC   "))
+                file.close()
 
             return cg_fuse_group, sum_w
         else:
