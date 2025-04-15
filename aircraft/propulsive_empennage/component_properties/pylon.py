@@ -23,6 +23,7 @@ class Pylon:
         self.altitude = conditions[2]
         self.mach = conditions[3]
         self.density = air_density_isa(self.altitude)[0]
+        self.beta = conditions[6]
 
         self.ref_area = reference[0]
         self.ref_chord = reference[1]
@@ -99,10 +100,18 @@ class Pylon:
     def cl(self):
         """ coefficient taken from Xfoil"""
         cl_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()[0]))
-        cl_pylon = float(cl_polar[0])
+        cl_pylon = float(cl_polar[0]) * np.cos(np.radians(self.cant_angle))
 
         cl_pylon_norm = cl_pylon * self.area_ratio() * self.velocity_ratio()
         return cl_pylon, cl_pylon_norm
+
+    def cy(self):
+        """ coefficient taken from Xfoil"""
+        cy_polar = airfoil_polar(f"pylon{self.pylon_airfoil}.txt", float(self.inflow_angle()[0]))
+        cy_pylon = float(cy_polar[0]) * np.sin(np.radians(self.cant_angle))
+
+        cy_pylon_norm = cy_pylon * self.area_ratio() * self.velocity_ratio()
+        return cy_pylon, cy_pylon_norm
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")
@@ -169,6 +178,10 @@ class Pylon:
     def drag_force(self):
         drag_pylon = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
         return drag_pylon
+
+    def side_force(self):
+        side_pylon = self.cy()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return side_pylon
 
     def moment_force(self):
         moment_pylon = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.pylon_chord
