@@ -15,8 +15,8 @@ class HorizontalTail:
         self.ht_chord = geometry[1]
         self.ht_profile = geometry[2]
 
-        self.ht_sweep = geometry[3]
-        self.ht_taper = geometry[4]
+        self.ht_sweep = geometry[4]
+        self.ht_taper = geometry[3]
         self.ht_croot = geometry[5]
 
         self.v_inf = conditions[0]
@@ -69,7 +69,7 @@ class HorizontalTail:
         return thickness
 
     def area_wetted(self):
-        wet_ht = 2 * (1 + 0.5 * self.t_c()) * self.ht_span * self.ht_chord
+        wet_ht = 2 * (1 + 0.25 * self.t_c() * ((1 + 0.7 * 0.6) / (1 + 0.6))) * self.area()
         return wet_ht
 
     def aspect_ratio(self):
@@ -172,16 +172,16 @@ class HorizontalTail:
 
     """ ------------------------------------- FORCES --------------------------------------------------------------- """
     def lift_force(self):
-        lift_pylon = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
-        return lift_pylon
+        lift_htail = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return lift_htail
 
     def drag_force(self):
-        drag_pylon = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
-        return drag_pylon
+        drag_htail = self.cd()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
+        return drag_htail
 
     def moment_force(self):
-        moment_pylon = self.cm() * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.ht_chord
-        return moment_pylon
+        moment_htail = self.cm() * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.ht_chord
+        return moment_htail
 
     """" ------------------------------------- WEIGHT -------------------------------------------------------------- """
     def weight(self):
@@ -209,16 +209,8 @@ if __name__ == "__main__":
 
     for i in range(len(a)):
 
-        hor = HorizontalTail(ht_span=ref.b_h,
-                             ht_chord=ref.c_root_h,
-                             ht_profile=ref.airfoil_ht,
-                             ht_taper=ref.tr_h,
-                             ht_sweep=ref.phi_qc_h,
-                             ht_croot=ref.c_root_h,
-                             alpha=a[i],
-                             v_inf=128,
-                             area_ref=ref.s_w,
-                             mach=0.443,
+        hor = HorizontalTail(geometry=[ref.b_h, ref.c_root_h, ref.airfoil_ht, ref.tr_h, ref.phi_qc_h, ref.c_root_h],
+                             conditions=[128, a[i], 7000, 0.41], reference=[ref.s_w, 2.45],
                              ar_wing=12,
                              cl_wing=1.44,
                              cla_wing=5.89
@@ -233,8 +225,8 @@ if __name__ == "__main__":
         cl_the.append(cl_theory)
         cd_the.append(hor.cd0() + (cl_theory ** 2) / (np.pi * hor.aspect_ratio() * 0.6))
 
-        cl.append(hor.cl())
-        cd.append(hor.cd())
+        cl.append(hor.cl()[0])
+        cd.append(hor.cd()[0])
         cd_ref.append(cd_val)
         cl_ref.append(cl_val)
 
@@ -284,17 +276,14 @@ if __name__ == "__main__":
 
     plt.show()
 
-
     print(f"inflow vel: {hor.inflow_velocity()}")
     print(f"inflow ang: {hor.inflow_angle()}")
-    print(f"cd0: {hor.cd0()}, cd: {hor.cd():.5f}")
-    print(f"cd prime: {hor.cd_prime():.5f}")
-    print(f"cl: {hor.cl():.5f}")
-    print(f"cl prime: {hor.cl_prime():.5f}")
+    print(f"cd0: {hor.cd0()}, cd: {hor.cd()}")
+    print(f"cl: {hor.cl()}")
     print(f"weight: {hor.weight()}")
     print(f"area: {hor.area()}")
     print(f"span: {hor.ht_span}")
     print(f"sweep: {hor.ht_sweep}")
     print(f"ar: {hor.aspect_ratio()}")
-    print(f"area: {hor.area()}, wet_area: {hor.wet_area()}")
+    print(f"area: {hor.area()}, wet_area: {hor.area_wetted()}")
     """
