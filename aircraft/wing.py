@@ -22,6 +22,7 @@ class Wing:
         self.mach = mach
         self.wing_type = wing_type
         self.altitude = altitude
+        self.density = air_density_isa(altitude)[0]
 
     """ -------------------------------- Define inflow properties ------------------------------------------------ """
     def inflow_velocity(self):
@@ -158,11 +159,11 @@ class Wing:
 
     """ ------------------------------------ determine forces of the wing --------------------------------------- """
     def lift(self):
-        lift_wing = self.cl_prime() * self.inflow_velocity() ** 2 * self.area() * 0.5 * flow_conditions.rho
+        lift_wing = self.cl() * self.inflow_velocity() ** 2 * self.area() * 0.5 * self.density
         return lift_wing
 
     def drag(self):
-        drag_wing = self.cd_prime() * self.inflow_velocity() ** 2 * self.area() * 0.5 * flow_conditions.rho
+        drag_wing = self.cd() * self.inflow_velocity() ** 2 * self.area() * 0.5 * self.density
         return drag_wing
 
     """ ------------------------------------ determine weight of the wing --------------------------------------- """
