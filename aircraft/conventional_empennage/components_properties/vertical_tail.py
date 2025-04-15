@@ -104,7 +104,7 @@ class VerticalTail:
 
     """ -------------------------------- Coefficient calculation -------------------------------------------------- """
     def cl(self):
-        cl_polar = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle())
+        cl_polar = airfoil_polar(f"vt{self.vt_profile}.txt", self.inflow_angle()[0])
         cl_vt = cl_polar[0]
 
         cl_norm = cl_vt * self.area_ratio() * self.velocity_ratio()
@@ -128,7 +128,7 @@ class VerticalTail:
         return cd0_vt, cd0_vt_ar
 
     def cd(self):
-        cd_vt_norm = self.cd0() * self.area_ratio() + self.cdi() * self.area_ratio() * self.velocity_ratio()
+        cd_vt_norm = self.cd0()[0] * self.area_ratio() + self.cdi()[0] * self.area_ratio() * self.velocity_ratio()
         cd_vt = self.cd0()[1] + self.cdi()[0]
         return cd_vt, cd_vt_norm
 
@@ -171,7 +171,7 @@ class VerticalTail:
         return drag_vt
 
     def moment_force(self):
-        moment_vt = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.pylon_chord
+        moment_vt = self.cm()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area() * self.vt_chord
         return moment_vt
 
     """ ---------------------------------------------- WEIGHT ------------------------------------------------------ """
