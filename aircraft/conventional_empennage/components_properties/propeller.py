@@ -3,49 +3,68 @@ from analysis_modules.aerodynamic import reynolds
 from analysis_modules.ISA import air_density_isa
 import config
 from analysis_modules.factors import skin_friction
-import flow_conditions
+from analysis_modules.aerodynamic import drag_interference
 import data.atr_reference as ref
 
 
 class Propeller:
     """ propeller class for the conventional configuration"""
-    def __init__(self, rpm: float, alpha: float, power_condition: str, n_blades: float,
-                 prop_diameter: float, hub_diameter: float, prop_airfoil: str, prop_sweep: float,
-                 prop_pitch: float, c_root: float, c_tip: float, v_inf: float,
-                 area_ref: float, altitude: float):
+    def __init__(self, aircraft: str, conditions, reference, geometry, power_condition: str, propulsor_type: str,
+                 bem_input):
         super().__init__()
-        self.rpm = rpm
-        self.alpha = alpha
-        self.pc = power_condition
-        self.n_blades = n_blades
-        self.prop_diameter = prop_diameter
-        self.hub_diameter = hub_diameter
-        self.prop_airfoil = prop_airfoil
-        self.prop_sweep = prop_sweep
-        self.prop_pitch = prop_pitch
-        self.c_root = c_root
-        self.c_tip = c_tip
-        self.v_inf = v_inf
-        self.area_ref = area_ref
-        self.altitude = altitude
+        self.aircraft = aircraft
+        self.n_blades = geometry[0]
+        self.prop_diameter = geometry[1]
+        self.hub_diameter = geometry[2]
+        self.prop_airfoil = geometry[3]
+        self.prop_sweep = geometry[4]
+        self.prop_pitch = geometry[5]
+        self.c_root = geometry[6]
+        self.c_tip = geometry[7]
 
-    """ inflow velocity and angles """
+        self.pc = power_condition
+        self.propulsor_type = propulsor_type
+        self.ref_area = reference[0]
+
+        self.v_inf = conditions[0]
+        self.alpha = conditions[1]
+        self.altitude = conditions[2]
+        self.mach = conditions[3]
+        self.density = air_density_isa(self.altitude)[0]
+
+        self.T = bem_input[0]
+        self.N = bem_input[2]
+    """ ---------------------------------- INFLOW PROPERTIES ------------------------------------------------------ """
     def inflow_velocity(self):
-        v_prop = self.v_inf
-        return v_prop
+        if self.aircraft == "DUUC":
+            v_ind = 0
+            return v_ind
+        elif self.aircraft == "conventional":
+            v_ind = self.v_inf
+            return v_ind
+        else:
+            TypeError("Wrong Aircraft type specified")
 
     def inflow_angle(self):
-        a_prop = self.alpha
-        return a_prop
+        inflow_prop = self.alpha / 2
+
+        angle_rad = np.radians(inflow_prop)
+        return inflow_prop, angle_rad
 
     def reynolds_number(self):
-        re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.c_root)
-        return re_nac
+        re_blade = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.c_root)
+        return re_blade
 
-    """ areas and geometric properties"""
+    """ ----------------------------------- GEOMETRIC PROPERTIES --------------------------------------------------- """
     def area(self):
-        area_propel = np.pi * (self.prop_diameter / 2) ** 2
-        return area_propel
+        area_prop = np.pi * (self.prop_diameter / 2) ** 2
+        return area_prop
+
+    def u_wake(self):
+        den = 2 / self.density
+        t_s = self.thrust() / self.area()
+        u1_prop = np.sqrt(den * t_s + self.inflow_velocity() ** 2)
+        return u1_prop
 
     @staticmethod
     def t_c():
@@ -55,14 +74,34 @@ class Propeller:
         t_c_av = (t_c_prop_tip + t_c_prop_root) / 2
         return t_c_prop_root, t_c_prop_tip, t_c_av
 
-    def wet_area(self):
-        wet_prop_bl = (2 * (1 + 0.5 * self.t_c()[2]) * self.prop_diameter / 2
-                       * (self.c_root + self.c_tip) / 2)
+    def area_wetted(self):
+        wet_prop_bl = (2 * (1 + 0.5 * self.t_c()[2]) * self.prop_diameter / 2 * (self.c_root + self.c_tip) / 2)
 
         wet_prop = self.n_blades * wet_prop_bl
         return wet_prop
 
-    """ define coefficients """
+    """ ------------------------------ RATIOS USED FOR NORMALIZATION ----------------------------------------------- """
+    def area_ratio(self):
+        ar_prop = self.area() / self.ref_area
+        return ar_prop
+
+    def area_ratio_wet(self):
+        ar_w_prop = self.area_wetted() / self.ref_area
+        return ar_w_prop
+
+    def velocity_ratio(self):
+        v_ratio = self.inflow_velocity() ** 2 / self.v_inf ** 2
+        return v_ratio
+
+    """ ---------------------------------------- COEFFICIENTS ----------------------------------------------------- """
+    def cn(self):
+        cn_prop = self.N / (0.5 * air_density_isa(self.altitude)[0] * self.inflow_velocity() ** 2 * self.area())
+        return cn_prop
+
+    def ct(self):
+        ct_prop = self.T / (0.5 * air_density_isa(self.altitude)[0] * self.inflow_velocity() ** 2 * self.area())
+        return ct_prop
+
     def cd0(self):
         if self.pc == "off":
             """ in power off conditions the drag is estimated by only the skin friction drag"""
@@ -73,90 +112,97 @@ class Propeller:
             cd0_prop = 0
             return cd0_prop
 
-    def cd_prime(self):
-        a = np.radians(self.alpha)
-        inflow_a = np.radians(self.inflow_angle())
-        norm_area = self.wet_area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+    def cd(self):
+        inflow = self.inflow_angle()[1]
 
         if self.pc == "off":
-            cd_prime = (self.cd0() * np.cos(a - inflow_a) * self.n_blades * norm_area
-                        * norm_speed)
-            return cd_prime
+            cd_prop = (self.cd0() * np.cos(inflow) * self.n_blades)
+            cd_norm = cd_prop * self.area_ratio_wet() * self.velocity_ratio()
+            return cd_prop, cd_norm
         else:
+            """ installed drag (thrust)"""
+            cd_prop = self.ct() * np.cos(inflow) - self.cn() * np.sin(inflow)
+            cd_norm = cd_prop * self.area_ratio() * self.velocity_ratio()
+            return cd_prop, cd_norm
 
-            cd_prime = self.cn() * np.sin(a - inflow_a) * norm_area * norm_speed
-            return cd_prime
+    def cl(self):
+        inflow = self.inflow_angle()[1]
+
+        if self.pc == "off":
+            cl_prop = self.cd()[0] * np.sin(inflow) * self.n_blades
+            cl_norm = cl_prop * self.area_ratio_wet() * self.velocity_ratio()
+            return cl_prop, cl_norm
+        else:
+            cl_1 = self.cn() * np.cos(inflow)
+
+            cl_2 = self.ct() * np.sin(inflow)
+
+            cl_prop = cl_1 + cl_2
+            cl_norm = cl_prop * self.area_ratio_wet() * self.velocity_ratio()
+            return cl_prop, cl_norm
+
+    """ ---------------------------------- INTERFERENCE EFFECTS ---------------------------------------------------- """
 
     def cd_interference(self):
-        """ interference drag because of propeller installation on the wing -> Raymer 2012 """
-        k = 0.2  # between 0.1 - 0.2 based on emperical data
-        delta_d = k * (self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * ref.s_w))
-        return delta_d
-
-    def cl_prime(self):
-        a = np.radians(self.alpha)
-        inflow_a = np.radians(self.inflow_angle())
-        norm_area = self.wet_area() / self.area_ref
-        norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
-
         if self.pc == "off":
-            cl_prime = (self.cd0() * np.sin(a - inflow_a) * self.n_blades * norm_area
-                        * norm_speed)
-            return cl_prime
+            norm_area_nac = ((self.t_c()[0] * self.c_root) * self.c_root) / self.ref_area
+            norm_area_tip = ((self.t_c()[1] * self.c_tip) * self.c_tip) / self.ref_area
+            norm_speed = self.inflow_velocity() ** 2 / self.v_inf ** 2
+
+            cd_int_nac = (self.n_blades * drag_interference(self.t_c()[0], "plane")
+                          * norm_speed * norm_area_nac)
+
+            cd_int_tip = (self.n_blades * drag_interference(self.t_c()[1], "plane")
+                          * norm_speed * norm_area_tip)
+
+            cd_int_prop = cd_int_nac + cd_int_tip
+            return cd_int_prop
         else:
-            cl_1 = self.tc() * np.sin(a)
+            """ Assume that interference drag is a neglible contribution when power is on"""
+            cd_int_prop = 0
+            return cd_int_prop
 
-            cl_2 = self.cn() * np.cos(a - inflow_a) * norm_area * norm_speed
-
-            cl_prime = cl_1 + cl_2
-            return cl_prime
+    """ ---------------------------------------- FORCES ------------------------------------------------------------ """
 
     def thrust(self):
-        """
-        prop = BEM(radius=self.prop_diameter / 2,
-                   num_blades=self.n_blades,
-                   rpm=self.rpm,
-                   prop_airfoil=self.prop_airfoil)
-        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf)"""
-        thrust_prop = 8000
+        thrust_prop = self.T
         return thrust_prop
 
-    def tc(self):
-        tc_prop = self.thrust() / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2 * self.area())
-        return tc_prop
+    def lift_force(self):
+        l_prop = self.cl()[0] * (0.5 * air_density_isa(self.altitude)[0] * self.inflow_velocity() ** 2 * self.area())
+        return l_prop
 
-    def cn(self):
-        """
-        prop = BEM(radius=self.prop_diameter / 2,
-                   num_blades=self.n_blades,
-                   rpm=self.rpm,
-                   prop_airfoil=self.prop_airfoil)
-        thrust_prop, torque_prop, normal_f = prop.calculate_thrust(self.v_inf) """
-        normal_f = 3200
-        cn_prop = normal_f / (0.5 * flow_conditions.rho * self.inflow_velocity() ** 2
-                              * self.area())
-        return cn_prop
+    def drag_force(self):
+        d_prop = self.cd()[0] * (0.5 * air_density_isa(self.altitude)[0] * self.inflow_velocity() ** 2 * self.area())
+        return d_prop
 
-    def u1(self):
-        u1_prop = np.sqrt((2 / flow_conditions.rho) * (self.thrust() / self.area()) +
-                          self.inflow_velocity() ** 2)
-        return u1_prop
-
-    @staticmethod
-    def weight_engine():
+    """ ----------------------------------------- WEIGHT ----------------------------------------------------------- """
+    def weight_engine(self):
         """ based on 1 engine"""
         me = ref.m_eng
         ke = 1.35  # for propeller driven aircraft with more than 1 engine
         kthr = 1.18  # accounts for reverse thrust
+        if self.propulsor_type == "conventional":
+            m_eng = ke * kthr * me
+            return m_eng
+        elif self.propulsor_type == "hybrid":
 
-        m_eng = ke * kthr * me
-        return m_eng
+            m_bat = 300000 / 250  # 250 Wh/kg estimate
+            m_gen = 800 / 1.5  # 800 kW generator -> 1.5 kg/kW estimate
+            m_elec = m_bat / 3.2
+            m_mot = 2 * (750 * 1.2)  # 750 kW per motor -> 1.2 kg/kW estimate
+            m_cool = 600
+
+            m_eng = m_bat + m_gen + m_elec + m_mot + m_cool
+            return m_eng
+        else:
+            raise ValueError("PE propeller.py -> Propulsor type not correctly specified or included in the model")
 
     def weight_fan(self):
         m_fan = ref.m_blade * self.n_blades
         m_fan = m_fan * 1.10  # 10 percent mass added for spinner
         return m_fan
+
 
 
 """ Test section """
