@@ -266,9 +266,9 @@ def screen_param():
 
     monitors = get_monitors()
     try:
-        monitor = monitors[1]
-    except IndexError:
         monitor = monitors[0]
+    except IndexError:
+        monitor = monitors[1]
 
     # Get the position of the second monitor
     x_position = monitor.x
