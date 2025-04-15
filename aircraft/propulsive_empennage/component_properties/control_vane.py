@@ -111,11 +111,8 @@ class ControlVane:
         fm = mach_correction(self.mach)
         ftc = 1 + 2.7 * self.t_c() + 100 * self.t_c() ** 4
 
-        coeff = airfoil_polar(f"vcv{self.cv_profile}.txt", float(0.0))
-        cdmin = float(coeff[1])
-
-        cd0_vane = cf * fm * ftc * (cdmin / 0.004) ** 0.4
-        cd0_vane_ar = cf * fm * ftc * self.area_ratio_wet() * (cdmin / 0.004) ** 0.4
+        cd0_vane = cf * fm * ftc #* (cdmin / 0.004) ** 0.4
+        cd0_vane_ar = cf * fm * ftc * self.area_ratio_wet() #* (cdmin / 0.004) ** 0.4
         return cd0_vane, cd0_vane_ar
 
     def cdi(self):
@@ -169,6 +166,7 @@ class ControlVane:
 
     """ ------------------------------ FORCES  --------------------------------------------------------------------- """
     def lift_force(self):
+        """ For the elevator instance this is the lift, for the rudder instance this is the sideforce """
         lift_control = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.area()
         return lift_control
 
@@ -193,29 +191,21 @@ class ControlVane:
 
 
 """ Test section"""
-"""
+
 if __name__ == "__main__":
-    control = ControlVane(cv_span=config.control_vane_length,
-                          cv_chord=config.control_vane_chord,
-                          cv_profile=config.control_vanes_airfoil,
+    control = ControlVane(geometry=[config.control_vane_length, config.control_vane_chord, config.control_vanes_airfoil],
                           power_condition="on",
                           va_inlet=128 * (np.pi * (config.duct_diameter / 2)),
                           d_exit=config.d_exit,
-                          u1=130,
-                          ref_area=config.duct_diameter * config.duct_chord,
-                          deflection=0,
-                          v_inf=128,
-                          alpha=0,
-                          mach=0.576, u_mom=10, a_after_prop=50)
+                          reference=[61, 2.45],
+                          conditions=[128, 0, 7000, 0.41, 0, 0], a_after_prop=5, v_after_prop=128, deflection=0)
 
     print(f"inflow vel: {control.inflow_velocity()}")
     print(f"inflow ang: {control.inflow_angle()}")
-    print(f"cd: {control.cd():.5f}")
-    print(f"cd0: {control.cd0():.5f}")
-    print(f"cdi: {control.cdi():.5f}")
-    print(f"cd interference: {control.cd_interference():.5f}")
-    print(f"cd prime: {control.cd_prime():.5f}")
-    print(f"cl: {control.cl():.5f}")
-    print(f"cl prime: {control.cl_prime():.5f}")
+    print(f"cd: {control.cd()}")
+    print(f"cd0: {control.cd0()}")
+    print(f"cdi: {control.cdi()}")
+    print(f"cd interference: {control.cd_interference()}")
+    print(f"cl: {control.cl()}")
     print(f"weight: {control.weight()}")
-    print(f"wet area:{control.wet_area()}") """
+    print(f"wet area:{control.area_wetted()}")
