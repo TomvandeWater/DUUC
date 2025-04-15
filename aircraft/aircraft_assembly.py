@@ -174,7 +174,7 @@ class Aircraft:
             cd0_pylon = self.empennage.cd0_vector()[1] * 2
             cd0_support = self.empennage.cd0_vector()[3] * 2
             cd0_control = self.empennage.cd0_vector()[4] * 8
-            return [cd0_duct, cd0_pylon, cd0_support, cd0_control,]
+            return [cd0_duct, cd0_pylon, cd0_support, cd0_control]
 
     def cl_vector(self):
         """ not normalized values """
@@ -209,6 +209,67 @@ class Aircraft:
 
             cl_tot = cl_fuselage + cl_wing + cl_empennage
             return cl_tot
+
+    def ct(self):
+        if self.aircraft_type == "conventional":
+            ct_ac = 0
+        elif self.aircraft_type == "DUUC":
+            ct_ac = 1.2
+        else:
+            raise ValueError("Aircraft type not specified properly")
+        return ct_ac
+
+    def lift(self):
+        lift_wing = self.wing.lift()
+        lift_fuselage = self.fuselage.lift()
+        if self.aircraft_type == "conventional":
+            lift_empennage = self.empennage.lift()
+        elif self.aircraft_type == "DUUC":
+            lift_empennage = self.empennage.lift()
+        else:
+            raise ValueError("Aircraft type not specified properly")
+        lift_ac = lift_wing + lift_empennage + lift_fuselage
+        return lift_ac
+
+    def drag(self):
+        drag_wing = self.wing.drag()
+        drag_fuselage = self.fuselage.drag()
+        if self.aircraft_type == "conventional":
+            drag_empennage = self.empennage.drag()
+        elif self.aircraft_type == "DUUC":
+            drag_empennage = self.empennage.drag()
+        else:
+            raise ValueError("Aircraft type not specified properly")
+        drag_ac = drag_wing + drag_empennage + drag_fuselage
+        return drag_ac
+
+    def thrust(self):
+        if self.aircraft_type == "conventional":
+            thrust_eng = 0
+            thrust_duct = 0
+        elif self.aircraft_type == "DUUC":
+            thrust_eng = 0
+            thrust_duct = 0
+        else:
+            raise ValueError("Aircraft type not specified properly")
+        thrust_ac = thrust_eng + thrust_duct
+        return thrust_ac
+
+    def weight(self):
+        weight_fuselage = self.fuselage.weight()
+        weight_wing = self.wing.weight()
+        weight_landing = self.lg.weight()[2]
+        weight_systems = self.operation.weight_sys() + self.operation.weight_pax() + self.operation.weight_pax()
+
+        if self.aircraft_type == "conventional":
+            weight_empennage = self.empennage.weight()
+        elif self.aircraft_type == "DUUC":
+            weight_empennage = self.empennage.weight() * 2
+        else:
+            raise ValueError("Aircraft type not specified properly")
+
+        weight_aircraft = weight_empennage + weight_systems + weight_wing + weight_fuselage + weight_landing
+        return weight_aircraft
 
     def slope_htail(self):
         cog = self.x_cog()[0]
