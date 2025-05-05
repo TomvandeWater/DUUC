@@ -296,11 +296,11 @@ def create_ringwing_avl():
         #f.write("TRANSLATE\n")
         #f.write(f"0.00    {-0.5 * radius}      0.00\n")
         f.write("SECTION\n")
-        f.write(f"{0.25 * chord} {radius * np.cos(np.radians(30))} {radius + radius * np.sin(np.radians(30))} {0.5} {0}\n")
+        f.write(f"{0.25 * chord} {radius * np.cos(np.radians(30))} {radius + radius * np.sin(np.radians(30))} {0.75} {0}\n")
         f.write("NACA\n")
         f.write(f"0012\n")
         f.write("SECTION\n")
-        f.write(f"{0.25 * chord} {-2.5} {0} {0.5} {0}\n")
+        f.write(f"{0.25 * chord} {-2.5} {0} {0.75} {0}\n")
         f.write("NACA\n")
         f.write(f"0012\n")
 
