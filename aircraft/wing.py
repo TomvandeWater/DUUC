@@ -157,6 +157,11 @@ class Wing:
         cl_prime_wing = cl_cl + cl_cd
         return cl_prime_wing
 
+    def cn(self):
+        alpha = np.radians(self.inflow_angle())
+        cn_wing = self.cl() * np.cos(alpha) + self.cd() * np.sin(alpha)
+        return cn_wing
+
     """ ------------------------------------ determine forces of the wing --------------------------------------- """
     def lift(self):
         lift_wing = self.cl() * self.inflow_velocity() ** 2 * self.area() * 0.5 * self.density
