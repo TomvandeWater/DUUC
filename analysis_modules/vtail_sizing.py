@@ -74,8 +74,8 @@ def s_vertical_sized(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, a
     s_vert = max(s_stab, s_cont)
     return s_vert
 
-
-cyd = 0.975
+"""
+cyd = 9.6
 #a = s_control("conventional", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 3.608)
 a = 13.788741676315057
 b = s_control("DUUC", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 2.8,
@@ -90,14 +90,16 @@ s_stab_atr = []
 
 for i in range(len(array)):
     s_array.append(s_control("DUUC", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 2.8,
-          cy_duuc=array[i], cd_pe=0.00568, cd_wind=0.06))
-    s_array_atr.append(s_control("conventional", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 3.608,
-                                 cy_atr=array[i]))
+                             cy_duuc=array[i], cd_pe=0.00568, cd_wind=0.06))
+    s_array_atr.append(np.round(s_control("conventional", 25, 9.13, 2051*10**3, 0.73, 60.4, 2, 3.608,
+                                cy_atr=array[i]), 2))
     s_stab_duuc.append(s_stability("DUUC", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13,
                                    141, ref.ar_v, 0.31, 0.44, cy_duuc=array[i]))
-    s_stab_atr.append(s_stability("DUUC", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13,
-                                   141, ref.ar_v, 0.31, 0.44, cy_duuc=array[i]))
-"""
+    s_stab_atr.append(np.round(s_stability("DUUC", ref.s_w, 11.5586, 27.13, 2.77, ref.b_w, 9.13,
+                                   141, ref.ar_v, 0.31, 0.44, cy_duuc=array[i]),2))
+
+
+
 plt.figure('CY - vs S_V')
 plt.plot(array, s_array, label=r'Prediction line DUUC - control', color="tab:blue")
 plt.plot(array, s_array_atr, label=r'Prediction line ATR - control', color="tab:orange")
@@ -120,9 +122,9 @@ plt.plot(array, s_stab_duuc, label=r'Prediction line DUUC - stability', color="t
 plt.plot([0, 2.228], [15.01, 15.01], color="tab:orange", linestyle="dashed")
 plt.plot(2.228, 15.01, 'o', markersize=6, color="tab:orange", label="ATR - value")
 plt.plot([2.228, 2.228], [0, 15.01], linestyle='dashed', color="tab:orange")
-#plt.plot([0, 1.321], [b, b], color="tab:blue", linestyle="dashed")
-#plt.plot(1.321, b, 'o', markersize=6, color="tab:blue", label="DUUC - 1st iteration")
-#plt.plot([1.321, 1.321], [0, b], color="tab:blue", linestyle="dashed")
+plt.plot([0, 1.321], [b, b], color="tab:blue", linestyle="dashed")
+plt.plot(1.321, b, 'o', markersize=6, color="tab:blue", label="DUUC - 1st iteration")
+plt.plot([1.321, 1.321], [0, b], color="tab:blue", linestyle="dashed")
 plt.xlim(1, 3)
 plt.ylim(0, 100)
 plt.xlabel(r'$C_{Y_{\beta}}$ [-]')
@@ -131,6 +133,6 @@ plt.title(r'$S_{V}$ vs. $C_{Y}$')
 plt.legend()
 plt.grid(True)
 
-plt.show()
-"""
+plt.show()"""
+
 

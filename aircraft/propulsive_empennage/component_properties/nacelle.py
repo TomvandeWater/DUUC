@@ -38,8 +38,8 @@ class Nacelle:
             return u_nacelle
         else:
             """ Effective velocity after the propeller blade influenced by the support strut """
-            v1 = np.cos(np.radians(self.a_after_prop)) * self.v_after_prop
-            v2 = np.cos(np.radians(self.a_after_prop * 0.5)) * self.v_after_prop
+            v1 = np.cos(self.a_after_prop) * self.v_after_prop
+            v2 = np.cos(self.a_after_prop * 0.5) * self.v_after_prop
 
             u_nacelle = (v1 + v2) / 2
             return u_nacelle
@@ -48,8 +48,8 @@ class Nacelle:
         """ This is 0.75 * the angle of the flow after the propeller"""
         inflow_nacelle = self.a_after_prop * 0.75
 
-        angle_rad = np.radians(inflow_nacelle)
-        return inflow_nacelle, angle_rad
+        angle_deg = np.degrees(inflow_nacelle)
+        return angle_deg, inflow_nacelle
 
     def reynolds_number(self):
         re_nac = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.nacelle_length)

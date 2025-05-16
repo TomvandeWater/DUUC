@@ -43,15 +43,15 @@ class SupportStrut:
     def inflow_angle(self):
         if self.pc == "off":
             cant = np.radians(self.cant_angle)
-            inflow_support = - cant * np.cos(0)
-            angle_rad = np.radians(inflow_support)
-            return inflow_support, angle_rad
+            inflow_support = 0 #- np.sin(cant)
+            angle_deg = np.degrees(inflow_support)
+            return angle_deg, inflow_support
         else:
             cant = np.radians(self.cant_angle)
 
-            inflow_support = self.a_after_prop + - cant * np.cos(0)
-            angle_rad = np.radians(inflow_support)
-            return inflow_support, angle_rad
+            inflow_support = self.a_after_prop # * (1 - np.sin(cant))
+            angle_deg = np.degrees(inflow_support)
+            return angle_deg, inflow_support
 
     def reynolds_number(self):
         re_sup = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.support_chord)

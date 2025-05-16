@@ -196,7 +196,7 @@ class Pylon:
 
 
 """      Test section      """
-"""
+
 if __name__ == "__main__":
 
     a = np.linspace(0, 15, 31)
@@ -209,29 +209,23 @@ if __name__ == "__main__":
     cd_the = []
     cd0 = []
     cm = []
+    reference = [ref.s_w, ref.c_mac_w]
+    geometry = [config.pylon_length, config.pylon_chord, config.pylon_airfoil, config.cant_angle]
 
     for i in range(len(a)):
-        pylon = Pylon(pylon_length=config.pylon_length,
-                      pylon_chord=config.pylon_chord,
-                      pylon_profile=config.pylon_airfoil,
-                      power_condition="on",
-                      cant_angle=config.cant_angle,
-                      alpha=a[i],
-                      ref_area=ref.s_w,
-                      v_inf=128,
-                      m_supported=10000,
-                      ref_chord=2.2345)
+        conditions = [128, a[i], 7000, 0.44, 0, 0, 0]
+        pylon = Pylon(geometry, conditions, reference, power_condition="off")
         polar = airfoil_polar(f"pylon0012.txt", float(a[i]))
         cd_val = float(polar[1])
         cl_val = float(polar[0])
         cm_val = float(polar[2])
 
         al = np.radians(a[i])
-        cl_theory = np.pi * 2 * al
+        cl_theory = 2 * np.pi * al
         cl_the.append(cl_theory)
         cd_the.append(pylon.cd0())
 
-        cl.append(pylon.cl())
+        cl.append(pylon.cl()[0])
         cd.append(pylon.cd())
         cd_ref.append(cd_val)
         cl_ref.append(cl_val)
@@ -239,12 +233,12 @@ if __name__ == "__main__":
         cm.append(pylon.cm()[0])
 
     plt.figure('CL - alpha')
-    plt.plot(a, cl, label=r'Model', color="tab:blue")
+    plt.plot(a, cl, label=r'Prediction model', color="tab:blue")
     plt.plot(a, cl_ref, label=r'XFoil', color="tab:green", marker='o')
-    plt.plot(a, cl_the, label='Theory', color="tab:green", linestyle="--")
+    plt.plot(a, cl_the, label='Theory', color="tab:red", linestyle="--")
     plt.xlabel(r'$\alpha$ [deg]')
     plt.ylabel(r'$C_{L}$ [-]')
-    plt.title(r'Pylon')
+    plt.title(r'$C_l$ vs. $\alpha$ - Pylon')
     plt.legend()
     plt.grid(True)
 
@@ -301,4 +295,4 @@ if __name__ == "__main__":
     print(f"cd prime: {pylon.cd_prime():.5f}")
     print(f"cl: {pylon.cl():.5f}")
     print(f"cl prime: {pylon.cl_prime():.5f}")
-    print(f"weight per: {pylon.weight()}") """
+    print(f"weight per: {pylon.weight()}")

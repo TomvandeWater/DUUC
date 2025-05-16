@@ -93,6 +93,9 @@ c_main = 0.019
 d_nose = 2.97e-6
 d_main = 2.23e-5
 
+""" Coefficients """
+side_wash = 0.3
+
 """ En-route performance"""
 v_cruise = 510  # Max cruise speed (95% MTOW - ISA - Optimum FL) [km/h]
 m_fuel = 762  # Fuel flow at cruise speed [kg/hr]

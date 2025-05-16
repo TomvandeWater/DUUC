@@ -1,6 +1,3 @@
-import numpy as np
-
-import config
 from aircraft.aircraft_assembly import Aircraft
 from analysis_modules.aerodynamic import speed_of_sound
 from analysis_modules.vtail_sizing import *
@@ -66,7 +63,6 @@ def calculation_manager(parameters):
 
     aircraft_n_pax = parameters.get('aircraft_n_pax')
     x_PE = parameters.get('x_PE')
-    y_PE = parameters.get('y_PE')
     z_PE = parameters.get('z_PE')
     y_engine = parameters.get('y_engine')
 
@@ -84,6 +80,7 @@ def calculation_manager(parameters):
     a_install_wing = parameters.get('a_i_wing')
     a_install_duct = parameters.get('a_i_duct')
     stm = parameters.get('static_margin')
+    cv_mode = parameters.get('control_vane_mode')
 
     conditions = [velocity, alpha, altitude, mach, a_install_wing, a_install_duct, beta]
     reference = [ref.s_w, ref.c_mac_w]
@@ -110,7 +107,7 @@ def calculation_manager(parameters):
                               geometry_control=geometry_control, geometry_support=geometry_support,
                               geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                               geometry_ht=[], geometry_vt=[], x_duct=x_PE, x_wing=x_wing, comp_pe=comp_pe,
-                              propulsor_type=propulsion_type, rpm=RPM)
+                              propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
 
     alpha_vector = np.linspace(0, 15, 31)
     pe_cl_vector = []
@@ -133,7 +130,7 @@ def calculation_manager(parameters):
                                    geometry_control=geometry_control, geometry_support=geometry_support,
                                    geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                                    geometry_ht=[], geometry_vt=[], x_duct=x_PE, x_wing=x_wing, comp_pe=comp_pe,
-                                   propulsor_type=propulsion_type, rpm=RPM)
+                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
         pe_cl_vector.append(duuc2.empennage.cl_sum())
         pe_cd_vector.append(duuc2.empennage.cd_sum())
         pe_cm_vector.append(duuc2.empennage.cm_emp())
@@ -174,7 +171,7 @@ def calculation_manager(parameters):
                                    geometry_control=geometry_control, geometry_support=geometry_support,
                                    geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                                    geometry_ht=[], geometry_vt=[], x_duct=x_vector[length], x_wing=x_wing, comp_pe=comp_pe,
-                                   propulsor_type=propulsion_type, rpm=RPM)
+                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
         x_cg_vector.append(duuc3.x_cog()[0])
 
     # -----                     CREATE ATR INSTANCE                    ------ #
@@ -188,44 +185,41 @@ def calculation_manager(parameters):
                              geometry_support=[], geometry_nacelle=geometry_nacelle_conv,
                              geometry_propeller=geometry_propeller_conv,
                              geometry_ht=geometry_ht, geometry_vt=geometry_vt, x_duct=0, x_wing=x_wing, comp_pe=[],
-                             propulsor_type=propulsion_type, rpm=RPM)
+                             propulsor_type=propulsion_type, rpm=RPM, z_duct=0)
+
     # ------                    XCOG EXTRACTION                 ----- #
                  # fus              wing            cg              lemac
     x_cog_duuc = [duuc.x_cog()[2], duuc.x_cog()[3], duuc.x_cog()[0], duuc.x_cog()[1]]
     x_cog_atr = [atr.x_cog()[2], atr.x_cog()[3], atr.x_cog()[0], atr.x_cog()[1]]
+    z_cog_duuc = [duuc.x_cog()[4]]
+    z_cog_atr = [atr.x_cog()[4]]
 
     # ------                  VERTICAL TAIL SIZING COUPLED                        ----- #
-    eta_h = 0.78
+    eta_h = 0.9
     cd_pe = duuc.empennage.cd_sum()
-    cy_pe = duuc.empennage.cy()
+    cy_pe = duuc.cy_beta()
     array = np.linspace(0.1, 3.0, 301)
 
     s_array = []
-    s_array_atr = []
     s_stab_duuc = []
-    s_stab_atr = []
     fuselage_length = fuselage_ca_l + fuselage_ta_l + fuselage_co_l
     y_center_duuc = np.radians(cant_angle) * (pylon_length + 0.5 * support_length)
 
     for y in range(len(array)):
         s_array.append(s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, eta_h, config.v_approach,
-                                 2, y_center_duuc, cy_duuc=array[y], cd_pe=cy_pe, cd_wind=0.06))
-        s_array_atr.append(s_control("conventional", wing_phi_qc, x_PE, 2051 * 10 ** 3, eta_h,
-                                     config.v_approach, 2, y_engine, cy_atr=array[y]))
+                                 2, y_center_duuc, cy_duuc=array[y], cd_pe=cd_pe, cd_wind=0.06))
         s_stab_duuc.append(s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
                                        wing_span, x_PE, config.v_crit, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
-        s_stab_atr.append(s_stability("conventional", ref.s_w, atr.x_cog()[0], fuselage_length, fuselage_diameter,
-                                      wing_span, x_PE, config.v_crit, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
 
     surf1 = 13.788741676315057
     surf2 = s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, eta_h, config.v_approach, 2,
-                  y_center_duuc, cy_duuc=cy_pe, cd_pe=cd_pe, cd_wind=0.06)
+                      y_center_duuc, cy_duuc=cy_pe, cd_pe=cd_pe, cd_wind=0.06)
     s_vert_req = max(surf1, surf2)
 
     # ------                  HORIZONTAL TAIL SIZING COUPLED                       ----- #
     cmac = ref.c_mac_w
     a1_atr, b1_atr = slopes("control", "conventional", 0, ref.phi_qc_w, ref.ar_w, fuselage_length,
-                            x_cog_atr[3], cmac, eta_h, -0.5, 1.44, 0.597,0, ref.phi_hc_h, mach,
+                            x_cog_atr[3], cmac, eta_h, -0.5, 1.44, 0.597, 0, ref.phi_hc_h, mach,
                             0, ref.phi_hc_h, 0, 0, velocity, ref.s_w, -1.97, 0, 0)
     a2_atr, b2_atr = slopes("stability", "conventional", 3.4, ref.phi_qc_w, ref.ar_w, fuselage_length,
                             x_cog_atr[3], cmac, eta_h, -0.5, 1.44, 0.597, ref.b_w, ref.phi_hc_h, mach, ref.ar_h,
@@ -282,11 +276,12 @@ def calculation_manager(parameters):
                                                                                                 atr.wing.weight()],
                           "empennage": [duuc.empennage.weight(), atr.empennage.weight()]},
                "Inflow": {'v_inflow': v_inflow, 'a_inflow': a_inflow, 'station': station, 'pylon_in': pylon_in},
-               "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr},
+               "X_cog": {'x_cog_duuc': x_cog_duuc, 'x_cog_atr': x_cog_atr, "z_cog_duuc": z_cog_duuc,
+                         "z_cog_atr": z_cog_atr},
                "CD0": {'cd0_duuc': duuc.cd0_empennage(), 'cd0_atr': atr.cd0_empennage()},
-               "Vtail": [s_array, s_array_atr, s_stab_duuc, s_stab_atr, a, b, cyd],
+               "Vtail": [s_array, s_stab_duuc, 1, 1, 0.95],
                "Htail": {"ATR": [a1_atr, b1_atr, a2_atr], "DUUC": [a1_duuc, b1_duuc, a2_duuc, stm]},
-               "requirements": {"surfaces": [s_vert_req, s_hor_req],
+               "Requirements": {"surfaces": [s_vert_req, s_hor_req],
                                 "forces_duuc": [duuc.fuselage.lift() + duuc.wing.lift(), duuc.empennage.lift(),
                                                 duuc.fuselage.drag() + duuc.wing.drag(), duuc.empennage.drag(),
                                                 duuc.thrust()],
@@ -296,12 +291,16 @@ def calculation_manager(parameters):
                                                atr.thrust()],
                                 "vectors_duuc": [duuc.fuselage.cl() + duuc.wing.cl(), duuc.empennage.cl_sum(),
                                                  duuc.fuselage.cd() + duuc.fuselage.cd(), duuc.empennage.cd_sum(),
-                                                 duuc.ct()],
+                                                 duuc.tc()],
                                 "vectors_atr": [atr.fuselage.cl() + atr.wing.cl(), atr.empennage.cl_sum(),
                                                 atr.fuselage.cd() + atr.fuselage.cd(), atr.empennage.cd_sum_norm(),
-                                                atr.ct()],
-                                "w_total": [duuc.weight(), atr.weight()],
-                                "x_cg": [x_cg_vector]},
+                                                atr.tc()],
+                                "w_total": [duuc.weight() * 9.81, atr.weight() * 9.81],
+                                "x_cg": [x_cg_vector],
+                                "deltas": {"DUUC": [duuc.cm_a(), duuc.cm_de(), duuc.cl_de(), duuc.cl_a(), duuc.cn_dr(),
+                                                    duuc.cy_beta(), duuc.cn_beta(), duuc.cy_dr(), duuc.cm_a_PE()],
+                                           "ATR": [atr.cm_a(), atr.cm_de(), atr.cl_de(), atr.cl_a(), atr.cn_dr(),
+                                                   atr.cy_beta(), atr.cn_beta(), atr.cy_dr(), atr.wing.cm0()]}},
                "Geometry": [duct_profile, pylon_profile, support_profile, cv_airfoil],
                "Pylon": {"Inflow": [duuc.empennage.pylon.inflow_angle()[0], duuc.empennage.pylon.inflow_velocity()],
                          "Cl": [duuc.empennage.pylon.cl()[0], duuc.empennage.pylon.cl()[1]],

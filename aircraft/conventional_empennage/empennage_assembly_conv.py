@@ -1,4 +1,4 @@
-import data.atr_reference
+import numpy as np
 from aircraft.conventional_empennage.components_properties.horizontal_tail import HorizontalTail
 from aircraft.conventional_empennage.components_properties.propeller import Propeller
 from aircraft.conventional_empennage.components_properties.nacelle import Nacelle
@@ -89,6 +89,10 @@ class ConventionalEmpennage:
         cl_htail = self.ht_tail.cl()[1]
         return cl_htail
 
+    def cn(self):
+        cn_emp = self.ht_tail.cn()[1] + self.vt_tail.cn()[1]
+        return cn_emp
+
     def ht_volume_coefficient(self):
         tv = tail_volume(self.ht_tail.area(), ref.lever_h, self.reference[0], ref.c_root_w)
         return tv
@@ -109,6 +113,35 @@ class ConventionalEmpennage:
     def lift(self):
         lift_conv = self.ht_tail.lift_force()
         return lift_conv
+
+    """ --------------------------------------- Derrivatives ----------------------------------------------------- """
+    @staticmethod
+    def cy_beta():
+        cy_beta_atr = - (2 * np.pi * ref.ar_v) / (2 + (np.sqrt(ref.ar_v ** 2 * (1 + np.tan(ref.phi_hc_v) ** 2 - 0.44)
+                                                               + 4)))
+        cy_beta_atr = - 2.228
+        return cy_beta_atr
+
+    @staticmethod
+    def cn_beta():
+        """ from MATLAB live script for aircraft stability and control -> Vecchia 2023"""
+        cn_beta_conv = 0.144
+        return cn_beta_conv
+
+    @staticmethod
+    def cy_dr():
+        cy_dr_conv = 0
+        return cy_dr_conv
+
+    @staticmethod
+    def cl_de():
+        cl_de_conv = 0.3051
+        return cl_de_conv
+
+    @staticmethod
+    def cm_de():
+        cm_de_conv = -1.7245
+        return cm_de_conv
 
     """ --------------------------------------- Weights ---------------------------------------------------------- """
     def weight_emp(self):

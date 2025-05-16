@@ -37,14 +37,31 @@ control_vanes_airfoil = "0016"
 support_airfoil = "0012"
 prop_airfoil = "HM568F"
 
-d_exit = 1.05 * duct_diameter
+d_exit = duct_diameter
 z_e = 3.08  # installation height of the Propulsive empennage
 
 """ Test condition"""
 power_condition = "on"
 
 n_pax = 68  # number of passengers in the aircraft [-]
-w_pax = 80 + 22  # 80 kg weight of passenger and 22 kg of lugage [kg]
+w_pax = 80 + 22  # 80 kg weight of passenger and 22 kg of luggage [kg]
 
 v_crit = 141  # critical speed [m/s]
 v_approach = 60.4  # approach velocity [m/s]
+
+""" Control vane Model"""
+a_control_vane = - 0.0264
+b_control_vane = -0.0004
+
+""" Fuel definitions for different mission types"""
+w_fuel_ferry_start = 5000
+w_fuel_ferry_end = 1000
+
+w_fuel_full_start = 3000
+w_fuel_full_end = 1000
+
+"""" d value for delta calculations"""
+delta_alpha = 1
+delta_delta_e = 1
+delta_delta_r = 1
+delta_beta = 1

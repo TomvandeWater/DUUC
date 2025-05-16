@@ -51,9 +51,7 @@ class PropulsiveEmpennage:
         """ -------------------- conditions after the propeller disk ----------------------------------------------- """
         propemp.v_after_prop = np.sqrt((propemp.conditions[0] + 2 * propemp.bem_input[6]) ** 2
                                        + propemp.bem_input[7] ** 2)
-        propemp.v_after_prop = 20
-        propemp.a_after_prop = np.arctan(propemp.conditions[0] + 2 * propemp.bem_input[6] / propemp.bem_input[7])
-        propemp.a_after_prop = 10
+        propemp.a_after_prop = np.arctan(propemp.bem_input[7] / (propemp.conditions[0] + 2 * propemp.bem_input[6]))
 
         # Initiate propeller class
         propemp.geometry_propeller = geometry_propeller
@@ -68,26 +66,27 @@ class PropulsiveEmpennage:
         propemp.geometry_duct = geometry_duct
         propemp.duct = Duct(geometry=propemp.geometry_duct, conditions=propemp.conditions, reference=propemp.reference,
                             power_condition=propemp.power_condition, tc_prop=propemp.bem_input[3],
-                            bem_input=propemp.bem_input, eta=eta)
+                            bem_input=propemp.bem_input, eta=eta, propeller_diameter=geometry_propeller[1],
+                            delta_e=propemp.delta_e, rpm=propemp.rpm)
 
         # Initiate nacelle class
         propemp.geometry_nacelle = geometry_nacelle
         propemp.nacelle = Nacelle(geometry=propemp.geometry_nacelle, conditions=propemp.conditions,
                                   reference=propemp.reference, propulsor_type=propemp.propulsor_type,
                                   power_condition=propemp.power_condition, v_after_prop=propemp.v_after_prop,
-                                  a_after_prop=propemp.v_after_prop)
+                                  a_after_prop=propemp.a_after_prop)
 
         # Initiate control vane class for elevator (1 piece)
         propemp.geometry_control = geometry_control
         propemp.elevator = ControlVane(geometry=propemp.geometry_control, conditions=propemp.conditions,
                                        reference=propemp.reference, power_condition=propemp.power_condition,
-                                       v_after_prop=propemp.v_after_prop, a_after_prop=propemp.v_after_prop,
+                                       v_after_prop=propemp.v_after_prop, a_after_prop=propemp.a_after_prop,
                                        va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_e)
 
         # Initiate control vane class for rudder (1 piece)
         propemp.rudder = ControlVane(geometry=propemp.geometry_control, conditions=propemp.conditions,
                                      reference=propemp.reference, power_condition=propemp.power_condition,
-                                     v_after_prop=propemp.v_after_prop, a_after_prop=propemp.v_after_prop,
+                                     v_after_prop=propemp.v_after_prop, a_after_prop=propemp.a_after_prop,
                                      va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_r)
 
         # Initiate support class
@@ -95,7 +94,7 @@ class PropulsiveEmpennage:
         propemp.support = SupportStrut(geometry=propemp.geometry_support, conditions=propemp.conditions,
                                        reference=propemp.reference, power_condition=propemp.power_condition,
                                        prop_diameter=propemp.geometry_propeller[1], v_after_prop=propemp.v_after_prop,
-                                       a_after_prop=propemp.v_after_prop, va_inlet=propemp.va_inlet)
+                                       a_after_prop=propemp.a_after_prop, va_inlet=propemp.va_inlet)
 
         # Initiate pylon class
         propemp.geometry_pylon = geometry_pylon
@@ -146,6 +145,10 @@ class PropulsiveEmpennage:
         cl_a_pe = 5.406
         return cl_a_pe
 
+    def cn_a(self):
+        cn_a_pe = 2.49
+        return cn_a_pe
+
     def cl_sum(self):
         cl_sum_pe = (self.duct.cl()[1] + self.pylon.cl()[1] + self.support.cl()[1] + self.propeller.cl()[1]
                      + 2 * self.elevator.cl()[1])
@@ -195,6 +198,11 @@ class PropulsiveEmpennage:
         else:
             raise ValueError("Empennage assembly PE.py -> wrong power condition input")
 
+    def cn(self):
+        cn_emp = (self.duct.cn()[1] + self.pylon.cn()[1] + self.support.cn()[1] + self.propeller.cn() +
+                  2 * self.elevator.cn()[1])
+        return cn_emp
+
     def cl_norm_vector(self):
         cl_norm_duct = self.duct.cl()[1]
         cl_norm_pylon = self.pylon.cl()[1]
@@ -227,12 +235,28 @@ class PropulsiveEmpennage:
         return lift_pe
 
     def thrust(self):
-        thrust_pe = 2 * (self.propeller.thrust() + self.duct.thrust())
+        thrust_pe = 2 * (self.propeller.thrust() + self.duct.thrust()[0])
         return thrust_pe
 
     def side_force(self):
         side_force = 0
         return side_force
+
+    """ -------------------------------------- Derrivatives ------------------------------------------------------- """
+    def cy_beta(self):
+        """ the duct effect in the cy_beta is assumed to be the largest and hence only contribution for
+        simplification"""
+        k = 0.85
+        cy_beta_pe = k * (self.duct.cl_da() + 0.80 * self.duct.cl_da())
+        return cy_beta_pe
+
+    def cy_dr(self):
+        cy_dr_pe = self.rudder.cl_a() * 0.90 * (4 * self.rudder.area() / self.reference[0])
+        return cy_dr_pe
+
+    def cl_de(self):
+        cl_de_pe = self.elevator.cl_a() * 0.90 * (4 * self.elevator.area() / self.reference[0])
+        return cl_de_pe
 
     """ -------------------------------------- Weight ------------------------------------------------------------- """
     def weight_ps(self):

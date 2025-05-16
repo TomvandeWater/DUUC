@@ -41,6 +41,10 @@ class Propeller:
         self.rpm = rpm
     """ ---------------------------------- INFLOW PROPERTIES ------------------------------------------------------ """
     def inflow_velocity(self):
+        """ one must consider that the effective inflow velocity and angle change based on the power on and off
+        situation in the calculation. the flow field around the duct is changed with a different magnitude when the
+        propeller is in on configuration"""
+
         if self.aircraft == "DUUC":
             if self.pc == "off":
                 v_ind = (self.v_inf * np.pi * self.duct_diameter ** 2 * 0.25) / (np.pi / 4 * self.prop_diameter ** 2)
@@ -86,7 +90,7 @@ class Propeller:
         return t_c_prop_root, t_c_prop_tip, t_c_av
 
     def area_wetted(self):
-        wet_prop_bl = (2 * (1 + 0.5 * self.t_c()[2]) * self.prop_diameter / 2 * (self.c_root + self.c_tip) / 2)
+        wet_prop_bl = (2 * (1 + 0.25 * self.t_c()[2]) * self.prop_diameter / 2 * (self.c_root + self.c_tip) / 2)
 
         wet_prop = self.n_blades * wet_prop_bl
         return wet_prop

@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget, QPu
                              QGridLayout, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QInputDialog,
                              QLineEdit, QGroupBox, QFormLayout, QComboBox, QMessageBox, QMenu, QSystemTrayIcon)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QIcon, QAction, QColor, QTextCharFormat, QPixmap, QImage, QFont
+from PyQt6.QtGui import QIcon, QAction, QColor, QTextCharFormat, QPixmap, QImage, QFont, QDoubleValidator
 from pyvistaqt import QtInteractor
 from analysis_modules.aerodynamic import *
 from visualize_aircraft import *

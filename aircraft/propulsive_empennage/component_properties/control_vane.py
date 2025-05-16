@@ -43,7 +43,7 @@ class ControlVane:
             v_cv = v_vane
             return v_cv
         else:
-            v_cv = np.cos(np.radians(self.a_after_prop / 2)) * self.v_after_prop
+            v_cv = np.cos(self.a_after_prop / 2) * self.v_after_prop
             return v_cv
 
     def inflow_angle(self):
@@ -55,9 +55,9 @@ class ControlVane:
             angle_rad = np.radians(inflow)
             return inflow, angle_rad
         else:
-            inflow = (self.a_after_prop / 2) + self.deflection_angle
-            angle_rad = np.radians(inflow)
-            return inflow, angle_rad
+            inflow = (self.a_after_prop / 2) + np.radians(self.deflection_angle)
+            angle_deg = np.degrees(inflow)
+            return angle_deg, inflow
 
     def reynolds_number(self):
         re_cv = reynolds(air_density_isa(self.altitude), self.inflow_velocity(), self.cv_chord)
@@ -105,6 +105,10 @@ class ControlVane:
 
         cl_norm = cl_vane * self.area_ratio() * self.velocity_ratio()
         return cl_vane, cl_norm
+
+    def cl_a(self):
+        cl_a_cv = (2 * np.pi) / (1 + (2 / (self.aspect_ratio() * oswald(self.aspect_ratio(), 0))))
+        return cl_a_cv
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), "t")

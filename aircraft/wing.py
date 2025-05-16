@@ -115,14 +115,11 @@ class Wing:
         return cl_wing
 
     def cm0(self):
-        cm0_wing = -0.1 * (self.t_c()[1] / self.c_root)
+        cm_contribution = airfoil_polar(f"wing{self.wing_airfoil}.txt", float(ref.alpha_install_wing))[2]
+        lift_contribution = self.cl0() * (0.20 * ref.c_mac_w) / ref.c_mac_w
 
-        sweep = np.radians(self.sweep_wing)
-
-        sweep_corr = np.cos(sweep) ** 2
-
-        cm_wing = cm0_wing * sweep_corr
-        return cm_wing
+        cm0_wing = cm_contribution + lift_contribution
+        return cm0_wing
 
     def cm_a(self):
         cma_wing = - 0.05 / np.sqrt(self.aspect_ratio())

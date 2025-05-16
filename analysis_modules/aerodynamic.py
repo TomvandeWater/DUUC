@@ -103,3 +103,8 @@ def tail_volume(surface, lever_arm, surface_wing, reference_l):
 def c_mac(croot, ctip, tr):
     mac = 2/3 * (croot + ctip - (croot * ctip / (croot + ctip)) / (1 + tr))
     return mac
+
+
+def neutral_point(c, x_ac, eta, vh, cla_t, cla, de_da):
+    x_np = c * ((x_ac / c) + eta * vh * (cla_t / cla) * (1 - de_da))
+    return x_np

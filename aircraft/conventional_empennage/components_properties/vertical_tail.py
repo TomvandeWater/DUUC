@@ -148,6 +148,14 @@ class VerticalTail:
         ct_norm = ct_vt * self.area_ratio() * self.velocity_ratio()
         return ct_vt, ct_norm
 
+    def cn(self):
+        alpha = self.inflow_angle()[1]
+
+        cn_vt = self.cl()[0] * np.cos(alpha) + self.cd()[0] * np.sin(alpha)
+
+        cn_norm = cn_vt * self.area_ratio() * self.velocity_ratio()
+        return cn_vt, cn_norm
+
     def cm(self):
         """ coefficient taken from Xfoil """
         cm_polar = airfoil_polar(f"vt{self.vt_profile}.txt", float(self.inflow_angle()[0]))

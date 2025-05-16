@@ -1,3 +1,5 @@
+import numpy as np
+
 from analysis_modules.aerodynamic import reynolds
 from analysis_modules.ISA import air_density_isa
 from analysis_modules.factors import *
@@ -14,7 +16,7 @@ import data.experiment_reference_linear_regression as reflr
 
 class Duct:
     def __init__(self, geometry, conditions, reference, power_condition: str, tc_prop: float, bem_input,
-                 eta: float):
+                 eta: float, propeller_diameter: float, delta_e: float, rpm: float):
         super().__init__()
         self.duct_diameter = geometry[0]
         self.duct_chord = geometry[1]
@@ -28,6 +30,7 @@ class Duct:
         self.a_install_wing = conditions[4]
         self.a_install_duct = conditions[5]
         self.beta = conditions[6]
+        self.delta_e = delta_e
 
         self.pc = power_condition
 
@@ -38,6 +41,8 @@ class Duct:
         self.va = self.bem_input[8]
         self.tc_prop = tc_prop
         self.eta = eta
+        self.propeller_diameter = propeller_diameter
+        self.rpm = rpm
 
     """ --------------------------------------- Define inflow properties --------------------------------------- """
     def inflow_velocity(self):
@@ -50,7 +55,9 @@ class Duct:
 
     def inflow_angle(self):
         """ inflow angle for the duct is equal to the freestream velocity"""
-        inflow_duct = self.alpha - self.a_install_wing - self.eta + self.a_install_duct
+        a_correction_control = config.a_control_vane * self.delta_e + config.b_control_vane
+
+        inflow_duct = self.alpha - self.a_install_wing - self.eta + self.a_install_duct + a_correction_control
         angle_rad = np.deg2rad(inflow_duct)
         return inflow_duct, angle_rad
 
@@ -135,7 +142,6 @@ class Duct:
             cl_duct_norm = cl_duct * norm_area * norm_speed
         else:
             raise ValueError("Power conditions not specified properly")
-
         return cl_duct, cl_duct_norm
 
     def cy(self):
@@ -154,7 +160,6 @@ class Duct:
             raise ValueError("Power conditions not specified properly")
 
         return cy_duct, cy_duct_norm
-
 
     def cd0(self):
         cf = skin_friction(self.reynolds_number(), 't')
@@ -178,7 +183,7 @@ class Duct:
         return cdi_duct, cdi_norm
 
     def cd(self):
-        cd_duct = self.cdi()[0] + self.cd0()[0]
+        cd_duct = self.cd0()[0] + self.cdi()[0]
         cd_duct_norm = self.cdi()[0] + self.cd0()[1] * self.velocity_ratio()
         return cd_duct, cd_duct_norm
 
@@ -223,6 +228,7 @@ class Duct:
     def thrust(self):
         """ This thrust component is only dependent on the shape of the duct, the pressure induced thrust on the
         leading edge is not incorporated here"""
+        """
         area_prop = np.pi * (ref.blade_diameter / 2) ** 2 - (np.pi * (config.nacelle_diameter / 2) ** 2)
         area_exit = np.pi * (config.d_exit / 2) ** 2 - (np.pi * (config.nacelle_diameter / 2) ** 2)
 
@@ -233,8 +239,22 @@ class Duct:
         t_duct = thrust_tot - self.bem_input[0]
 
         ct_duct = t_duct / (0.5 * self.density * self.v_inf ** 2 * self.ref_area)
+        """
 
-        return t_duct, ct_duct
+        """ fixed thrust ratio based on expansion ratio, but this will not scale with flight conditions 
+        source perreira 2008 - > this model should still be changed for accurate experimental data matching
+        ------ >> compare with the model that is defined above based on the continuity equation and conservation 
+        of mass -->> define how the power on and off situation changes the situation comparing effective inflow velocity
+        angle"""
+        expansion_ratio = self.duct_diameter ** 2 / self.propeller_diameter ** 2
+        thrust_duct = ((2 * expansion_ratio) ** (1 / 3) - 1) * self.bem_input[0]
+
+        return thrust_duct, 0
+
+    def c_thrust_duct(self):
+        advance = advance_ratio(self.v_inf, fan_diameter=self.propeller_diameter, RPM=self.rpm)
+        ct_duct = -0.06806 * advance ** 2 + 0.001473 * advance + 0.008827
+        return ct_duct
 
     def lift_force(self):
         lift_duct = self.cl()[0] * 0.5 * self.density * self.inflow_velocity() ** 2 * self.proj_area()
@@ -310,24 +330,47 @@ class Duct:
 
 
 """ Test section"""
-"""
+
 if __name__ == "__main__":
 
     a = np.linspace(0, 20, 41)
+    v = np.linspace(0.1, 116, 117)
     cl = []
     cd = []
     cm = []
+    cn = []
+    cn2 = []
+    cn3 = []
     cl_the = []
     cd_the = []
+    advance = []
+
+    """
+    for i in range(len(v)):
+        conditions = [v[i], 0, 7000, 0.41, 0, 0, 0]
+        geometry = [config.duct_diameter, config.duct_chord, "0012"]
+        reference = [62, 2.5]
+        wing = Duct(conditions=conditions, geometry=geometry,
+                    power_condition="on",
+                    tc_prop=0.48,
+                    bem_input=[5000, 26482.06279555917, 1800, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
+                    eta=0, reference=reference, delta_e=0, rpm=3000, propeller_diameter=3.6)
+        j = v[i] / 64.5
+        advance.append(j)
+        cd.append(wing.cd()[0])
+    print(cd)
+    print(advance)
+
+    """
     for i in range(len(a)):
-        conditions = [128, a[i], 7000, 0.41, 0, 0]
+        conditions = [128, a[i], 7000, 0.41, 0, 0, 0]
         geometry = [config.duct_diameter, config.duct_chord, "0012"]
         reference = [62, 2.5]
         wing = Duct(conditions=conditions, geometry=geometry,
                     power_condition="off",
                     tc_prop=0.48,
                     bem_input=[5000, 26482.06279555917, 1800, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
-                    eta=0, reference=reference)
+                    eta=0, reference=reference, delta_e=0, rpm=3000, propeller_diameter=3.6)
         al = np.radians(a[i])
         kp = 6.25 * np.sin(wing.aspect_ratio()/2)
         kv = np.pi / 3
@@ -338,7 +381,59 @@ if __name__ == "__main__":
         cl.append(wing.cl()[0])
         cd.append(wing.cd()[0])
         cm.append(wing.cm()[0])
+        cn.append(wing.cn()[0])
+        print(f"cl_da: {wing.cl_da()}")
 
+    """
+    for j in range(len(a)):
+        conditions = [128, a[j], 7000, 0.41, 0, 0, 0]
+        geometry = [config.duct_diameter, config.duct_chord, "0012"]
+        reference = [62, 2.5]
+        wing = Duct(conditions=conditions, geometry=geometry,
+                    power_condition="off",
+                    tc_prop=0.48,
+                    bem_input=[5000, 26482.06279555917, 1800, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
+                    eta=0, reference=reference, delta_e=5, rpm=3000, propeller_diameter=3.6)
+        cn2.append(wing.cn()[0])
+
+    for k in range(len(a)):
+        conditions = [128, a[k], 7000, 0.41, 0, 0, 0]
+        geometry = [config.duct_diameter, config.duct_chord, "0012"]
+        reference = [62, 2.5]
+        wing = Duct(conditions=conditions, geometry=geometry,
+                    power_condition="off",
+                    tc_prop=0.48,
+                    bem_input=[5000, 26482.06279555917, 1800, -1.4475057750305072e-13, 0.8892292886261024, 0.3297344029147765, 0.3201225439053968, 5, 10],
+                    eta=0, reference=reference, delta_e=-5, rpm=3000, propeller_diameter=3.6)
+        cn3.append(wing.cn()[0])
+
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    
+    # Main plot
+    plt.figure('Cn vs alpha')
+    plt.plot(a, cn, label=r'$\delta_e = 0$')
+    plt.plot(a, cn2, label=r'$\delta_e = 5$')
+    plt.plot(a, cn3, label=r'$\delta_e = -5$')
+    plt.ylabel(r'$C_{n}$')
+    plt.xlabel(r'$\alpha$')
+    plt.legend()
+    plt.grid(True)
+
+    # Inset: zoomed-in area
+    ax_inset = inset_axes(plt.gca(), width="30%", height="30%", loc='lower right',
+                          bbox_to_anchor=(-0.1, 0.15, 1, 1), bbox_transform=plt.gcf().transFigure)
+
+    ax_inset.plot(a, cn)
+    ax_inset.plot(a, cn2)
+    ax_inset.plot(a, cn3)
+    ax_inset.set_xlim(2, 3)  # adjust as needed for zoom region
+    ax_inset.set_ylim(0.15, 0.3)  # adjust as needed for zoom region
+    ax_inset.grid(True)
+    ax_inset.tick_params(labelsize=8)
+
+    plt.show()
+    """
     alpha_avl, cl_avl, clff_avl, cd_avl, cdin_avl, cdff_avl = read_avl_output("AVL_RW_aeroproperties.txt")
 
     plt.figure('CL - alpha')
@@ -581,4 +676,3 @@ if __name__ == "__main__":
     plt.legend()
     plt.grid(True)
     plt.show()
-    """
