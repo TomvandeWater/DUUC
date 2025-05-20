@@ -1,9 +1,5 @@
 import numpy as np
-import flow_conditions
-from analysis_modules.aerodynamic import reynolds
-from analysis_modules.ISA import air_density_isa
 import data.atr_reference as ref
-import matplotlib.pyplot as plt
 
 
 def s_control(aircraft_type, sweep25, l_v, power, eta, approach_velocity, n_engines, y_engine, cy_duuc=0, cd_pe=0.00,
@@ -29,7 +25,6 @@ def s_control(aircraft_type, sweep25, l_v, power, eta, approach_velocity, n_engi
     elif aircraft_type == 'DUUC':
         ne = ((eta * power) / (velocity_mc * n_engines)) * y_engine
         nd = (((cd_pe + cd_wind) * 0.5 * rho_sea * velocity_mc ** 2 * ref.s_w) * y_engine)
-        # nd = ne * 0.25
         top = ne + nd
         denominator = 0.5 * rho_sea * velocity_mc ** 2 * l_v * cy_duuc
     else:
@@ -40,7 +35,7 @@ def s_control(aircraft_type, sweep25, l_v, power, eta, approach_velocity, n_engi
     return s_vertical
 
 
-def s_stability(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect_v, sweep50, mach, cy_duuc=0):
+def s_stability(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect_v, mach, cl_a_duuc=0):
     cn_beta = 0.0571  # 1/rad from Roskam
     reynolds_num = (v_crit * l_f) / (5.4603 * 10 ** -5)
 
@@ -52,7 +47,7 @@ def s_stability(aircraft_type, s_wing, x_cog, l_f, d_f, b_w, l_v, v_crit, aspect
     if aircraft_type == 'conventional':
         cy_beta_v = -1 * (2 * np.pi * aspect_v) / (2 + np.sqrt(aspect_v ** 2 * (1 + 0.31 ** 2 - mach ** 2) + 4))
     elif aircraft_type == 'DUUC':
-        cy_beta_v = -cy_duuc
+        cy_beta_v = -cl_a_duuc
     else:
         raise ValueError("Invalid aircraft type specified. Choose 'conventional' or 'DUUC'.")
 

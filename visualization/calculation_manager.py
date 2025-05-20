@@ -196,7 +196,8 @@ def calculation_manager(parameters):
 
     # ------                  VERTICAL TAIL SIZING COUPLED                        ----- #
     eta_h = 0.9
-    cd_pe = duuc.empennage.cd_sum()
+    cd_pe = duuc.empennage.cd_sum()  # drag of one PE during OEI
+    cd_wind = 0.06  # drag due to windmilling of the propeller in OEI
     cy_pe = duuc.cy_beta()
     array = np.linspace(0.1, 3.0, 301)
 
@@ -206,13 +207,16 @@ def calculation_manager(parameters):
     y_center_duuc = np.radians(cant_angle) * (pylon_length + 0.5 * support_length)
 
     for y in range(len(array)):
-        s_array.append(s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, eta_h, config.v_approach,
-                                 2, y_center_duuc, cy_duuc=array[y], cd_pe=cd_pe, cd_wind=0.06))
+        s_array.append(s_control("DUUC", wing_phi_qc, (x_PE - duuc.x_cog()[0]), 2051 * 10 ** 3, eta_h, config.v_approach, 2,
+                                 y_center_duuc, cy_duuc=array[y], cd_pe=cd_pe, cd_wind=0.06))
         s_stab_duuc.append(s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
-                                       wing_span, x_PE, config.v_crit, ref.ar_v, 0.31, mach, cy_duuc=array[y]))
+                           wing_span, (x_PE - duuc.x_cog()[0]), config.v_crit, 0, mach,
+                           cl_a_duuc=array[y]))
 
-    surf1 = 13.788741676315057
-    surf2 = s_control("DUUC", wing_phi_qc, x_PE, 2051 * 10 ** 3, eta_h, config.v_approach, 2,
+    surf1 = s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
+                        wing_span, (x_PE - duuc.x_cog()[0]), config.v_crit, 0, mach,
+                        cl_a_duuc=duuc.empennage.duct.cl_da())
+    surf2 = s_control("DUUC", wing_phi_qc, (x_PE - duuc.x_cog()[0]), 2051 * 10 ** 3, eta_h, config.v_approach, 2,
                       y_center_duuc, cy_duuc=cy_pe, cd_pe=cd_pe, cd_wind=0.06)
     s_vert_req = max(surf1, surf2)
 
