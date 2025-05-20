@@ -20,7 +20,7 @@ class PropulsiveEmpennage:
     def __init__(propemp, conditions, reference, geometry_duct, geometry_pylon, geometry_support, geometry_nacelle,
                  geometry_control, geometry_propeller, rpm: float, ar_wing: float, cl_wing: float, cla_wing: float,
                  bem_input, delta_e: float, delta_r: float, propulsor_type: str, power_condition: str, va_inlet: float,
-                 d_exit: float, comp_pe):
+                 d_exit: float, comp_pe, cv_mode: str):
         super().__init__()
         # operating conditions
         propemp.rpm = rpm
@@ -42,6 +42,7 @@ class PropulsiveEmpennage:
         propemp.reference = reference
         propemp.density = air_density_isa(propemp.conditions[2])[0]
         propemp.comp_pe = comp_pe
+        propemp.cv_mode = cv_mode
 
         """ ------------------- determining the inflow angle based on wing downwash -------------------------------- """
         e0 = (2 * propemp.cl_wing) / (np.pi * propemp.ar_wing)
@@ -81,13 +82,15 @@ class PropulsiveEmpennage:
         propemp.elevator = ControlVane(geometry=propemp.geometry_control, conditions=propemp.conditions,
                                        reference=propemp.reference, power_condition=propemp.power_condition,
                                        v_after_prop=propemp.v_after_prop, a_after_prop=propemp.a_after_prop,
-                                       va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_e)
+                                       va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_e,
+                                       cv_mode=propemp.cv_mode)
 
         # Initiate control vane class for rudder (1 piece)
         propemp.rudder = ControlVane(geometry=propemp.geometry_control, conditions=propemp.conditions,
                                      reference=propemp.reference, power_condition=propemp.power_condition,
                                      v_after_prop=propemp.v_after_prop, a_after_prop=propemp.a_after_prop,
-                                     va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_r)
+                                     va_inlet=propemp.va_inlet, d_exit=propemp.d_exit, deflection=propemp.delta_r,
+                                     cv_mode=propemp.cv_mode)
 
         # Initiate support class
         propemp.geometry_support = geometry_support

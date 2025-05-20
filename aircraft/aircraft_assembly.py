@@ -18,7 +18,8 @@ class Aircraft:
                  geometry_nacelle, geometry_propeller, geometry_ht, geometry_vt, aircraft_type: str, power: str,
                  bem_input, delta_e: float, delta_r: float, wing_span: float, wing_sweep: float, wing_airfoil: str,
                  wing_tr: float, wing_cr: float, l_coc: float, l_cab: float, l_tail: float, fus_d: float, pax: float,
-                 propulsor_type: str, x_wing: float, x_duct: float, comp_pe, rpm: float, z_duct: float):
+                 propulsor_type: str, x_wing: float, x_duct: float, comp_pe, rpm: float, z_duct: float,
+                 cv_mode: str):
         self.rpm = rpm
         self.aircraft_type = aircraft_type
         self.comp_pe = comp_pe
@@ -51,6 +52,7 @@ class Aircraft:
         self.geometry_propeller = geometry_propeller
         self.geometry_ht = geometry_ht
         self.geometry_vt = geometry_vt
+        self.cv_mode = cv_mode
 
         self.wing = Wing(b_wing=self.wing_span, sweep_wing=self.wing_sweep, wing_airfoil=self.wing_airfoil,
                          taper_ratio_wing=self.wing_tr, c_root_wing=self.wing_cr, alpha=self.conditions[1],
@@ -95,7 +97,8 @@ class Aircraft:
                                        geometry_nacelle=self.geometry_nacelle,
                                        geometry_support=self.geometry_support,
                                        geometry_propeller=self.geometry_propeller,
-                                       comp_pe=self.comp_pe)
+                                       comp_pe=self.comp_pe,
+                                       cv_mode=self.cv_mode)
         if self.aircraft_type == "conventional":
             from aircraft.conventional_empennage.empennage_assembly_conv import ConventionalEmpennage
             return ConventionalEmpennage(rpm=config.rpm,
@@ -407,7 +410,7 @@ class Aircraft:
                                                         geometry_nacelle=self.geometry_nacelle,
                                                         geometry_support=self.geometry_support,
                                                         geometry_propeller=self.geometry_propeller,
-                                                        comp_pe=self.comp_pe)
+                                                        comp_pe=self.comp_pe, cv_mode=self.cv_mode)
         cn_a10 = cn10.cn()
         conditions1 = [128, 0, 7000, 0.44, 0, 0, 0]
         cn0: PropulsiveEmpennage = PropulsiveEmpennage(rpm=self.rpm,
@@ -430,7 +433,7 @@ class Aircraft:
                                                        geometry_nacelle=self.geometry_nacelle,
                                                        geometry_support=self.geometry_support,
                                                        geometry_propeller=self.geometry_propeller,
-                                                       comp_pe=self.comp_pe)
+                                                       comp_pe=self.comp_pe, cv_mode=self.cv_mode)
         cn_a0 = cn0.cn()
 
         dcn = (cn_a10 - cn_a0) / 10

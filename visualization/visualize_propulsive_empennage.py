@@ -356,7 +356,7 @@ def create_engine_nacelle(diameter=1.0, length=2.0, cone_length=0.5, center_poin
 
 
 def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
-                                   LE_control, LE_support, x_prop, origin=(0, 0, 0)):
+                                   LE_control, LE_support, x_prop, cv_mode: str, origin=(0, 0, 0)):
 
     primary = cmyk_to_rgb(1, 0, 0, 0)
     off_white = cmyk_to_rgb(0, 0, 0.02, 0.02)
@@ -406,6 +406,7 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
                                     start_point=(x_control_h, y_control_h, z_control_h))
     h_control2 = plot_straight_wing(file_path_0012, span=-b_cv, chord=c_cv, dihedral_deg=0,
                                     start_point=(x_control_h, y_control_h, z_control_h))
+
     h_control = h_control1 + h_control2
 
     x_control_v = LE_control + origin_x
@@ -417,6 +418,7 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
                                     start_point=(x_control_v, y_control_v, z_control_v))
 
     v_control = v_control1 + v_control2
+
     x_engine = x_prop + origin_x
     spinner = plot_half_sphere(config.hub_diameter, (x_engine, y_duct, z_duct))
 
@@ -469,13 +471,14 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
     plotter.add_text("Propulsive Empennage", position='upper_edge', font_size=12, color='black')
     plotter.add_mesh(pylon, color=off_white, smooth_shading=True)
     plotter.add_mesh(support, color=off_white, smooth_shading=True)
-    plotter.add_mesh(h_control, color="darkblue", smooth_shading=True)
-    plotter.add_mesh(v_control, color="darkblue", smooth_shading=True)
     plotter.add_mesh(duct_with_logo, texture=logo_texture, smooth_shading=True)
     plotter.add_mesh(duct, color="lightgrey", smooth_shading=True)
     plotter.add_mesh(spinner, color="grey", smooth_shading=True)
     plotter.add_mesh(propeller, color="grey", smooth_shading=True)
     plotter.add_mesh(nacelle, color="lightgrey", smooth_shading=True)
+    if cv_mode == "X - configuration":
+        plotter.add_mesh(h_control, color="darkblue", smooth_shading=True)
+        plotter.add_mesh(v_control, color="darkblue", smooth_shading=True)
     plotter.camera_position = [(-7, -7, 7), (2.5, 2.5, -0.5), (0, 0, 1)]
     plotter.camera.zoom(-12)
     plotter.add_axes()
@@ -484,7 +487,7 @@ def visualize_propulsive_empennage(plotter, c_pylon, b_pylon, c_duct, d_duct, c_
 
 
 def visualize_cross_section(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
-                            LE_control, LE_support, x_prop):
+                            LE_control, LE_support, x_prop, cv_mode):
 
     primary = cmyk_to_rgb(1, 0, 0, 0)
     file_path_0012 = os.path.join(r"C:\Users\tomva\pythonProject\DUUC\data\airfoil_coordinates", "Naca0012" + ".txt")
@@ -556,7 +559,12 @@ def visualize_cross_section(plotter, c_pylon, b_pylon, c_duct, d_duct, c_support
     #cross_section_plotter.add_text("Cross Section: XY Plane", position='upper_edge', font_size=12, color='black')
 
     # Add the original full geometry for reference (light grey, transparent)
-    combined = pylon + support + h_control + v_control + duct_with_logo + spinner + propeller + nacelle
+    if cv_mode == "X - configuration":
+        combined = pylon + support + h_control + v_control + duct_with_logo + spinner + propeller + nacelle
+    elif cv_mode == "Duct Edge":
+        combined = pylon + support + duct_with_logo + spinner + propeller + nacelle
+    else:
+        raise ValueError("control vane mode not specified properly")
     plotter.add_mesh(combined, color="lightgrey", opacity=0.2)
 
     # Initial Z position for slicing

@@ -25,14 +25,12 @@ def s_control(aircraft_type, sweep25, l_v, power, eta, approach_velocity, n_engi
 
         delta_f = np.radians(delta_f_max)
         denominator = (0.5 * rho_sea * velocity_mc ** 2 * delta_f * cld_ratio * cl_the * k_prime * k_theta * l_v)
-        denominator = 0.5 * rho_sea * velocity_mc ** 2 * l_v * cy_atr
 
     elif aircraft_type == 'DUUC':
         ne = ((eta * power) / (velocity_mc * n_engines)) * y_engine
-        nd = ((cd_pe * 0.5 * rho_sea * velocity_mc ** 2 * ref.s_w) + cd_wind * 0.5 * rho_sea * velocity_mc ** 2 * 1.52) * y_engine
-        nd = ne * 0.25
+        nd = (((cd_pe + cd_wind) * 0.5 * rho_sea * velocity_mc ** 2 * ref.s_w) * y_engine)
+        # nd = ne * 0.25
         top = ne + nd
-
         denominator = 0.5 * rho_sea * velocity_mc ** 2 * l_v * cy_duuc
     else:
         raise ValueError("Invalid aircraft type specified. Choose 'conventional' or 'DUUC'.")

@@ -778,7 +778,8 @@ class MainWindow(QMainWindow):
             self.parameters['x_pylon'],
             self.parameters['x_control_vanes'],
             self.parameters['x_support'],
-            self.parameters['x_prop']
+            self.parameters['x_prop'],
+            self.parameters['control_vane_mode']
         )
         plotter.reset_camera()
 
@@ -800,7 +801,8 @@ class MainWindow(QMainWindow):
             self.parameters['x_pylon'],
             self.parameters['x_control_vanes'],
             self.parameters['x_support'],
-            self.parameters['x_prop']
+            self.parameters['x_prop'],
+            self.parameters['control_vane_mode']
         )
         plotter.reset_camera()
 
@@ -827,7 +829,7 @@ class MainWindow(QMainWindow):
              self.parameters['duct_diameter'], self.parameters['support_chord'], self.parameters['support_length'],
              self.parameters["cant_angle"], self.parameters['hcv_chord'], self.parameters["hcv_span"],
              self.parameters['x_pylon'], self.parameters['x_control_vanes'],
-             self.parameters['x_support'], self.parameters['x_prop']]
+             self.parameters['x_support'], self.parameters['x_prop'], self.parameters['control_vane_mode']]
         )
         plotter.reset_camera()
 
@@ -864,8 +866,6 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(power_condition_label, 3, 0)
         layout.addWidget(self.power_condition_selector, 3, 1)
-
-    from PyQt6.QtWidgets import QLineEdit, QComboBox, QMessageBox
 
     def update_parameter(self, parameter, input_field, data_type=float):
         if isinstance(input_field, QComboBox):

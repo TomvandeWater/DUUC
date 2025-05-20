@@ -110,4 +110,4 @@ def create_new_polars(profile_pylon, profile_support, profile_duct, profile_cont
 
 """ Test test if wanted"""
 
-xfoil_polar("Naca0016", -6, 20, 0.5, 4.698e6, "support0016", 0.44)
+#xfoil_polar("Naca0016", -6, 20, 0.5, 4.698e6, "support0016", 0.44)

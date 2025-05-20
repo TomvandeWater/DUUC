@@ -11,7 +11,7 @@ class ControlVane:
     """ Reference for each control vane is the attachment to the nacelle the values calculated
     are for 1 control vane. """
     def __init__(self, geometry, conditions, reference, power_condition: str, va_inlet: float,
-                 d_exit: float, deflection: float, v_after_prop: float, a_after_prop: float):
+                 d_exit: float, deflection: float, v_after_prop: float, a_after_prop: float, cv_mode: str):
         super().__init__()
         self.cv_span = geometry[0]
         self.cv_chord = geometry[1]
@@ -33,6 +33,7 @@ class ControlVane:
         self.va_inlet = va_inlet
         self.d_exit = d_exit
         self.deflection_angle = deflection
+        self.cv_mode = cv_mode
 
     """ ------------------------------ Determine inflow properties ------------------------------------------------ """
     def inflow_velocity(self):
@@ -104,6 +105,16 @@ class ControlVane:
         cl_vane = float(coeff[0])
 
         cl_norm = cl_vane * self.area_ratio() * self.velocity_ratio()
+
+        if self.cv_mode == "X - configuration":
+            cl_vane = cl_vane
+            cl_norm = cl_norm
+        elif self.cv_mode == "Duct Edge":
+            cl_vane = 0
+            cl_norm = 0
+        else:
+            raise ValueError("Invalid control vane mode")
+
         return cl_vane, cl_norm
 
     def cl_a(self):
@@ -117,6 +128,16 @@ class ControlVane:
 
         cd0_vane = cf * fm * ftc #* (cdmin / 0.004) ** 0.4
         cd0_vane_ar = cf * fm * ftc * self.area_ratio_wet() #* (cdmin / 0.004) ** 0.4
+
+        if self.cv_mode == "X - configuration":
+            cd0_vane = cd0_vane
+            cd0_vane_ar = cd0_vane_ar
+        elif self.cv_mode == "Duct Edge":
+            cd0_vane = 0
+            cd0_vane_ar = 0
+        else:
+            raise ValueError("Invalid control vane mode")
+
         return cd0_vane, cd0_vane_ar
 
     def cdi(self):
@@ -124,12 +145,35 @@ class ControlVane:
         cdi_vane = self.cl()[0] ** 2 / (np.pi * self.aspect_ratio() * e)
         cdi_vane_norm = (self.cl()[0] ** 2 / (np.pi * self.aspect_ratio() * e) * self.velocity_ratio()
                          * self.area_ratio())
+
+        if self.cv_mode == "X - configuration":
+            cdi_vane = cdi_vane
+            cdi_vane_norm = cdi_vane_norm
+        elif self.cv_mode == "Duct Edge":
+            cdi_vane = 0
+            cdi_vane_norm = 0
+        else:
+            raise ValueError("Invalid control vane mode")
+
         return cdi_vane, cdi_vane_norm
 
     def cd(self):
         coeff = airfoil_polar(f"vcv{self.cv_profile}.txt", self.inflow_angle()[0])
         cd_vane = float(coeff[1])
-        cd_norm = cd_vane * self.velocity_ratio() * self.area_ratio()
+
+        swirl_recovery = 00
+
+        cd_vane_sr = cd_vane - swirl_recovery
+        cd_norm = cd_vane_sr * self.velocity_ratio() * self.area_ratio()
+
+        if self.cv_mode == "X - configuration":
+            cd_vane = cd_vane_sr
+            cd_norm = cd_norm
+        elif self.cv_mode == "Duct Edge":
+            cd_vane = 0
+            cd_norm = 0
+        else:
+            raise ValueError("Invalid control vane mode")
         return cd_vane, cd_norm
 
     def cm(self):
@@ -138,6 +182,16 @@ class ControlVane:
         cm_vane = float(coeff[2])
 
         cm_norm = cm_vane * self.area_ratio() * self.velocity_ratio() * self.chord_ratio()
+
+        if self.cv_mode == "X - configuration":
+            cm_vane = cm_vane
+            cm_norm = cm_norm
+        elif self.cv_mode == "Duct Edge":
+            cm_vane = 0
+            cm_norm = 0
+        else:
+            raise ValueError("Invalid control vane mode")
+
         return cm_vane, cm_norm
 
     def cn(self):

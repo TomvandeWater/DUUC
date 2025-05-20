@@ -107,7 +107,7 @@ def calculation_manager(parameters):
                               geometry_control=geometry_control, geometry_support=geometry_support,
                               geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                               geometry_ht=[], geometry_vt=[], x_duct=x_PE, x_wing=x_wing, comp_pe=comp_pe,
-                              propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
+                              propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE, cv_mode=cv_mode)
 
     alpha_vector = np.linspace(0, 15, 31)
     pe_cl_vector = []
@@ -130,7 +130,7 @@ def calculation_manager(parameters):
                                    geometry_control=geometry_control, geometry_support=geometry_support,
                                    geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                                    geometry_ht=[], geometry_vt=[], x_duct=x_PE, x_wing=x_wing, comp_pe=comp_pe,
-                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
+                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE, cv_mode=cv_mode)
         pe_cl_vector.append(duuc2.empennage.cl_sum())
         pe_cd_vector.append(duuc2.empennage.cd_sum())
         pe_cm_vector.append(duuc2.empennage.cm_emp())
@@ -171,7 +171,7 @@ def calculation_manager(parameters):
                                    geometry_control=geometry_control, geometry_support=geometry_support,
                                    geometry_nacelle=geometry_nacelle, geometry_propeller=geometry_propeller,
                                    geometry_ht=[], geometry_vt=[], x_duct=x_vector[length], x_wing=x_wing, comp_pe=comp_pe,
-                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE)
+                                   propulsor_type=propulsion_type, rpm=RPM, z_duct=z_PE, cv_mode=cv_mode)
         x_cg_vector.append(duuc3.x_cog()[0])
 
     # -----                     CREATE ATR INSTANCE                    ------ #
@@ -185,7 +185,7 @@ def calculation_manager(parameters):
                              geometry_support=[], geometry_nacelle=geometry_nacelle_conv,
                              geometry_propeller=geometry_propeller_conv,
                              geometry_ht=geometry_ht, geometry_vt=geometry_vt, x_duct=0, x_wing=x_wing, comp_pe=[],
-                             propulsor_type=propulsion_type, rpm=RPM, z_duct=0)
+                             propulsor_type=propulsion_type, rpm=RPM, z_duct=0, cv_mode=cv_mode)
 
     # ------                    XCOG EXTRACTION                 ----- #
                  # fus              wing            cg              lemac

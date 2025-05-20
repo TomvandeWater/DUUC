@@ -6,7 +6,7 @@ import config
 
 
 def visualize_propulsive_empennage_ac(c_pylon, b_pylon, c_duct, d_duct, c_support, b_support, cant, c_cv, b_cv, LE_pylon,
-                                      LE_control, LE_support, x_prop, origin=(0, 0, 0)):
+                                      LE_control, LE_support, x_prop, cv_mode, origin=(0, 0, 0)):
 
     primary = cmyk_to_rgb(1, 0, 0, 0)
     off_white = cmyk_to_rgb(0, 0, 0.02, 0.02)
@@ -55,17 +55,17 @@ def visualize_propulsive_empennage_ac(c_pylon, b_pylon, c_duct, d_duct, c_suppor
     x_control_h = LE_control + origin_x
     y_control_h = y_pylon_end + np.cos(cant_rad) * b_support / 2 - 0.5 * d_duct
     z_control_h = z_pylon_end + np.sin(cant_rad) * b_support / 2  # Removed redundant origin_z
-
-    h_control = plot_straight_wing(file_path_0012, span=b_cv * 2, chord=c_cv, dihedral_deg=0,
-                                   start_point=(x_control_h, y_control_h, z_control_h))
+    if cv_mode == "X - configuration":
+        h_control = plot_straight_wing(file_path_0012, span=b_cv * 2, chord=c_cv, dihedral_deg=0,
+                                       start_point=(x_control_h, y_control_h, z_control_h))
 
     # Vertical control vane
     x_control_v = LE_control + origin_x
     y_control_v = y_pylon_end + np.cos(cant_rad) * b_support / 2
     z_control_v = z_pylon_end + np.sin(cant_rad) * b_support / 2 - 0.5 * d_duct  # Removed redundant origin_z
-
-    v_control = plot_vertical_wing(file_path_0012, span=b_cv * 2, chord=c_cv, sweep_deg=0.0,
-                                   start_point=(x_control_v, y_control_v, z_control_v))
+    if cv_mode == "X - configuration":
+        v_control = plot_vertical_wing(file_path_0012, span=b_cv * 2, chord=c_cv, sweep_deg=0.0,
+                                       start_point=(x_control_v, y_control_v, z_control_v))
 
     # Engine components
     x_engine = x_prop + origin_x
@@ -76,8 +76,12 @@ def visualize_propulsive_empennage_ac(c_pylon, b_pylon, c_duct, d_duct, c_suppor
 
     nacelle = create_engine_nacelle(diameter=config.hub_diameter, length=config.nacelle_length,
                                     cone_length=0.5, center_point=(x_engine, y_duct, z_duct), resolution=100)
-
-    combined = pylon + support + h_control + v_control + duct_with_logo + spinner + propeller + nacelle
+    if cv_mode == "X - configuration":
+        combined = pylon + support + h_control + v_control + duct_with_logo + spinner + propeller + nacelle
+    elif cv_mode == "Duct Edge":
+        combined = pylon + support + duct_with_logo + spinner + propeller + nacelle
+    else:
+        raise ValueError("Control Vane mode not supported")
     return combined
 
 
@@ -234,7 +238,7 @@ def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_
         duuc_left = visualize_propulsive_empennage_ac(pe_input[0], pe_input[1], pe_input[2], pe_input[3],
                                                       pe_input[4], pe_input[5], pe_input[6], pe_input[7],
                                                       pe_input[8], pe_input[9], pe_input[10], pe_input[11],
-                                                      pe_input[12], (x_duuc, y_duuc, z_duuc))
+                                                      pe_input[12], pe_input[13], (x_duuc, y_duuc, z_duuc))
 
         duuc_right = duuc_left.reflect((0, 1, 0))
         empennage = duuc_left + duuc_right
