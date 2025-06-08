@@ -221,7 +221,7 @@ class Nacelle:
 
 
 """ Test section """
-"""
+
 if __name__ == "__main__":
     a = np.linspace(0, 15, 31)
     cl = []
@@ -230,17 +230,19 @@ if __name__ == "__main__":
     cd_2 = []
     cl_2 = []
 
+    reference = [ref.s_w, ref.c_mac_w]
+
+    geometry_nacelle = [config.nacelle_length, config.nacelle_diameter]
+    power_condition ="off"
+    propulsor_type = "conventional"
+    v_after_prop = 0
+
+
     for i in range(len(a)):
-        nacelle = Nacelle(nacelle_length=config.nacelle_length,
-                          nacelle_diameter=config.nacelle_diameter,
-                          propulsor_type="conventional",
-                          power_condition="on",
-                          alpha=a[i],
-                          ref_area=ref.s_w,
-                          v_inf=128,
-                          mach=0.44,
-                          a_after_prop=20,
-                          v_after_prop=125)
+        conditions = [128, a[i], 7000, 0.44, 0, 0, 0]
+        a_after_prop = np.radians(a[i])
+        nacelle = Nacelle(geometry_nacelle, conditions, reference, propulsor_type, power_condition, v_after_prop,
+                 a_after_prop)
 
         cl.append(nacelle.cl()[0])
         cd.append(nacelle.cd()[0])
@@ -275,8 +277,4 @@ if __name__ == "__main__":
     plt.grid(True)
     plt.show()
 
-    print(f"inflow vel: {nacelle.inflow_velocity()}")
-    print(f"inflow ang: {nacelle.inflow_angle()}")
-    print(f"cd0: {nacelle.cd0()}")
-    print(f"cd prime: {nacelle.cd_prime():.3f}")
-"""
+

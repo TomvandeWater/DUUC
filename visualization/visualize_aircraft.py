@@ -254,12 +254,12 @@ def visualize_aircraft(plotter, d_fus, semi_b_wing, c_wing, x_lemac, x_cog_w, x_
     plotter.add_mesh(empennage, color='lightgrey', show_edges=False, smooth_shading=True)
 
     # add center of gravity functionality
-    plotter.add_point_labels([text_position], ['x_(cg-wing)'], font_size=14, point_color='white', point_size=10)
-    plotter.add_mesh(line, color="black", line_width=2)
-    plotter.add_point_labels([text_position2], ['x_(cg-fus)'], font_size=14, point_color='white', point_size=10)
-    plotter.add_mesh(line2, color="black", line_width=2)
-    plotter.add_point_labels([text_position3], ['x_(cg)'], font_size=14, point_color='white', point_size=10)
-    plotter.add_mesh(line3, color="red", line_width=2)
+    #plotter.add_point_labels([text_position], ['x_(cg-wing)'], font_size=14, point_color='white', point_size=10)
+    #plotter.add_mesh(line, color="black", line_width=2)
+    #plotter.add_point_labels([text_position2], ['x_(cg-fus)'], font_size=14, point_color='white', point_size=10)
+    #plotter.add_mesh(line2, color="black", line_width=2)
+    #plotter.add_point_labels([text_position3], ['x_(cg)'], font_size=14, point_color='white', point_size=10)
+    #plotter.add_mesh(line3, color="red", line_width=2)
     plotter.camera_position = [(-7, 0, 10), (2.5, 2.5, -0.5), (0, 0, 1)]
     plotter.camera.zoom(-12)
     plotter.show()

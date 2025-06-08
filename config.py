@@ -54,10 +54,10 @@ a_control_vane = - 0.0264
 b_control_vane = -0.0004
 
 """ Fuel definitions for different mission types"""
-w_fuel_ferry_start = 5000
+w_fuel_ferry_start = 3000
 w_fuel_ferry_end = 1000
 
-w_fuel_full_start = 3000
+w_fuel_full_start = 5000
 w_fuel_full_end = 1000
 
 """" d value for delta calculations"""

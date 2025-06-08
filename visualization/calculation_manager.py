@@ -208,7 +208,7 @@ def calculation_manager(parameters):
 
     for y in range(len(array)):
         s_array.append(s_control("DUUC", wing_phi_qc, (x_PE - duuc.x_cog()[0]), 2051 * 10 ** 3, eta_h, config.v_approach, 2,
-                                 y_center_duuc, cy_duuc=array[y], cd_pe=cd_pe, cd_wind=0.06))
+                                 y_center_duuc, cy_duuc=array[y], cd_pe=cd_pe, cd_wind=cd_wind))
         s_stab_duuc.append(s_stability("DUUC", ref.s_w, duuc.x_cog()[0], fuselage_length, fuselage_diameter,
                            wing_span, (x_PE - duuc.x_cog()[0]), config.v_crit, 0, mach,
                            cl_a_duuc=array[y]))
@@ -217,7 +217,7 @@ def calculation_manager(parameters):
                         wing_span, (x_PE - duuc.x_cog()[0]), config.v_crit, 0, mach,
                         cl_a_duuc=duuc.empennage.duct.cl_da())
     surf2 = s_control("DUUC", wing_phi_qc, (x_PE - duuc.x_cog()[0]), 2051 * 10 ** 3, eta_h, config.v_approach, 2,
-                      y_center_duuc, cy_duuc=cy_pe, cd_pe=cd_pe, cd_wind=0.06)
+                      y_center_duuc, cy_duuc=cy_pe, cd_pe=cd_pe, cd_wind=cd_wind)
     s_vert_req = max(surf1, surf2)
 
     # ------                  HORIZONTAL TAIL SIZING COUPLED                       ----- #

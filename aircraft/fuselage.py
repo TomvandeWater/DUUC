@@ -201,11 +201,11 @@ class Fuselage:
 """ Test section """
 
 if __name__ == "__main__":
-    fuselage = Fuselage(fuselage_length=ref.l_tail+ref.l_cabin+ref.l_cockpit,
+    fuselage = Fuselage(fuselage_length=21,
                         fuselage_diameter=2.77,
                         l_cabin=ref.l_cabin,
                         l_cockpit=ref.l_cockpit,
-                        l_tail=ref.l_tail,
+                        l_tail=0,
                         velocity=128,
                         alpha=0,
                         ref_area=ref.s_w,

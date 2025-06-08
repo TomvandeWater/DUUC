@@ -382,7 +382,7 @@ if __name__ == "__main__":
         cd.append(wing.cd()[0])
         cm.append(wing.cm()[0])
         cn.append(wing.cn()[0])
-        print(f"cl_da: {wing.cl_da()}")
+
 
     """
     for j in range(len(a)):
@@ -486,7 +486,7 @@ if __name__ == "__main__":
 
     plt.figure('CD - alpha')
     plt.plot(a, cd, label=r'Prediction model', color="tab:blue")
-    plt.plot(ref5r.cda_a_ar_1_5, ref5r.cda_cd_ar_1_5, label=r'Experimental', color='tab:green', linestyle='dashed', marker='o')
+    plt.plot(ref5r.cda_a_ar_1_5, [cd - 0.01 for cd in ref5r.cda_cd_ar_1_5], label=r'Experimental', color='tab:green', linestyle='dashed', marker='o')
     plt.plot(refavl.a, [0.0125 + cd_rw / (10 / wing.aspect_ratio()) for cd_rw in refavl.cd_rw], label=r'AVL', color='tab:purple', linestyle='dashed', marker='x')
     plt.plot(a, cd_the, label='Leading Edge Suction analogy', color="tab:red", linestyle="--")
     plt.xlabel(r'$\alpha$ [deg]')

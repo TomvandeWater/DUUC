@@ -138,7 +138,7 @@ class Aircraft:
                                   c_mac_wing=ref.c_mac_w,
                                   x_wing=0,
                                   x_duct=0,
-                                  w_fuel=0,
+                                  w_fuel=350,
                                   w_pax=0,
                                   z_PE=0)
             return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0], cog.z_cg()
@@ -156,7 +156,7 @@ class Aircraft:
                                   c_mac_wing=ref.c_mac_w,
                                   x_wing=self.x_wing,
                                   x_duct=self.x_duct,
-                                  w_fuel=0,
+                                  w_fuel=350,
                                   w_pax=0,
                                   z_PE=self.z_duct + 0.5 * self.geometry_duct[0])
             return cog.x_cg()[0], cog.x_cg()[1], cog.cg_fuselage_group()[0], cog.cg_wing_group()[0], cog.z_cg()

@@ -4,7 +4,7 @@ import config
 
 
 def slopes(type_sizing: str, aircraft_type: str, zh, sweep, aspect_ratio, lf, x_lemac, cmac, eta_h, cl_h, cl_w, tr,
-           span, sweep50, mach, aspect_ratio_h, swp50h, cm_h, thrust, v_inf, s_wing, z_e, cl_a_duuc, cl_duuc):
+           span, sweep50, mach, aspect_ratio_h, swp50h, cm_pe, thrust, v_inf, s_wing, z_e, cl_a_duuc, cl_duuc):
     a = 0
     b = 0
 
@@ -41,11 +41,8 @@ def slopes(type_sizing: str, aircraft_type: str, zh, sweep, aspect_ratio, lf, x_
             et = np.radians(-3)  # revise how this is calculated for both
 
             l_h = lf - x_lemac - 1.5
-
-            cm_e = (z_e * thrust * eta_h) / (0.5 * flow_conditions.rho * v_inf ** 2 * s_wing * cmac)
-
             cm_0 = -.1
-            dcm = dcl_flapped * (0.25 - (xcp_cmac * c_r)) # also revise this
+            dcm = dcl_flapped * (0.25 - (xcp_cmac * c_r))  # also revise this
             cm_0_flapped = cm_0 + dcm
 
             swp = np.radians(sweep)
@@ -55,7 +52,7 @@ def slopes(type_sizing: str, aircraft_type: str, zh, sweep, aspect_ratio, lf, x_
 
             a = cl_w / (cl_duuc * eta_h * (l_h / cmac))
 
-            b = (cm_w + cm_e + cm_h) / (cl_duuc * eta_h * (l_h / cmac))
+            b = (cm_w + cm_pe) / (cl_duuc * eta_h * (l_h / cmac))
 
     elif type_sizing == 'stability':
         if aircraft_type == 'conventional':

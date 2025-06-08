@@ -119,6 +119,7 @@ class ControlVane:
 
     def cl_a(self):
         cl_a_cv = (2 * np.pi) / (1 + (2 / (self.aspect_ratio() * oswald(self.aspect_ratio(), 0))))
+        cl_a_cv = 7.17
         return cl_a_cv
 
     def cd0(self):

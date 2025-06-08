@@ -44,10 +44,11 @@ class CenterOfGravity:
             cg_fuel = 12.24
             return [cg_wing, cg_main, cg_eng_wing, cg_nac_wing, cg_fuel]
         if self.aircraft_type == "DUUC":
-            cg_wing = self.x_wing + self.c_mac_wing / 2
+            cg_wing = self.x_wing + (self.c_mac_wing / 2)
             cg_main = cg_wing + 0.25
             cg_fuel = cg_wing
-            return [cg_wing, cg_main, cg_fuel]
+            cg_trim = 5
+            return [cg_wing, cg_main, cg_fuel, cg_trim]
         else:
             return None
 
@@ -63,7 +64,7 @@ class CenterOfGravity:
         if self.aircraft_type == "DUUC":
             cg_fus = 0.45 * self.l_fuselage
             cg_nose = 1.75
-            cg_sys = 11.5
+            cg_sys = 0.55 * self.l_fuselage
             cg_duct = self.x_duct
             cg_pax = cg_fus
             return [cg_fus, cg_nose, cg_sys, cg_duct, cg_pax]
@@ -96,7 +97,6 @@ class CenterOfGravity:
                 file.write(print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
                            "wing    ", "Conventional"))
                 file.close()
-
             return cg_wing_group, sum_w
 
         if self.aircraft_type == "DUUC":
@@ -123,8 +123,7 @@ class CenterOfGravity:
             with open(input_file_path, "w") as file:
                 file.write(print_cg_mass(components, mass_vect, self.cg_loc_wing(), mcg_vect, sum_w, sum_mcg, cg_wing_group,
                            "wing     ", "DUUC   "))
-                file.close() 
-
+                file.close()
             return cg_wing_group, sum_w
         else:
             return None
@@ -159,7 +158,6 @@ class CenterOfGravity:
                 file.write(print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
                            "fuselage", "Conventional"))
                 file.close()
-
             return cg_fuse_group, sum_w
 
         if self.aircraft_type == "DUUC":
@@ -187,7 +185,6 @@ class CenterOfGravity:
                 file.write(print_cg_mass(components, mass_vect, self.cg_loc_fus(), mcg_vect, sum_w, sum_mcg, cg_fuse_group,
                            "fuselage", "DUUC   "))
                 file.close()
-
             return cg_fuse_group, sum_w
         else:
             return None
@@ -204,8 +201,12 @@ class CenterOfGravity:
 
         x_lemac = ((self.cg_fuselage_group()[0] - x_cg_lemac) + (self.cg_wing_group()[1] / self.cg_fuselage_group()[1])
                    * (x_wg_lemac - x_cg_lemac))
-
+        #print(f"x_lemac: {x_lemac}")
         x_cg = x_cg_lemac + x_lemac
+
+        x_cg2 = (((self.cg_fuselage_group()[0] * self.cg_fuselage_group()[1]) + (self.cg_wing_group()[0]
+                                                                                * self.cg_wing_group()[1])) /
+                 (self.cg_wing_group()[1] + self.cg_fuselage_group()[1]))
         return x_cg, x_lemac
 
     def x_cg_lim(self):
@@ -274,7 +275,7 @@ class CenterOfGravity:
 """ Test section"""
 
 if __name__ == "__main__":
-    l_fuselage = ref.l_cab + ref.l_tail + ref.l_cockpit
+    l_fuselage = 21
     x = np.linspace(0, l_fuselage, 100)
     x_wing_group = []
     x_fuselage_group = []
@@ -297,7 +298,7 @@ if __name__ == "__main__":
                              w_nac_wing=250,
                              w_vt=178,
                              w_ht=124,
-                             w_duct=1750,
+                             w_duct=3500,
                              w_sys=3113,
                              l_fuselage=l_fuselage,
                              aircraft_type="DUUC",
@@ -322,7 +323,7 @@ if __name__ == "__main__":
                              w_nac_wing=250,
                              w_vt=178,
                              w_ht=124,
-                             w_duct=1750 - 500,
+                             w_duct=3500 - 500,
                              w_sys=3113,
                              l_fuselage=l_fuselage,
                              aircraft_type="DUUC",
@@ -344,7 +345,7 @@ if __name__ == "__main__":
                              w_nac_wing=250,
                              w_vt=178,
                              w_ht=124,
-                             w_duct=1750 + 500,
+                             w_duct=3500 + 500,
                              w_sys=3113,
                              l_fuselage=l_fuselage,
                              aircraft_type="DUUC",
@@ -356,49 +357,230 @@ if __name__ == "__main__":
                              w_pax=1000)
 
         x_cg3.append(cg.x_cg()[0])
+    print(x_cg)
+    # Create single plot with specified size
+    fig, ax0 = plt.subplots(figsize=(12, 4))
 
-    fig = plt.figure(figsize=(18, 8))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[3, 1])  # Left is 3x wider than right
-
-    # Left subplot
-    ax0 = plt.subplot(gs[0])
+    # Load background image
     image = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_side_view_tailless.png")
 
-    # Plot background image (aircraft side view)
-    ax0.imshow(image, extent=[0, l_fuselage, 0, l_fuselage], aspect='auto')
+    # Show background image with normalized axes
+    ax0.imshow(image, extent=[0, 1, 0, 1], aspect='auto')
 
-    ax0.plot(x_cg, x, label=r"$x_{cg-DUUC}$", color="tab:blue")
-    ax0.plot(x_cg2, x, label=r"$x_{cg-DUUC}$ - 500 kg", color="tab:purple")
-    ax0.plot(x_cg3, x, label=r"$x_{cg-DUUC}$ + 500 kg", color="tab:orange")
-    ax0.axvline(min(x_cg), color="tab:blue", linestyle="dashed")
-    ax0.axvline(max(x_cg), color="tab:blue", linestyle="dashed")
-    ax0.axvspan(min(x_cg), max(x_cg), color="tab:blue", alpha=0.2)
+    # Plot normalized CG trajectories
+    ax0.plot(np.array(x_cg) / l_fuselage, np.array(x) / l_fuselage, label=r"$x_{cg-DUUC}$", color="tab:blue")
+    ax0.plot(np.array(x_cg2) / l_fuselage, np.array(x) / l_fuselage, label=r"$x_{cg-DUUC}$: PE - 500 kg",
+             color="tab:purple")
+    ax0.plot(np.array(x_cg3) / l_fuselage, np.array(x) / l_fuselage, label=r"$x_{cg-DUUC}$: PE + 500 kg",
+             color="tab:orange")
 
-    ax0.axvline(x_cg_atr, color="tab:green", linestyle="dashed", label="$x_{cg-atr}$")
-    ax0.axvline(x_ac_wing, color="tab:red", label=r"$x_{ac-wing}$")
-    ax0.plot([min(x_cg), l_fuselage], [0, 0], color="black", linestyle="dashed")
-    ax0.plot(min(x_cg), 0, color="tab:blue", marker="o")
-    ax0.plot([np.mean(x_cg), l_fuselage], [0.5 * l_fuselage, 0.5 * l_fuselage], color="black", linestyle="dashed")
-    ax0.plot(np.mean(x_cg), 0.5 * l_fuselage, color="tab:blue", marker="o")
-    ax0.plot([max(x_cg), l_fuselage], [l_fuselage, l_fuselage], color="black", linestyle="dashed")
-    ax0.plot(max(x_cg), l_fuselage, color="tab:blue", marker="o")
+    # Span and markers for normalized x_cg range
+    ax0.axvline(min(x_cg) / l_fuselage, color="tab:blue", linestyle="dashed")
+    ax0.axvline(max(x_cg) / l_fuselage, color="tab:blue", linestyle="dashed")
+    ax0.axvspan(min(x_cg) / l_fuselage, max(x_cg) / l_fuselage, color="tab:blue", alpha=0.2)
 
-    ax0.set_title("Center of Gravity Shift with Position of PE")
-    ax0.set_xlabel(r"Fuselage Location [m]")
-    ax0.set_ylabel(f"x-location of the PE on the fuselage [m]")
+    # Reference lines
+    ax0.axvline(x_cg_atr / l_fuselage, color="tab:green", linestyle="dashed", label=r"$x_{cg-ATR}$")
+    ax0.axvline(x_ac_wing / l_fuselage, color="tab:red", label=r"$x_{ac-wing}$")
+
+    # Dotted guideline paths
+    ax0.plot([min(x_cg) / l_fuselage, 1], [0, 0], color="black", linestyle="dashed")
+    ax0.plot(min(x_cg) / l_fuselage, 0, color="tab:blue", marker="o")
+    ax0.plot([np.mean(x_cg) / l_fuselage, 1], [0.5, 0.5], color="black", linestyle="dashed")
+    ax0.plot(np.mean(x_cg) / l_fuselage, 0.5, color="tab:blue", marker="o")
+    ax0.plot([max(x_cg) / l_fuselage, 1], [1, 1], color="black", linestyle="dashed")
+    ax0.plot(max(x_cg) / l_fuselage, 1, color="tab:blue", marker="o")
+
+    # Title and labels
+    ax0.set_title("Center of Gravity shift with position of PE")
+    ax0.set_xlabel(r"Normalized fuselage location ($x / l_{fuselage}$)")
+    ax0.set_ylabel(r"Normalized PE position ($x / l_{fuselage}$)")
+    ax0.set_xlim([0, 1])
+    ax0.set_ylim([-0.05, 1.05])
     ax0.grid(True)
-    ax0.set_xlim([0, l_fuselage])
-    ax0.set_ylim([-1, l_fuselage*1.05])
     ax0.legend()
-
-    image2 = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_diff_loc.png")
-
-    # Right subplot - put whatever figure or image you want here
-    ax1 = plt.subplot(gs[1])
-    # Example: draw a placeholder box or text
-    ax1.imshow(image2, aspect='auto')
-    ax1.axis('off')  # Hide axes for a cleaner look
 
     plt.tight_layout()
     plt.show()
 
+
+"""
+    l_fuselage = 27
+    x = np.linspace(0, l_fuselage, 100)
+    x_wing_group = []
+    x_fuselage_group = []
+    x_cg = []
+    x_cg2 = []
+    x_cg3 = []
+    x_cg4 = []
+    x_cg5 = []
+
+    x_cg_atr = 11.5586
+    x_wg_atr = 11.625
+    x_fg_atr = 11.392
+    x_wing = 11.2
+    x_ac_wing = x_wing + 0.25 * ref.c_mac_w
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=3500,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i],
+                             z_PE=0,
+                             w_fuel=config.w_fuel_full_end,
+                             w_pax=1000
+                             )
+
+        x_wing_group.append(cg.cg_wing_group()[0])
+        x_fuselage_group.append(cg.cg_fuselage_group()[0])
+        x_cg.append(cg.x_cg()[0])
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=3500 - 500,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i],
+                             z_PE=0,
+                             w_fuel=5000,
+                             w_pax=7500)
+
+        x_cg2.append(cg.x_cg()[0])
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=3500 + 500,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i],
+                             z_PE=0,
+                             w_fuel=300,
+                             w_pax=7500)
+
+        x_cg3.append(cg.x_cg()[0])
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=3500 + 500,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i],
+                             z_PE=0,
+                             w_fuel=5000,
+                             w_pax=0)
+
+        x_cg4.append(cg.x_cg()[0])
+
+    for i in range(len(x)):
+        cg = CenterOfGravity(w_lg_nose=171,
+                             w_lg_main=787,
+                             w_eng_wing=500,
+                             w_wing=3500,
+                             w_fuse=3373,
+                             w_nac_wing=250,
+                             w_vt=178,
+                             w_ht=124,
+                             w_duct=3500 + 500,
+                             w_sys=3113,
+                             l_fuselage=l_fuselage,
+                             aircraft_type="DUUC",
+                             c_mac_wing=ref.c_mac_w,
+                             x_wing=x_wing,
+                             x_duct=x[i],
+                             z_PE=0,
+                             w_fuel=300,
+                             w_pax=0)
+
+        x_cg5.append(cg.x_cg()[0])
+
+    # Create single plot with specified size
+    fig, ax0 = plt.subplots(figsize=(12, 4))
+
+    # Load background imag
+"""
+#image = plt.imread(r"C:\Users\tomva\pythonProject\DUUC\data\images\DUUC_side_view_tailless.png")
+"""
+    # Show background image with normalized axes
+    ax0.imshow(image, extent=[0, 1, 0, 1], aspect='auto')
+
+    # Plot normalized CG trajectories
+    ax0.plot(np.array(x_cg) / l_fuselage, np.array(x) / l_fuselage, label=r"OEM")
+    ax0.plot(np.array(x_cg2) / l_fuselage, np.array(x) / l_fuselage, label=r"Max payload + max fuel",
+             )
+    ax0.plot(np.array(x_cg3) / l_fuselage, np.array(x) / l_fuselage, label=r"Max payload + min fuel",
+             )
+    ax0.plot(np.array(x_cg4) / l_fuselage, np.array(x) / l_fuselage, label=r"No payload + max fuel",
+             )
+    ax0.plot(np.array(x_cg5) / l_fuselage, np.array(x) / l_fuselage, label=r"No payload + min fuel",
+             )
+
+    # Span and markers for normalized x_cg range
+    ax0.axvline(min(x_cg) / l_fuselage, color="tab:blue", linestyle="dashed")
+    ax0.axvline(max(x_cg) / l_fuselage, color="tab:blue", linestyle="dashed")
+    ax0.axvspan(min(x_cg) / l_fuselage, max(x_cg) / l_fuselage, color="tab:blue", alpha=0.2)
+
+    # Reference lines
+    #ax0.axvline(x_cg_atr / l_fuselage, color="tab:green", linestyle="dashed", label=r"$x_{cg-ATR}$")
+    #ax0.axvline(x_ac_wing / l_fuselage, color="tab:red", label=r"$x_{ac-wing}$")
+
+    # Dotted guideline paths
+    #ax0.plot([min(x_cg) / l_fuselage, 1], [0, 0], color="black", linestyle="dashed")
+    #ax0.plot(min(x_cg) / l_fuselage, 0, color="tab:blue", marker="o")
+    #ax0.plot([np.mean(x_cg) / l_fuselage, 1], [0.5, 0.5], color="black", linestyle="dashed")
+    #ax0.plot(np.mean(x_cg) / l_fuselage, 0.5, color="tab:blue", marker="o")
+    #ax0.plot([max(x_cg) / l_fuselage, 1], [1, 1], color="black", linestyle="dashed")
+    #ax0.plot(max(x_cg) / l_fuselage, 1, color="tab:blue", marker="o")
+
+    # Title and labels
+    ax0.set_title("Center of Gravity shift with position of PE")
+    ax0.set_xlabel(r"Normalized fuselage location ($x / l_{fuselage}$)")
+    ax0.set_ylabel(r"Normalized PE position ($x / l_{fuselage}$)")
+    ax0.set_xlim([0, 1])
+    ax0.set_ylim([-0.05, 1.05])
+    ax0.grid(True)
+    ax0.legend()
+
+    plt.tight_layout()
+    plt.show()
+"""
